@@ -16,3 +16,43 @@ areas:
   - portal
   - security
   - ops
+
+specs:
+  - id: 01-laravel-platform-foundation
+    title: Laravel platform foundation
+    completed: 2026-04-19
+    verdict: pass-with-notes
+    files_changed: 85
+    tests_added: 3
+    tags:
+      - laravel
+      - ops
+      - foundation
+      - docker
+      - ci
+    issue: null
+    pr: null
+
+stats:
+  total: 1
+  by_verdict:
+    pass: 0
+    pass-with-notes: 1
+  by_tag:
+    laravel: 1
+    ops: 1
+    foundation: 1
+    docker: 1
+    ci: 1
+
+_schema:
+  spec_entry:
+    id: "plan-id (slug format)"
+    title: "Human-readable title"
+    completed: "YYYY-MM-DD"
+    verdict: "pass | pass-with-notes"
+    files_changed: "number of files modified/created"
+    tests_added: "number of new tests"
+    tags: ["list", "of", "tags"]
+    issue: "issue number (optional)"
+    pr: "pull request number (optional)"
