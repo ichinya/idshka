@@ -1,0 +1,80 @@
+version: 1
+plan_id: 01-platform-foundation
+title: План 01 — Platform Foundation
+state: ready
+ready_for_implementation: true
+current_step: null
+created_at: '2026-04-15T00:00:00Z'
+updated_at: '2026-04-15T00:00:00Z'
+git:
+  enabled: true
+  base_branch: main
+  recommended_branch: feature/01-platform-foundation
+  strategy: isolated-feature-branch
+progress:
+  completed: 0
+  total: 8
+artifacts:
+  summary: .ai-factory/plans/01-platform-foundation.md
+  context: .ai-factory/plans/01-platform-foundation/context.md
+  tasks: .ai-factory/plans/01-platform-foundation/task.md
+  rules: .ai-factory/plans/01-platform-foundation/rules.md
+  verify: .ai-factory/plans/01-platform-foundation/verify.md
+applicable_areas:
+- api
+- ops
+tasks:
+- id: PF-01
+  title: Инициализировать monorepo и package manager strategy
+  status: pending
+  depends_on: []
+  evidence: []
+- id: PF-02
+  title: Создать каркас приложений idska-api, idska-portal и apishka-api
+  status: pending
+  depends_on:
+  - PF-01
+  evidence: []
+- id: PF-03
+  title: Добавить infra/openresty/apishka и шаблон gateway-конфига
+  status: pending
+  depends_on:
+  - PF-01
+  evidence: []
+- id: PF-04
+  title: Завести packages/contracts для JWT claims, auth headers и error bodies
+  status: pending
+  depends_on:
+  - PF-02
+  evidence: []
+- id: PF-05
+  title: Подготовить Docker Compose с PostgreSQL, Redis и локальным ingress
+  status: pending
+  depends_on:
+  - PF-02
+  - PF-03
+  evidence: []
+- id: PF-06
+  title: Подключить structured logging и request_id middleware во все сервисы
+  status: pending
+  depends_on:
+  - PF-02
+  evidence: []
+- id: PF-07
+  title: Добавить health/readiness endpoints и smoke scripts
+  status: pending
+  depends_on:
+  - PF-02
+  - PF-05
+  evidence: []
+- id: PF-08
+  title: 'Настроить CI skeleton: lint, typecheck, test/smoke'
+  status: pending
+  depends_on:
+  - PF-04
+  - PF-07
+  evidence: []
+blockers: []
+notes:
+- Стартовый full-plan пакет, созданный вручную под AIFHub extension.
+- После фактического начала работы state должен перейти из ready в in_progress.

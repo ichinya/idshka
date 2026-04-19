@@ -1,0 +1,75 @@
+version: 1
+plan_id: 03-apishka-edge-gateway
+title: План 03 — apishka Edge Gateway
+state: ready
+ready_for_implementation: true
+current_step: null
+created_at: '2026-04-15T00:00:00Z'
+updated_at: '2026-04-15T00:00:00Z'
+git:
+  enabled: true
+  base_branch: main
+  recommended_branch: feature/03-apishka-edge-gateway
+  strategy: isolated-feature-branch
+progress:
+  completed: 0
+  total: 7
+artifacts:
+  summary: .ai-factory/plans/03-apishka-edge-gateway.md
+  context: .ai-factory/plans/03-apishka-edge-gateway/context.md
+  tasks: .ai-factory/plans/03-apishka-edge-gateway/task.md
+  rules: .ai-factory/plans/03-apishka-edge-gateway/rules.md
+  verify: .ai-factory/plans/03-apishka-edge-gateway/verify.md
+applicable_areas:
+- gateway
+- security
+- api
+- ops
+tasks:
+- id: AEG-01
+  title: Создать nginx.conf и Lua entrypoint для auth-проверки
+  status: pending
+  depends_on: []
+  evidence: []
+- id: AEG-02
+  title: Подключить JWKS fetch + cache + key selection по kid
+  status: pending
+  depends_on:
+  - AEG-01
+  evidence: []
+- id: AEG-03
+  title: 'Реализовать обязательные проверки: alg, iss, aud, exp, nbf, signature'
+  status: pending
+  depends_on:
+  - AEG-02
+  evidence: []
+- id: AEG-04
+  title: Добавить полную sanitization входящих X-Idska-* и injection доверенных заголовков
+  status: pending
+  depends_on:
+  - AEG-03
+  evidence: []
+- id: AEG-05
+  title: Сделать стабильные JSON-ошибки 401/403 с request_id
+  status: pending
+  depends_on:
+  - AEG-03
+  evidence: []
+- id: AEG-06
+  title: Закрыть apishka-api от внешнего трафика и доверять только gateway
+  status: pending
+  depends_on:
+  - AEG-04
+  evidence: []
+- id: AEG-07
+  title: 'Добавить integration/smoke сценарии: valid, expired, wrong aud, bad signature,
+    spoofed headers'
+  status: pending
+  depends_on:
+  - AEG-05
+  - AEG-06
+  evidence: []
+blockers: []
+notes:
+- Стартовый full-plan пакет, созданный вручную под AIFHub extension.
+- После фактического начала работы state должен перейти из ready в in_progress.

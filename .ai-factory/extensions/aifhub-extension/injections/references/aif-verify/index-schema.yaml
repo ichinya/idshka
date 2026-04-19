@@ -1,0 +1,33 @@
+# Specs Catalog
+# Index of all finalized specifications created by aif-verify finalization.
+
+specs:
+  # Example entry:
+  # - id: feat-example
+  #   title: Example Specification
+  #   completed: 2026-04-12
+  #   verdict: pass
+  #   files_changed: 12
+  #   tests_added: 0
+  #   tags: [workflow, example]
+  #   issue: null
+  #   pr: null
+
+stats:
+  total: 0
+  by_verdict:
+    pass: 0
+    pass-with-notes: 0
+  by_tag: {}
+
+_schema:
+  spec_entry:
+    id: "plan-id (slug format)"
+    title: "Human-readable title"
+    completed: "YYYY-MM-DD"
+    verdict: "pass | pass-with-notes"
+    files_changed: "number of files modified/created"
+    tests_added: "number of new tests"
+    tags: ["list", "of", "tags"]
+    issue: "issue number (optional)"
+    pr: "pull request number (optional)"

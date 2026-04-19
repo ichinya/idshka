@@ -1,0 +1,79 @@
+# AI Factory Configuration v1
+# This file persists project-level settings for AI agents
+# Generated/updated by aif-analyze
+# Source of truth for paths, workflow settings, and rules references
+
+# ============================================================================
+# LANGUAGE SETTINGS
+# ============================================================================
+language:
+  # Language for agent communication (UI messages, questions, summaries)
+  ui: {{language_ui}}
+  # Language for generated artifacts (DESCRIPTION.md, ARCHITECTURE.md, plans, etc.)
+  artifacts: {{language_artifacts}}
+  # Language for technical terms (usually english for consistency)
+  technical_terms: english
+
+# ============================================================================
+# PATH CONFIGURATION
+# ============================================================================
+# All paths are relative to project root
+paths:
+  # Core AI Factory artifacts (owned by core /aif skills)
+  description: .ai-factory/DESCRIPTION.md
+  architecture: .ai-factory/ARCHITECTURE.md
+  roadmap: .ai-factory/ROADMAP.md
+  research: .ai-factory/RESEARCH.md
+  
+  # Workflow directories
+  plans: .ai-factory/plans
+  specs: .ai-factory/specs
+  
+  # Rules directory (base.md required, area files optional)
+  rules: .ai-factory/rules
+
+# ============================================================================
+# WORKFLOW SETTINGS
+# ============================================================================
+workflow:
+  # Auto-create missing directories when needed
+  auto_create_dirs: true
+  
+  # Plan ID generation format: slug | sequential | timestamp
+  plan_id_format: slug
+  
+  # Guided handoff triggers (suggest next skill after completion)
+  # If true, aif-analyze suggests running /aif-architecture when done
+  analyze_updates_architecture: true
+  # If true, aif-architecture suggests running /aif-roadmap when done
+  architecture_updates_roadmap: true
+  
+  # Verification mode: strict | normal | lenient
+  # strict: all rules are blocking, any violation fails verification
+  # normal: critical rules are blocking, others are warnings
+  # lenient: all rules are warnings only
+  verify_mode: normal
+
+# ============================================================================
+# RULES CONFIGURATION
+# ============================================================================
+# Rules are loaded by aif-implement and aif-verify as quality gates
+# base.md is required; area files are optional and plan-driven
+rules:
+  # Required: project-wide coding rules, conventions, constraints
+  base: .ai-factory/rules/base.md
+  
+  # Optional area-specific rules (added during planning when a plan needs them)
+  # Uncomment and add paths as needed:
+  # api: .ai-factory/rules/api.md
+  # frontend: .ai-factory/rules/frontend.md
+  # backend: .ai-factory/rules/backend.md
+  # database: .ai-factory/rules/database.md
+  # logging: .ai-factory/rules/logging.md
+  # testing: .ai-factory/rules/testing.md
+
+# ============================================================================
+# AGENT PROFILE (optional)
+# ============================================================================
+# Predefined behavior profiles: default | strict | creative | minimal
+agent_profile: default

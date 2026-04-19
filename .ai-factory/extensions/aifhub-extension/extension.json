@@ -1,0 +1,90 @@
+{
+  "name": "aifhub-extension",
+  "version": "0.9.1",
+  "description": "Spec-driven workflow for AI Factory: analyze, plan, implement, verify, fix, and archive structured plan artifacts",
+  "compat": {
+    "ai-factory": ">=2.8.0 <3.0.0"
+  },
+  "sources": {
+    "ai-factory": {
+      "url": "https://github.com/lee-to/ai-factory",
+      "version": "2.9.1",
+      "baselineVersion": "2.0.0",
+      "lastSync": "2026-04-12",
+      "notes": "Reviewed against upstream 2.9.1; release 0.9.0 moves planning, execution orchestration, and finalization to built-in skills via injections"
+    },
+    "openspec": {
+      "url": "https://github.com/Fission-AI/OpenSpec",
+      "version": "v0.23.0",
+      "lastSync": "2026-03-26",
+      "notes": "init"
+    }
+  },
+  "skills": [
+    "skills/aif-analyze"
+  ],
+  "agentFiles": [
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-plan-polisher.toml",
+      "target": "aifhub-plan-polisher.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-implement-worker.toml",
+      "target": "aifhub-implement-worker.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-review-sidecar.toml",
+      "target": "aifhub-review-sidecar.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-security-sidecar.toml",
+      "target": "aifhub-security-sidecar.toml"
+    }
+  ],
+  "injections": [
+    {
+      "target": "aif-plan",
+      "position": "prepend",
+      "file": "./injections/aif-plan-plan-folder.md"
+    },
+    {
+      "target": "aif-explore",
+      "position": "prepend",
+      "file": "./injections/aif-explore-plan-folder.md"
+    },
+    {
+      "target": "aif-roadmap",
+      "position": "prepend",
+      "file": "./injections/aif-roadmap-maturity-audit.md"
+    },
+    {
+      "target": "aif-fix",
+      "position": "prepend",
+      "file": "./injections/aif-fix-plan-folder.md"
+    },
+    {
+      "target": "aif-verify",
+      "position": "prepend",
+      "file": "./injections/aif-verify-plan-folder.md"
+    },
+    {
+      "target": "aif-improve",
+      "position": "prepend",
+      "file": "./injections/aif-improve-plan-folder.md"
+    },
+    {
+      "target": "aif-implement",
+      "position": "prepend",
+      "file": "./injections/aif-implement-plan-folder.md"
+    },
+    {
+      "target": "aif-evolve",
+      "position": "prepend",
+      "file": "./injections/aif-evolve-plan-evidence.md"
+    }
+  ]
+}
