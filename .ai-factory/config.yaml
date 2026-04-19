@@ -37,9 +37,11 @@ git:
 
 rules:
   base: .ai-factory/rules/base.md
+  site_registry: .ai-factory/rules/site-registry.md
   issuer: .ai-factory/rules/issuer.md
   gateway: .ai-factory/rules/gateway.md
-  api: .ai-factory/rules/api.md
+  api_resource: .ai-factory/rules/api-resource.md
+  web_client: .ai-factory/rules/web-client.md
   portal: .ai-factory/rules/portal.md
   security: .ai-factory/rules/security.md
   ops: .ai-factory/rules/ops.md

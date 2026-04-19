@@ -1,28 +1,29 @@
 # 01-platform-foundation
 
 ## Цель
-Подготовить монорепозиторий, общий contracts layer и локальную инфраструктуру так,
-чтобы дальнейшие планы выполнялись без переизобретения структуры.
+Подготовить monorepo, локальную инфраструктуру, contracts package и skeleton сервисов.
+
+## Area
+base, ops
 
 ## Что должно появиться
-- monorepo/workspaces
-- `apps/idska-api`
-- `apps/idska-portal`
-- `apps/apishka-api`
-- `infra/openresty/apishka`
-- `packages/contracts`
-- локальный Docker Compose
-- базовые health/readiness маршруты
-- единый request_id и structured logging
+- pnpm workspace skeleton
+- apps/idshka-api
+- apps/idshka-portal
+- examples/apishka-api
+- examples/apishka-web
+- infra/openresty/apishka
+- packages/contracts
+- Docker Compose
+- health/readiness endpoints
 
 ## Зависимости
-Нет. Это первый исполняемый план.
+Нет
 
 ## Acceptance criteria
-- проект поднимается локально одной командой;
-- сервисы имеют health endpoints;
-- contracts package содержит начальные схемы claims и `X-Idska-*` headers;
-- CI может выполнить минимум `lint`, `typecheck`, `test`/`smoke`.
+- docker compose поднимает базовые сервисы
+- contracts содержит JWT claims, OIDC metadata и X-Idshka headers
+- CI skeleton выполняет lint/typecheck/test или smoke
 
 ## Связь с roadmap
-Поддерживает Milestone M0.
+См. `.ai-factory/ROADMAP.md`.

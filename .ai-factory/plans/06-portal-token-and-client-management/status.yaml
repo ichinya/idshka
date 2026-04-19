@@ -1,0 +1,8 @@
+id: 06-portal-token-and-client-management
+title: "Portal UX for Sites, Tokens and Clients"
+status: planned
+area: "portal, site_registry"
+depends_on: ['02-site-registry-and-modes', '03-token-issuer-and-jwks', '05-web-login-oidc-for-apishka']
+outputs: ['site list UI', 'domain verify UI', 'mode toggles', 'token create/revoke UI', 'client secret rotation UI', 'curl/OIDC snippets', 'audit list']
+acceptance: ['пользователь понимает difference API token vs web login', 'raw secrets shown once', 'revoke отражается в UI', 'snippets соответствуют docs/API_FLOWS.md']
+notes: []

@@ -1,90 +1,128 @@
 # ROADMAP
 
 ## Вектор продукта
-Построить минимальный, понятный и безопасный control plane для API-доступа:
-`idska` выпускает токены и знает права, `apishka` принимает только уже проверенный auth-context.
+Сделать `idshka.ru` сервисом подключения сайтов, где владелец может включить:
 
-## Milestone M0 — Project Bootstrap
+- **API-only режим**: токены создаются на `idshka.ru`, а API-сайт `apishka.ru` пускает запросы через gateway-проверку.
+- **Web login режим**: сайт `apishka.ru` использует `idshka.ru` как провайдера входа.
+
+## Milestone M0 — Project Bootstrap & Contracts
 **Статус:** planned  
 **План:** `01-platform-foundation`
 
 Результат:
 - monorepo готов;
-- базовые сервисы поднимаются локально;
-- contracts package и базовые env/compose/CI есть.
+- `idshka-api`, `idshka-portal`, examples и infra skeleton есть;
+- базовый contracts layer создан.
 
 Done when:
-- локальный `docker compose up` поднимает PostgreSQL, Redis и OpenResty;
-- `idska-api` и `apishka-api` имеют `/health`;
-- есть typed contracts для token claims и upstream headers.
+- локальный `docker compose up` поднимает PostgreSQL, Redis, idshka-api, idshka-portal и gateway example;
+- есть health endpoints;
+- есть typed contracts для JWT claims, upstream headers и OIDC client metadata.
 
-## Milestone M1 — Token Issuer Core
+## Milestone M1 — Connected Site Registry
 **Статус:** planned  
-**План:** `02-issuer-jwt-core`
+**План:** `02-site-registry-and-modes`
 
 Результат:
-- `idska-api` умеет выпускать и отзывать токены;
-- публичный JWKS endpoint работает;
-- аудит сохраняется.
+- владелец добавляет `apishka.ru`;
+- подтверждает домен;
+- выбирает режимы `api_resource` и/или `web_client`.
 
 Done when:
-- можно создать JWT для audience `apishka`;
+- домен можно подтвердить через DNS TXT или `/.well-known/` file;
+- сайт получает `site_id`;
+- для сайта можно включить API audience и OIDC client.
+
+## Milestone M2 — Token Issuer & JWKS
+**Статус:** planned  
+**План:** `03-token-issuer-and-jwks`
+
+Результат:
+- `idshka-api` выпускает JWT для API-only режима;
+- JWKS endpoint работает;
+- revoke сохраняется.
+
+Done when:
+- можно создать токен для `aud=apishka.ru`;
+- токен содержит user/site/scopes/permissions;
 - gateway может валидировать подпись по JWKS;
-- revoke записывается и доступен для denylist cache.
+- revoke фиксируется в denylist.
 
-## Milestone M2 — Edge Auth Gateway for apishka
+## Milestone M3 — API-only Gateway for `apishka.ru`
 **Статус:** planned  
-**План:** `03-apishka-edge-gateway`
+**План:** `04-api-resource-gateway-for-apishka`
 
 Результат:
-- `api.apishka.ru` защищён OpenResty;
-- upstream получает только доверенный набор `X-Idska-*` заголовков.
+- example gateway защищает API-only сайт;
+- upstream получает `X-Idshka-*` и/или signed context.
 
 Done when:
 - валидный токен проходит;
-- просроченный/поддельный/неподходящий по audience токен блокируется;
-- входящие пользовательские `X-Idska-*` не проходят до upstream.
+- поддельный/просроченный/audience mismatch токен блокируется;
+- клиентские `X-Idshka-*` удаляются;
+- upstream получает проверяемый context.
 
-## Milestone M3 — Self-Service Portal & Site Onboarding
+## Milestone M4 — Web Login through `idshka.ru`
 **Статус:** planned  
-**План:** `04-portal-onboarding-and-token-management`
+**План:** `05-web-login-oidc-for-apishka`
 
 Результат:
-- пользователь сам создаёт токен;
-- видит привязанные consumer-сайты и usage/revoke;
-- есть инструкции для вызова `apishka`.
+- `apishka.ru` может быть web-client;
+- вход идёт через Authorization Code + PKCE;
+- callback создаёт локальную сессию `apishka.ru`.
 
 Done when:
-- токен можно выпустить через UI;
-- токен показывается один раз;
-- revoke доступен из кабинета;
-- есть рабочий curl snippet.
+- `GET /oauth/authorize` и `POST /oauth/token` работают для registered client;
+- строгая проверка redirect URI включена;
+- `id_token` валидируется;
+- example `apishka-web` логинится через `idshka.ru`.
 
-## Milestone M4 — Hardening, Revocation, Observability
+## Milestone M5 — Portal Management UX
 **Статус:** planned  
-**План:** `05-security-hardening-and-ops`
+**План:** `06-portal-token-and-client-management`
 
 Результат:
-- безопасная ротация ключей;
-- denylist и emergency revoke;
-- rate limits, dashboards, incident runbooks.
+- пользователь видит сайты, режимы, токены, web clients, audit;
+- может создать/revoke токен;
+- владелец сайта может управлять redirect URI и scopes.
 
 Done when:
-- ревокнутый `jti` перестаёт работать на gateway в пределах целевого TTL;
-- ключ можно перевести в `next -> active -> retired` без простоя;
-- базовые auth-метрики и дашборды есть.
+- raw token показывается один раз;
+- client secret показывается один раз или ротируется;
+- есть snippets для API-only и web-client;
+- audit понятен из UI.
+
+## Milestone M6 — Security Hardening & Ops
+**Статус:** planned  
+**План:** `07-security-hardening-and-ops`
+
+Результат:
+- key rotation;
+- hard revoke / denylist;
+- rate limits;
+- observability;
+- incident runbooks.
+
+Done when:
+- ключи переходят `next -> active -> retired` без downtime;
+- revoked `jti` блокируется gateway в пределах согласованного TTL;
+- есть метрики, структурированные логи и runbooks.
 
 ## Очерёдность исполнения
 1. `01-platform-foundation`
-2. `02-issuer-jwt-core`
-3. `03-apishka-edge-gateway`
-4. `04-portal-onboarding-and-token-management`
-5. `05-security-hardening-and-ops`
+2. `02-site-registry-and-modes`
+3. `03-token-issuer-and-jwks`
+4. `04-api-resource-gateway-for-apishka`
+5. `05-web-login-oidc-for-apishka`
+6. `06-portal-token-and-client-management`
+7. `07-security-hardening-and-ops`
 
-## Дальше, после MVP
-- opaque PAT + exchange flow для долгоживущих интеграций;
-- multi-tenant orgs / teams;
-- site-specific role templates;
-- external developer portal и SDK;
-- OAuth/OIDC client onboarding для сторонних сайтов;
-- billing / quotas.
+## После MVP
+- opaque long-lived PAT + exchange на короткие JWT;
+- SDK для подключённых сайтов;
+- Envoy/Kong gateway adapters;
+- org/team model;
+- billing/quotas;
+- policy templates;
+- webhook-события для подключённых сайтов.

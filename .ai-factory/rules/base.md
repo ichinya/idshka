@@ -1,29 +1,24 @@
-# Base Rules
+# Area: base
 
-## Общие принципы реализации
-- Делать маленькие, проверяемые изменения.
-- Не смешивать UI, signer logic и gateway logic в одном модуле.
-- Все новые env-переменные документировать в `.env.example`.
-- Все внешние сетевые зависимости оборачивать таймаутами и retries с ограничением.
-- Для всех новых API-route нужен понятный request/response пример.
-- Любой security-sensitive код сопровождается явным списком инвариантов в комментарии или docblock.
-- Любой новый токен или ключ получает label/metadata для аудита.
+## Общие правила разработки
+- Сначала обновляй contracts, потом реализацию.
+- Любой публичный endpoint должен иметь schema validation.
+- Любой auth/security endpoint должен иметь audit event.
+- Ошибки возвращать в едином формате из `packages/contracts`.
+- Не смешивать API-only и web-client flow в одном обработчике без явного mode check.
+- Не добавлять новую внешнюю зависимость без причины в plan evidence.
+- Не логировать raw secrets.
+- Все timestamps хранить в UTC.
+- Все ids должны быть стабильными и пригодными для audit/correlation.
 
-## Код-стиль и качество
-- Предпочитать typed contracts вместо "магических" словарей.
-- Не дублировать названия claims и headers строковыми литералами по репозиторию.
-- Ошибки должны быть машинно-читаемыми: `code`, `message`, `details?`, `request_id`.
-- Логи структурированные: `event`, `request_id`, `user_id?`, `site_id?`, `token_jti?`.
-- Любая миграция должна быть обратимой или иметь rollback note.
+## Naming
+- Сервис называется `idshka.ru`.
+- Пример подключённого сайта: `apishka.ru`.
+- Headers имеют префикс `X-Idshka-*`.
+- Internal modules используют `idshka`, не старое ошибочное написание.
 
-## Что нельзя делать
-- Нельзя доверять `X-Idska-*` из внешнего запроса.
-- Нельзя использовать raw token как primary identifier в БД или логах.
-- Нельзя хранить приватные ключи в git, docker image или статических fixture.
-- Нельзя silently broaden permissions при отсутствии `scope`/`permissions`.
-- Нельзя смешивать issuer и consumer-specific permissions в одном namespace без префикса.
-
-## Definition of Done
-- Изменение проходит по актуальным area rules.
-- Добавлена или обновлена документация/контракт, если меняется интеграционная поверхность.
-- Есть минимальное evidence для верификации.
+## Definition of done
+- Есть код/конфиг.
+- Есть тест или smoke evidence.
+- Есть обновление docs/contracts, если менялась внешняя поверхность.
+- Плановый статус можно обновить.

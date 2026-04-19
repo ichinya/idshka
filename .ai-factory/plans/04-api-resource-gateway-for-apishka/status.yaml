@@ -1,0 +1,8 @@
+id: 04-api-resource-gateway-for-apishka
+title: "API-only Gateway for apishka.ru"
+status: planned
+area: "gateway, api_resource"
+depends_on: ['03-token-issuer-and-jwks']
+outputs: ['nginx.conf', 'lua/jwt_validate.lua', 'lua/jwks_cache.lua', 'lua/context_sign.lua', 'header sanitation', 'example upstream reads headers', 'curl smoke tests']
+acceptance: ['валидный токен проходит', 'поддельный/expired/audience mismatch блокируется', 'входящие X-Idshka-* не проходят', 'signed context верифицируется в example upstream']
+notes: []

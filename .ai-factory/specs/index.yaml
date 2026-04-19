@@ -1,2 +1,7 @@
-version: 1
-items: []
+openapi: 3.1.0
+info:
+  title: idshka contracts index
+  version: 0.1.0
+paths: {}
+components:
+  schemas: {}

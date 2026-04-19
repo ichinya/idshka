@@ -1,25 +1,23 @@
-# Issuer Area Rules
+# Area: issuer
 
 ## Scope
-`idska-api`, key management, token issuance, site registry, audit.
+- JWT issuance.
+- JWKS publication.
+- OIDC authorize/token/userinfo endpoints.
+- Key rotation.
+- Revoke/denylist.
 
-## Правила
-- Выпуск токена всегда требует явный `aud` и набор scopes/permissions.
-- `jti` генерируется на каждый токен и никогда не переиспользуется.
-- `kid` обязателен в каждом подписанном токене.
-- Ключи живут по состояниям: `next`, `active`, `retired`, `revoked`.
-- JWKS публикует только публичные ключи и только в формате, пригодном для edge-кэша.
-- Отзыв токена не удаляет историю — создаётся отдельная запись revoke/audit.
-- Любое изменение схемы claims сначала обновляет контракт и примеры.
-- Токены по умолчанию короткоживущие; увеличение TTL требует явного обоснования.
+## Rules
+- Только `idshka-api` подписывает токены.
+- JWT header обязан иметь `kid` и approved `alg`.
+- API-only token обязан иметь `iss`, `aud`, `sub`, `site_id`, `jti`, `iat`, `nbf`, `exp`, `scope`.
+- Web `id_token` обязан иметь `iss`, `aud`, `sub`, `iat`, `exp`, `nonce`.
+- `aud` всегда проверяется по mode: API audience для `api_resource`, `client_id` для `web_client`.
+- Private keys не сериализуются в логи/ответы API.
+- Revoked `jti` пишется в PostgreSQL и по возможности в Redis.
+- Raw token показывается только один раз.
 
-## API нормы
-- Публичные маршруты версионируются через `/v1/...`.
-- `POST /v1/tokens` возвращает токен и metadata, но raw token повторно не показывается.
-- `POST /v1/tokens/{id}/revoke` должен быть идемпотентным.
-- `GET /v1/.well-known/jwks.json` или эквивалентный endpoint должен кэшироваться безопасно и с понятным TTL.
-
-## Запрещено
-- Логировать raw JWT.
-- Подписывать токены ключом без `kid`.
-- Переиспользовать одну и ту же permission-модель для всех consumer-ов без namespace.
+## Error semantics
+- Invalid/missing token: `401`.
+- Valid token but insufficient scope: `403`.
+- Unknown client/site: `401` для auth flow, `404` только в owner UI.

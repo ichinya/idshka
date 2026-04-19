@@ -1,3 +1,3 @@
 # FIX_PLAN
 
-Заполняется при запуске `/aif-fix` в режиме plan-first.
+Использовать для hotfix-планов после verify/failure. Не смешивать hotfix с feature-планами из roadmap.

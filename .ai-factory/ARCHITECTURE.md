@@ -1,168 +1,248 @@
 # ARCHITECTURE
 
 ## Архитектурный стиль
-Рекомендуемый старт: **modular monorepo** с явным разделением на control plane,
-edge auth gateway и business API.
+`idshka.ru` строится как **identity/control plane**, а подключённые сайты (`apishka.ru` и другие) — как внешние consumers.
 
-Почему так:
-- продукт стартует как greenfield;
-- нужна быстрая итерация по одному репозиторию;
-- при этом auth-граница должна быть жёсткой и независимой от кода upstream.
+В MVP репозиторий может быть monorepo, но архитектурная граница такая:
 
-## Контекст системы
+- `idshka-api` — источник истины по пользователям, сайтам, ключам, токенам, клиентам и аудитам.
+- `idshka-portal` — личный кабинет и self-service UI.
+- `connected site` — внешний сайт владельца; в репозитории допускаются только examples/adapters.
+- `edge gateway` — слой на стороне подключённого API-сайта, который валидирует токен до upstream.
+
+## Два режима подключения сайта
+
+### Mode A: `api_resource`
+`apishka.ru` — API-only.
 
 ```text
 Пользователь
   │
-  │ 1. создаёт токен / отзывает токен
+  │ 1. входит на idshka.ru и создаёт API token для apishka.ru
   ▼
-idska-portal
-  │
-  ▼
-idska-api ──────► PostgreSQL
-  │  │
-  │  └──────────► Redis (revocation, rate limits, cache)
-  │
-  ├─────────────► /oauth/jwks.json
-  └─────────────► /v1/tokens, /v1/sites, /v1/audit
+idshka-portal ───► idshka-api ───► PostgreSQL / Redis
+                       │
+                       ├──► /oauth/jwks.json
+                       └──► /v1/tokens
 
-Клиент/скрипт
-  │ Authorization: Bearer <jwt>
+Клиент / скрипт пользователя
+  │
+  │ 2. Authorization: Bearer <idshka_jwt>
   ▼
-api.apishka.ru (OpenResty / Nginx + Lua)
-  │ 2. validate JWT locally via cached JWKS
-  │ 3. sanitize headers
-  │ 4. inject X-Idska-* headers
+api.apishka.ru / OpenResty Gateway
+  │ 3. проверка подписи/JWKS/iss/aud/exp/jti
+  │ 4. очистка входящих X-Idshka-*
+  │ 5. добавление X-Idshka-* и/или signed context
   ▼
-apishka-api (internal only)
+apishka-api upstream
 ```
 
-## Ключевые компоненты
+Поведение:
+- токен выпускает только `idshka-api`;
+- `aud` токена равен audience подключённого сайта, например `apishka.ru` или `site_apishka`;
+- gateway на `apishka.ru` проверяет токен до upstream;
+- upstream принимает auth-context только от gateway.
 
-### 1. `idska-portal`
+### Mode B: `web_client`
+`apishka.ru` — web-сайт с полноценным входом через `idshka.ru`.
+
+```text
+Браузер пользователя
+  │
+  │ 1. GET https://apishka.ru/login
+  ▼
+apishka-web
+  │
+  │ 2. redirect to https://idshka.ru/oauth/authorize?...client_id=...
+  ▼
+idshka.ru
+  │
+  │ 3. login / consent
+  ▼
+apishka.ru/callback
+  │
+  │ 4. exchange code -> tokens
+  │ 5. validate id_token / create local session
+  ▼
+apishka-web session
+```
+
+Поведение:
+- `apishka.ru` регистрируется как OIDC client;
+- владелец сайта задаёт redirect URI;
+- используется Authorization Code + PKCE;
+- `idshka.ru` возвращает `id_token` и access token;
+- `apishka.ru` создаёт свою локальную session cookie.
+
+## Основные компоненты
+
+### `idshka-api`
+Bounded contexts:
+- Identity: пользователи, логин, сессии `idshka.ru`.
+- Site Registry: подключённые домены, режимы, verification status.
+- API Resource Registry: audiences, scopes, permissions для API-only режима.
+- OIDC Client Registry: client_id, client_secret, redirect URI для web-client режима.
+- Token Issuer: выпуск JWT, refresh/exchange flows при необходимости.
+- Key Management: private keys, JWKS, rotation lifecycle.
+- Audit: token created/used/revoked, login started/completed, site verified.
+
+### `idshka-portal`
 Назначение:
-- UI личного кабинета;
+- регистрация/вход пользователя в `idshka.ru`;
+- подключение домена;
+- выбор режимов `api_resource` / `web_client`;
+- управление scopes/permissions;
 - создание токенов;
-- отображение consumer-сайтов, ролей, scopes, аудита.
+- управление client credentials;
+- revoke и audit.
 
-Ответственность:
-- только orchestration/UI;
-- не хранит signing secrets;
-- не принимает решений по авторизации upstream.
-
-### 2. `idska-api`
+### `apishka-edge` / gateway example
 Назначение:
-- управление пользователями, сайтами, токенами и ключами;
-- выпуск подписанных JWT;
-- публикация JWKS;
-- отзыв токенов и аудит.
+- публичная точка входа в API-only режим;
+- локальная проверка JWT по JWKS;
+- опциональный online introspection fallback;
+- нормализация прав в upstream contract.
 
-Основные bounded contexts:
-- Identity
-- Token Management
-- Site Registry
-- Key Management
-- Audit
+Gateway обязан:
+1. Требовать `Authorization: Bearer <token>`.
+2. Проверять `alg`, `kid`, подпись, `iss`, `aud`, `exp`, `nbf`.
+3. Проверять `jti` по denylist, если включён revoke cache.
+4. Удалять все входящие `X-Idshka-*` headers.
+5. Добавлять собственные `X-Idshka-*` headers.
+6. При необходимости добавлять подписанный context envelope.
+7. Fail closed при любой ошибке.
 
-### 3. `apishka-edge`
+### `apishka-api` / upstream example
 Назначение:
-- единственная публичная точка входа в API;
-- быстрая локальная JWT-валидация;
-- проброс доверенных заголовков в upstream.
-
-Обязанности:
-- удалять любые входящие `X-Idska-*` из внешнего запроса;
-- проверять `alg`, `kid`, подпись, `iss`, `aud`, `exp`, `nbf`;
-- опционально проверять denylist по `jti`;
-- выставлять typed headers для upstream.
-
-### 4. `apishka-api`
-Назначение:
-- бизнес-логика API;
-- проверка permissions уже из проброшенного контекста;
-- отсутствие внешней JWT-валидации.
+- бизнес-логика подключённого API;
+- чтение `X-Idshka-*` или проверка `X-Idshka-Context-Signature`;
+- выполнение permission checks по уже подтверждённому контексту.
 
 Ограничение:
-- доступ только из внутренней сети / через ingress gateway.
+- upstream недоступен напрямую из интернета;
+- если upstream всё же находится в недоверенной сети, он обязан проверять signed context.
 
-### 5. `packages/contracts`
-Общее место для:
-- схем claims JWT;
-- схем `X-Idska-*` заголовков;
-- OpenAPI fragments;
-- error contracts (`401`, `403`, `429`).
+## Контракт токена для API-only режима
 
-## Контракт токена v1
+Header:
+- `alg`: `RS256` или `EdDSA`, выбранный в Key Management.
+- `kid`: id активного public key.
+- `typ`: `JWT`.
 
-### Подпись
-- Алгоритм: `RS256`
-- Обязателен `kid`
-- Публичные ключи публикуются в `/.well-known/jwks.json` или `/oauth/jwks.json`
-
-### Обязательные claims
-- `iss`: `https://idska.ru`
-- `aud`: consumer identifier, например `apishka`
-- `sub`: user_id
+Claims v1:
+- `iss`: `https://idshka.ru`
+- `aud`: audience подключённого API-сайта, например `apishka.ru`
+- `sub`: id пользователя на `idshka.ru`
+- `site_id`: id подключённого сайта
+- `token_type`: `user_api`
 - `jti`: уникальный id токена
-- `iat`
-- `nbf`
-- `exp`
+- `iat`, `nbf`, `exp`
 - `scope`: строка scopes через пробел
 - `roles`: массив ролей
 - `permissions`: массив детальных разрешений
-- `site_id`: идентификатор consumer-сайта
-- `email`: опционально, если нужно upstream
-- `token_type`: `user_api`
+- `email`: опционально
+- `name`: опционально
 
-### Рекомендованные ограничения
-- default TTL: 1 час
-- max TTL для MVP: 24 часа
-- для более долгих интеграций — отдельный план на opaque PAT + exchange flow
+TTL:
+- default: 1 час;
+- max для прямого JWT MVP: 24 часа;
+- для долгоживущего доступа позже вводится opaque token + exchange.
 
-## Контракт заголовков между edge и upstream
+## Контракт web-client / OIDC
 
-Gateway обязан выставлять:
+Endpoints `idshka.ru`:
+- `GET /.well-known/openid-configuration`
+- `GET /oauth/authorize`
+- `POST /oauth/token`
+- `GET /oauth/jwks.json`
+- `GET /oauth/userinfo`
+- `POST /oauth/revoke`
 
-- `X-Idska-Authenticated: 1`
-- `X-Idska-User-Id: <sub>`
-- `X-Idska-Email: <email>`
-- `X-Idska-Roles: role1,role2`
-- `X-Idska-Scopes: orders.read orders.write`
-- `X-Idska-Permissions: orders.read,orders.write`
-- `X-Idska-JTI: <jti>`
-- `X-Idska-Token-Exp: <unix_ts>`
-- `X-Idska-Site-Id: <site_id>`
+OIDC claims:
+- `iss`
+- `aud` = `client_id`
+- `sub`
+- `email`
+- `email_verified`
+- `name`
+- `auth_time`
+- `iat`
+- `exp`
+- `nonce`
+
+Flow:
+- Authorization Code + PKCE.
+- Strict redirect URI matching.
+- `state` required.
+- `nonce` required for id_token.
+
+## Upstream headers для API-only режима
+Gateway выставляет:
+
+- `X-Idshka-Authenticated: 1`
+- `X-Idshka-User-Id: <sub>`
+- `X-Idshka-Site-Id: <site_id>`
+- `X-Idshka-Audience: <aud>`
+- `X-Idshka-Email: <email>`
+- `X-Idshka-Roles: role1,role2`
+- `X-Idshka-Scopes: orders.read orders.write`
+- `X-Idshka-Permissions: orders.read,orders.write`
+- `X-Idshka-JTI: <jti>`
+- `X-Idshka-Token-Exp: <unix_ts>`
 - `X-Request-Id: <request_id>`
 
-Upstream не должен читать оригинальный `Authorization` как источник прав после gateway-валидации.
-Если `Authorization` нужен дальше для трассировки, gateway прокидывает его отдельно только во внутреннем контуре.
+Optional signed context:
 
-## Хранилища данных
+- `X-Idshka-Context: <base64url-json>`
+- `X-Idshka-Context-Signature: v1=<hmac-sha256>`
+- `X-Idshka-Context-Timestamp: <unix_ts>`
 
-### PostgreSQL
-Базовые таблицы:
+Context JSON:
+
+```json
+{
+  "iss": "https://idshka.ru",
+  "gateway": "api.apishka.ru",
+  "sub": "usr_123",
+  "site_id": "site_apishka",
+  "aud": "apishka.ru",
+  "roles": ["user"],
+  "scopes": ["orders.read"],
+  "permissions": ["orders.read"],
+  "jti": "tok_123",
+  "exp": 1730412345,
+  "request_id": "req_123"
+}
+```
+
+## Данные и таблицы
+
+Core tables:
 - `users`
+- `user_sessions`
 - `sites`
-- `site_memberships`
+- `site_verifications`
+- `site_modes`
+- `api_resources`
+- `api_scopes`
+- `api_permissions`
 - `api_tokens`
+- `oidc_clients`
+- `oidc_redirect_uris`
 - `signing_keys`
-- `audit_events`
 - `revoked_jti`
+- `audit_events`
 
-### Redis
-Назначение:
-- rate limit на выпуск токенов;
-- кэш JWKS для edge;
-- denylist revoked `jti`;
-- короткоживущие auth caches.
-
-## Репозиторий и модули
+## Репозиторий
 
 ```text
 apps/
-  idska-api/
-  idska-portal/
+  idshka-api/
+  idshka-portal/
+
+examples/
   apishka-api/
+  apishka-web/
 
 infra/
   openresty/
@@ -171,54 +251,28 @@ infra/
       lua/
         jwt_validate.lua
         jwks_cache.lua
+        context_sign.lua
         denylist.lua
 
 packages/
   contracts/
     jwt/
     headers/
+    oidc/
     openapi/
-  observability/
   shared-config/
+  test-fixtures/
 
 docs/
-  architecture/
-  runbooks/
+  API_FLOWS.md
+  GATEWAY_CONTRACT.md
 ```
-
-## Правила зависимостей
-- `idska-portal` зависит только от публичных API `idska-api`.
-- `apishka-api` не зависит от JWT library как от primary auth-layer.
-- `apishka-edge` может читать только `packages/contracts`, конфиг и сетевые endpoints `idska`.
-- Только `idska-api` имеет право подписывать/отзывать токены.
-- Только `Key Management` модуль пишет в `signing_keys`.
-- Любой код, меняющий контракт claims или headers, обязан обновить `packages/contracts`.
-
-## Nginx / OpenResty стратегия
-Основной режим MVP: **локальная проверка подписи по JWKS**.
-Fallback-режим для hard revoke/инцидентов: **introspection endpoint** на `idska`, включаемый feature flag.
-
-Порядок проверки на gateway:
-1. Есть `Authorization: Bearer ...`
-2. JWT parse без trust
-3. По `kid` найден подходящий публичный ключ
-4. Подпись валидна
-5. `iss` совпадает
-6. `aud` совпадает с конфигом `apishka`
-7. `nbf/exp` валидны
-8. `jti` не найден в denylist
-9. Удалить пользовательские `X-Idska-*`
-10. Установить доверенные headers и проксировать
 
 ## Нефункциональные требования
 - Fail closed по auth.
-- Время ответа gateway на валидном cached key: p95 < 30 ms поверх upstream.
-- Вся auth-активность логируется структурированно.
-- Ротация ключей не должна приводить к downtime.
-- Любой revoke должен распространяться максимум за TTL кэша denylist.
-
-## Риски
-- Слишком длинный TTL усложнит revoke.
-- Расползание auth-логики в upstream сломает границы.
-- Непродуманный claim contract приведёт к частым breaking changes.
-- Неполная sanitization заголовков создаст privilege escalation.
+- Никакие raw tokens/secrets не пишутся в логи.
+- Все изменения прав и ключей аудитятся.
+- JWKS key rotation без downtime.
+- `X-Idshka-*` всегда создаются gateway-слоем, а не клиентом.
+- Для web-client flow обязательны state, nonce и PKCE.
+- У каждого подключённого сайта явный режим: `api_resource`, `web_client` или оба.

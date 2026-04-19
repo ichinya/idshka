@@ -1,31 +1,14 @@
-# Security Area Rules
+# Area: security
 
-## Scope
-Криптография, revoke, ключи, rate limiting, угрозы и инварианты.
+## Rules
+- Запрет логирования raw token, authorization code, client_secret, refresh_token, private key.
+- Secrets хранить через env/secret manager, не в git.
+- Password hash: Argon2id.
+- JWT TTL по умолчанию короткий.
+- Rate limit на login, token creation, token exchange, introspection.
+- Audit event для каждого security-sensitive action.
+- Threat model обновлять при добавлении нового flow.
+- Все crypto decisions должны быть централизованы в Key Management.
 
-## Инварианты
-- Приватный signing key никогда не покидает issuer runtime/secret store.
-- JWT без валидного `kid` или с неподдерживаемым `alg` отклоняется.
-- Любой revoke создаёт audit event.
-- Любой административный security-action обратим либо имеет documented runbook.
-
-## Политика
-- Для MVP используется `RS256`; смена алгоритма — отдельный plan item.
-- Одновременно поддерживаются минимум два ключа: `active` и `next`.
-- JWKS rotation делается с overlap-периодом.
-- Direct API JWT должны быть короткоживущими; долгоживущие ключи — только после отдельной hardening-фазы.
-- На endpoints token issuance, JWKS и introspection действуют rate limits.
-- Denylist TTL должен быть >= максимальному TTL токена.
-
-## Threat model minimum
-- header spoofing
-- audience confusion
-- stale key cache
-- replay до revoke propagation
-- overbroad scopes
-- raw token leakage in logs
-
-## Запрещено
-- Использовать один shared secret на все environments.
-- Держать signing key в env-переменной без плана миграции в secret manager.
-- Считать revoke завершённым без подтверждения распространения denylist/cache.
+## Reviews
+- Любой PR, меняющий auth flow, требует security review checklist.

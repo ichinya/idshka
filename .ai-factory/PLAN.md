@@ -1,11 +1,11 @@
 # PLAN
 
-Этот проект использует full-plan workflow через `.ai-factory/plans/<plan-id>.md`
-и companion folders `.ai-factory/plans/<plan-id>/`.
+Исполнять планы из `.ai-factory/plans/` в порядке roadmap:
 
-Рекомендуемый порядок:
 1. `01-platform-foundation`
-2. `02-issuer-jwt-core`
-3. `03-apishka-edge-gateway`
-4. `04-portal-onboarding-and-token-management`
-5. `05-security-hardening-and-ops`
+2. `02-site-registry-and-modes`
+3. `03-token-issuer-and-jwks`
+4. `04-api-resource-gateway-for-apishka`
+5. `05-web-login-oidc-for-apishka`
+6. `06-portal-token-and-client-management`
+7. `07-security-hardening-and-ops`

@@ -1,0 +1,8 @@
+id: 05-web-login-oidc-for-apishka
+title: "Web Login via idshka.ru for apishka.ru"
+status: planned
+area: "web_client, issuer, portal"
+depends_on: ['02-site-registry-and-modes', '03-token-issuer-and-jwks']
+outputs: ['oidc_clients schema', 'redirect uri registry', 'GET /oauth/authorize', 'POST /oauth/token', 'id_token issue/validation', 'example apishka-web callback', 'state/nonce/PKCE checks']
+acceptance: ['apishka-web redirect работает', 'callback обменивает code на tokens', 'id_token проверяется', 'redirect URI mismatch блокируется']
+notes: []

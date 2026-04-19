@@ -1,24 +1,27 @@
-# Gateway Area Rules
+# Area: gateway
 
 ## Scope
-OpenResty/Nginx, Lua handlers, request sanitation, header injection.
+- OpenResty/Nginx integration.
+- Local JWT validation via JWKS.
+- Optional introspection.
+- Header sanitation and context injection.
 
-## Правила
-- Gateway — единственный источник доверенных `X-Idska-*` заголовков.
-- Перед валидацией нужно удалить все входящие `X-Idska-*` от клиента.
-- JWT проверяется локально по JWKS-кэшу; сетевой fallback допустим только как feature flag.
-- При ошибке чтения ключа или claim mismatch поведение только fail closed.
-- `iss`, `aud`, `exp`, `nbf`, `kid`, подпись — обязательная проверка.
-- Denylist-проверка по `jti` должна быть дешёвой и не ломать happy path latency.
-- Request ID создаётся на gateway, если не пришёл от доверенного ingress выше.
+## Rules
+- Gateway fail closed.
+- Перед injection удалить все входящие `X-Idshka-*` headers.
+- Проверять `alg`, `kid`, подпись, `iss`, `aud`, `exp`, `nbf`.
+- Проверять `jti` denylist, если включён revoke cache.
+- JWKS cache должен иметь TTL и поведение при key miss.
+- Upstream должен быть недоступен напрямую из публичной сети.
+- Если upstream не в private boundary, добавить и проверять signed context.
+- Gateway logs не должны содержать полный JWT.
 
-## Контракт с upstream
-- Устанавливать только согласованный набор `X-Idska-*` заголовков.
-- Не передавать в upstream внутренние детали JWKS-кэша.
-- Ошибки auth возвращать в стабильном JSON-формате с `code` и `request_id`.
-- `401` использовать для invalid/missing token, `403` — для policy-level deny при валидном токене.
-
-## Запрещено
-- Проксировать публичный запрос в upstream до завершения auth-проверки.
-- Полагаться на regex-only JWT parsing без криптографической проверки.
-- Использовать пользовательский `Host`/`X-Forwarded-*` как источник доверия без whitelist.
+## Outputs
+- `X-Idshka-Authenticated: 1`.
+- `X-Idshka-User-Id`.
+- `X-Idshka-Site-Id`.
+- `X-Idshka-Audience`.
+- `X-Idshka-Scopes`.
+- `X-Idshka-Permissions`.
+- `X-Idshka-JTI`.
+- Optional `X-Idshka-Context` and signature.

@@ -9,28 +9,34 @@
 Если правила конфликтуют, приоритет выше у более локального уровня.
 
 ## Глобальные аксиомы проекта
-1. **Auth только через edge.** Upstream не принимает решения на основе публичного JWT напрямую.
-2. **Fail closed.** Если gateway не уверен в подписи, audience, expiry или источнике заголовков — запрос отклоняется.
-3. **Contracts first.** Любое изменение claims, scopes, headers или error body сначала фиксируется в `packages/contracts`.
-4. **No implicit privilege.** Ни роль, ни отсутствие поля не должны молча расширять права.
-5. **Sanitize before trust.** Все `X-Idska-*` от клиента удаляются, новые заголовки создаёт только gateway.
-6. **Audit by default.** Выдача токена, revoke, ошибка auth и ключевая смена policy попадают в аудит.
-7. **Version the surface.** API и контракты имеют явную версию; breaking changes — только через план и changelog.
-8. **Minimize secrets exposure.** Приватные ключи, raw tokens и служебные секреты не пишутся в логи и не попадают в UI повторно.
-9. **Short-lived over clever revoke.** Для прямых JWT всегда предпочитать короткий TTL вместо сложной магии.
-10. **Deterministic errors.** `401` — проблема аутентификации, `403` — токен валиден, но прав недостаточно.
+1. **idshka.ru — issuer/control plane, не бизнес-API подключённого сайта.**
+2. **Подключённый сайт имеет явный режим:** `api_resource`, `web_client` или оба.
+3. **API-only запросы проходят через edge.** Upstream не доверяет публичному JWT напрямую.
+4. **Web login использует OIDC-подобный flow:** Authorization Code + PKCE, strict redirect URI, state, nonce.
+5. **Fail closed.** Если gateway или issuer не уверен в подписи, audience, expiry, redirect URI или источнике заголовков — запрос отклоняется.
+6. **Contracts first.** Claims, scopes, headers, context envelope и error body сначала фиксируются в `packages/contracts`.
+7. **No implicit privilege.** Отсутствие поля, роль `user` или fallback не должны расширять права.
+8. **Sanitize before trust.** Все `X-Idshka-*` от клиента удаляются, новые заголовки создаёт только gateway.
+9. **Signed context when boundary is weak.** Если upstream не находится в надёжном private network, он обязан проверять `X-Idshka-Context-Signature`.
+10. **Audit by default.** Site connect, domain verify, token issue/revoke, login, client secret rotation и policy changes попадают в аудит.
+11. **Short-lived over clever revoke.** Для прямых JWT предпочитать короткий TTL; долгоживущие ключи позже делать opaque + exchange.
+12. **Deterministic errors.** `401` — проблема аутентификации, `403` — токен валиден, но прав недостаточно.
+13. **No raw secrets in logs.** Raw token, client_secret, private key, authorization code и refresh token никогда не логируются.
 
 ## Карта area rules
-- `issuer` — выпуск токенов, ключи, аудит, site registry
-- `gateway` — OpenResty/Nginx, локальная валидация, header injection
-- `api` — upstream contract, permission checks, error semantics
-- `portal` — личный кабинет, UX и self-service flows
-- `security` — криптография, revoke, rate limits, угрозы
-- `ops` — observability, deployment, env, rollback
+- `site_registry` — подключение доменов, site modes, verification.
+- `issuer` — JWT, JWKS, OIDC token endpoint, keys, revoke.
+- `gateway` — OpenResty/Nginx, локальная валидация, header/context injection.
+- `api_resource` — правила для API-only consumer-сайта.
+- `web_client` — OIDC login flow для web-сайта.
+- `portal` — личный кабинет и UX self-service.
+- `security` — криптография, секреты, threat model, rate limits.
+- `ops` — observability, deployment, runbooks.
 
 ## Что считается завершением задачи
 Задача считается завершённой только если:
 - код/конфиг внесён;
-- контракты и документация обновлены при необходимости;
-- есть evidence: curl, лог, тест, screenshot или краткое proof note;
-- roadmap/plan status может быть обновлён без додумывания.
+- contracts обновлены при изменении внешней поверхности;
+- docs/snippets обновлены при изменении пользовательского flow;
+- есть evidence: тест, curl, лог, screenshot или краткий proof note;
+- roadmap/plan status можно обновить без догадок.
