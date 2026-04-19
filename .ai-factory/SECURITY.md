@@ -1,21 +1,29 @@
 # SECURITY
 
 ## Основные угрозы
+- Кража raw API token пользователя.
 - Подделка `X-Idshka-*` заголовков клиентом.
-- JWT replay в течение TTL.
-- Audience confusion: токен для одного сайта используется на другом.
-- Подмена redirect URI в web-client режиме.
-- Утечка client_secret или private signing key.
-- Логирование raw tokens.
-- Неправильная key rotation.
+- Неверный `aud` у токена.
+- Утечка private signing key.
+- Неверная привязка Socialite provider account к существующему пользователю.
+- Open redirect в OAuth flow.
+- Повторное использование authorization code.
 
 ## Базовые меры
-- Удалять входящие `X-Idshka-*` на gateway.
-- Проверять `iss`, `aud`, `exp`, `nbf`, `kid`, `alg`, подпись.
-- Использовать strict redirect URI matching.
-- Требовать state, nonce, PKCE для web login.
-- Хранить client secrets только в hash/encrypted form по назначению.
-- Private keys хранить вне репозитория, в secret store/env volume.
-- Raw token показывать только один раз.
-- Добавить audit events для всех auth/security изменений.
-- Fail closed при недоступности критичного auth state.
+- Short-lived JWT для API-only режима.
+- JWKS + `kid` + ротация ключей.
+- Strict redirect URI matching.
+- CSRF/state/nonce/PKCE.
+- Rate limits на auth/token endpoints.
+- Audit events для всех security actions.
+- Удаление всех входящих `X-Idshka-*` на gateway.
+- Signed context при слабой сетевой границе.
+
+## Секреты
+Никогда не логировать:
+- raw JWT/API tokens;
+- Socialite provider access/refresh tokens;
+- client secrets;
+- private keys;
+- authorization codes;
+- refresh tokens.

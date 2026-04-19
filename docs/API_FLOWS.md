@@ -1,11 +1,27 @@
 # API_FLOWS
 
+## 0. Вход пользователя на `idshka.ru` через Socialite
+
+### Redirect
+```http
+GET https://idshka.ru/auth/google/redirect
+```
+
+Laravel создаёт `state` и перенаправляет пользователя к Google/VK/Yandex.
+
+### Callback
+```http
+GET https://idshka.ru/auth/google/callback?code=<provider_code>&state=<state>
+```
+
+Laravel Socialite получает данные provider user, создаёт/обновляет `users` и `social_accounts`, затем создаёт обычную Laravel session для portal.
+
 ## 1. Подключение сайта `apishka.ru`
 
 ### Создать сайт
 ```http
 POST https://idshka.ru/v1/sites
-Authorization: Bearer <idshka_session_access_token>
+Authorization: Bearer <idshka_session_or_sanctum_token>
 Content-Type: application/json
 
 {
@@ -32,7 +48,7 @@ Content-Type: application/json
 ### Проверить домен
 ```http
 POST https://idshka.ru/v1/sites/site_apishka/verify
-Authorization: Bearer <idshka_session_access_token>
+Authorization: Bearer <idshka_session_or_sanctum_token>
 Content-Type: application/json
 
 { "method": "dns_txt" }
@@ -42,7 +58,7 @@ Content-Type: application/json
 
 ```http
 POST https://idshka.ru/v1/sites/site_apishka/api-resource
-Authorization: Bearer <owner_token>
+Authorization: Bearer <owner_token_or_session>
 Content-Type: application/json
 
 {
@@ -66,7 +82,7 @@ Content-Type: application/json
 
 ```http
 POST https://idshka.ru/v1/user/api-tokens
-Authorization: Bearer <idshka_session_access_token>
+Authorization: Bearer <idshka_session_or_sanctum_token>
 Content-Type: application/json
 
 {
@@ -117,7 +133,7 @@ X-Idshka-JTI: tok_123
 
 ```http
 POST https://idshka.ru/v1/sites/site_apishka/oidc-client
-Authorization: Bearer <owner_token>
+Authorization: Bearer <owner_token_or_session>
 Content-Type: application/json
 
 {
@@ -135,7 +151,8 @@ Content-Type: application/json
   "issuer": "https://idshka.ru",
   "authorization_endpoint": "https://idshka.ru/oauth/authorize",
   "token_endpoint": "https://idshka.ru/oauth/token",
-  "jwks_uri": "https://idshka.ru/oauth/jwks.json"
+  "jwks_uri": "https://idshka.ru/oauth/jwks.json",
+  "userinfo_endpoint": "https://idshka.ru/oauth/userinfo"
 }
 ```
 

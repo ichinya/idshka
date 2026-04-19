@@ -1,0 +1,6 @@
+status: planned
+plan_id: 05-api-resource-gateway-for-apishka
+area: "gateway, api_resource, security"
+dependencies: "04-token-issuer-and-jwks"
+outputs: ["infra/openresty/apishka/nginx.conf", "lua/jwks_cache.lua", "lua/jwt_validate.lua", "lua/context_headers.lua", "optional context_sign.lua", "curl smoke сценарии"]
+acceptance: ["валидный токен проходит до upstream", "неверная подпись возвращает 401", "неверный aud возвращает 401", "входящие X-Idshka-* затираются", "upstream получает X-Idshka-User-Id/Scopes/Permissions"]

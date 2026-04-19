@@ -1,0 +1,6 @@
+status: planned
+plan_id: 03-site-registry-and-modes
+area: "site_registry, laravel, portal"
+dependencies: "02-user-auth-socialite"
+outputs: ["sites/site_verifications/site_modes migrations", "POST /v1/sites", "POST /v1/sites/{site}/verify", "DNS TXT checker", "well-known file checker", "mode enable endpoints"]
+acceptance: ["можно создать site apishka.ru", "DNS/file verification меняет status на verified", "можно включить api_resource и web_client", "неверифицированный домен не получает production credentials"]

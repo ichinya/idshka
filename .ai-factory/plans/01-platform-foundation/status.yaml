@@ -1,8 +1,0 @@
-id: 01-platform-foundation
-title: "Project Bootstrap & Contracts"
-status: planned
-area: "base, ops"
-depends_on: []
-outputs: ['pnpm workspace skeleton', 'apps/idshka-api', 'apps/idshka-portal', 'examples/apishka-api', 'examples/apishka-web', 'infra/openresty/apishka', 'packages/contracts', 'Docker Compose', 'health/readiness endpoints']
-acceptance: ['docker compose поднимает базовые сервисы', 'contracts содержит JWT claims, OIDC metadata и X-Idshka headers', 'CI skeleton выполняет lint/typecheck/test или smoke']
-notes: []

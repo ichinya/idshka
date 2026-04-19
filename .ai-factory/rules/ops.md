@@ -1,10 +1,8 @@
 # Area: ops
 
-## Rules
-- Все сервисы имеют `/health` и `/ready`.
-- Logs structured JSON.
-- Correlation id: `X-Request-Id`.
-- Metrics для auth success/failure, token issued/revoked, JWKS cache hit/miss, gateway deny reasons.
-- Deploy должен поддерживать key rotation без downtime.
-- Runbooks обязательны для key leak, bad deploy, JWKS outage, Redis outage.
-- Docker Compose должен оставаться рабочим для локального smoke test.
+- Docker Compose должен поднимать Laravel app, nginx/php-fpm, PostgreSQL, Redis и gateway example.
+- Health endpoint не раскрывает секреты и внутреннюю конфигурацию.
+- Readiness проверяет DB/Redis без тяжёлых запросов.
+- Логи должны иметь `request_id`.
+- CI выполняет composer install, tests, npm build и gateway smoke.
+- Миграции должны быть обратимыми, где это возможно.

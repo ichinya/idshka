@@ -1,23 +1,11 @@
 # Area: issuer
 
-## Scope
-- JWT issuance.
-- JWKS publication.
-- OIDC authorize/token/userinfo endpoints.
-- Key rotation.
-- Revoke/denylist.
-
-## Rules
-- Только `idshka-api` подписывает токены.
-- JWT header обязан иметь `kid` и approved `alg`.
-- API-only token обязан иметь `iss`, `aud`, `sub`, `site_id`, `jti`, `iat`, `nbf`, `exp`, `scope`.
-- Web `id_token` обязан иметь `iss`, `aud`, `sub`, `iat`, `exp`, `nonce`.
-- `aud` всегда проверяется по mode: API audience для `api_resource`, `client_id` для `web_client`.
-- Private keys не сериализуются в логи/ответы API.
-- Revoked `jti` пишется в PostgreSQL и по возможности в Redis.
-- Raw token показывается только один раз.
-
-## Error semantics
-- Invalid/missing token: `401`.
-- Valid token but insufficient scope: `403`.
-- Unknown client/site: `401` для auth flow, `404` только в owner UI.
+- Только `idshka.ru` Laravel issuer подписывает токены.
+- JWT должен содержать `iss`, `aud`, `sub`, `site_id`, `token_type`, `jti`, `iat`, `nbf`, `exp`.
+- `kid` обязателен в JWT header.
+- JWKS отдаёт только public key material.
+- Private keys не логировать и не отдавать через API.
+- Authorization code одноразовый и short-lived.
+- PKCE обязателен для web login flow.
+- Refresh token не вводить в MVP без отдельной threat model.
+- Revoke прямого JWT делается через short TTL + optional denylist по `jti`.

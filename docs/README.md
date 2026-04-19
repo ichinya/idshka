@@ -1,10 +1,6 @@
-# idshka project docs
+# docs
 
-Стартовые документы:
-
-- `.ai-factory/DESCRIPTION.md` — что строим.
-- `.ai-factory/TECH_STACK.md` — технический стек.
-- `.ai-factory/ARCHITECTURE.md` — архитектура.
-- `.ai-factory/ROADMAP.md` — дорожная карта.
-- `docs/API_FLOWS.md` — конкретные пути и запросы.
-- `docs/GATEWAY_CONTRACT.md` — контракт gateway -> upstream.
+- `API_FLOWS.md` — основные request/response сценарии.
+- `GATEWAY_CONTRACT.md` — контракт между gateway `api.apishka.ru` и upstream.
+- `LARAVEL_MODULES.md` — модули Laravel-приложения `idshka.ru`.
+- `SOCIALITE.md` — правила входа через внешние провайдеры и пример роли Socialite.

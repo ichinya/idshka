@@ -1,8 +1,0 @@
-id: 07-security-hardening-and-ops
-title: "Security Hardening & Operations"
-status: planned
-area: "security, ops"
-depends_on: ['03-token-issuer-and-jwks', '04-api-resource-gateway-for-apishka', '05-web-login-oidc-for-apishka', '06-portal-token-and-client-management']
-outputs: ['key lifecycle next/active/retired', 'rate limits', 'denylist propagation', 'metrics', 'structured logs', 'runbooks', 'security checklist']
-acceptance: ['key rotation без downtime', 'revoked jti блокируется gateway', 'auth metrics есть', 'runbooks описывают key leak/JWKS outage/Redis outage']
-notes: []

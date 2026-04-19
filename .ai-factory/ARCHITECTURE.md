@@ -1,14 +1,45 @@
 # ARCHITECTURE
 
 ## Архитектурный стиль
-`idshka.ru` строится как **identity/control plane**, а подключённые сайты (`apishka.ru` и другие) — как внешние consumers.
+`idshka.ru` строится как **Laravel modular monolith**: один Laravel-проект содержит личный кабинет, Socialite-login, site registry, token issuer, JWKS, OAuth/OIDC-like endpoints и audit.
 
-В MVP репозиторий может быть monorepo, но архитектурная граница такая:
+Подключённые сайты (`apishka.ru` и другие) остаются внешними consumers.
 
-- `idshka-api` — источник истины по пользователям, сайтам, ключам, токенам, клиентам и аудитам.
-- `idshka-portal` — личный кабинет и self-service UI.
+Архитектурные границы:
+
+- `idshka.ru Laravel app` — источник истины по пользователям, сайтам, ключам, токенам, клиентам и аудитам.
+- `idshka portal` — Blade/Livewire/Alpine UI внутри Laravel.
 - `connected site` — внешний сайт владельца; в репозитории допускаются только examples/adapters.
 - `edge gateway` — слой на стороне подключённого API-сайта, который валидирует токен до upstream.
+
+## Где используется Laravel Socialite
+
+### Вход на `idshka.ru` через внешние сервисы
+```text
+Пользователь
+  │
+  │ 1. Нажимает «Войти через Google/VK/Yandex»
+  ▼
+idshka.ru / Laravel
+  │
+  │ 2. Socialite redirect
+  ▼
+External provider
+  │
+  │ 3. login / consent
+  ▼
+idshka.ru / auth/{provider}/callback
+  │
+  │ 4. Socialite получает provider user
+  │ 5. Laravel создаёт/обновляет user + social_account
+  ▼
+Portal session
+```
+
+Socialite отвечает только за внешнюю авторизацию пользователя на `idshka.ru`.
+
+### Вход `apishka.ru` через `idshka.ru`
+`idshka.ru` сам становится provider/issuer. Для этого нужны отдельные Laravel endpoints `/oauth/authorize`, `/oauth/token`, `/oauth/jwks.json`. Если `apishka.ru` тоже Laravel, он может использовать кастомный Socialite provider для `idshka.ru`, но это уже код на стороне `apishka.ru`.
 
 ## Два режима подключения сайта
 
@@ -20,10 +51,10 @@
   │
   │ 1. входит на idshka.ru и создаёт API token для apishka.ru
   ▼
-idshka-portal ───► idshka-api ───► PostgreSQL / Redis
-                       │
-                       ├──► /oauth/jwks.json
-                       └──► /v1/tokens
+idshka.ru Portal ───► Laravel controllers/services ───► PostgreSQL / Redis
+                             │
+                             ├──► /oauth/jwks.json
+                             └──► /v1/user/api-tokens
 
 Клиент / скрипт пользователя
   │
@@ -38,7 +69,7 @@ apishka-api upstream
 ```
 
 Поведение:
-- токен выпускает только `idshka-api`;
+- токен выпускает только Laravel app `idshka.ru`;
 - `aud` токена равен audience подключённого сайта, например `apishka.ru` или `site_apishka`;
 - gateway на `apishka.ru` проверяет токен до upstream;
 - upstream принимает auth-context только от gateway.
@@ -55,9 +86,9 @@ apishka-web
   │
   │ 2. redirect to https://idshka.ru/oauth/authorize?...client_id=...
   ▼
-idshka.ru
+idshka.ru / Laravel
   │
-  │ 3. login / consent
+  │ 3. login через session/email/socialite + consent
   ▼
 apishka.ru/callback
   │
@@ -68,27 +99,53 @@ apishka-web session
 ```
 
 Поведение:
-- `apishka.ru` регистрируется как OIDC client;
+- `apishka.ru` регистрируется как web client;
 - владелец сайта задаёт redirect URI;
 - используется Authorization Code + PKCE;
 - `idshka.ru` возвращает `id_token` и access token;
 - `apishka.ru` создаёт свою локальную session cookie.
 
+## Laravel bounded contexts
+
+Рекомендуемая структура внутри `app/Domain`:
+
+```text
+app/
+  Domain/
+    Identity/          # users, sessions, Socialite identities
+    Sites/             # domain registry, verification, modes
+    ApiResources/      # audience, scopes, permissions
+    OidcClients/       # client_id, client_secret, redirect URIs
+    Issuer/            # JWT, JWKS, authorization codes, token endpoint
+    Gateway/           # context/signature helpers, contracts
+    Audit/             # audit events
+  Http/
+    Controllers/
+      Auth/            # Socialite redirects/callbacks
+      Portal/          # Blade/Livewire portal pages
+      Api/             # owner/user API
+      OAuth/           # authorize/token/userinfo/jwks/revoke
+    Middleware/
+  Support/
+```
+
 ## Основные компоненты
 
-### `idshka-api`
+### Laravel app `idshka.ru`
 Bounded contexts:
-- Identity: пользователи, логин, сессии `idshka.ru`.
+- Identity: пользователи, Laravel sessions, Socialite accounts.
 - Site Registry: подключённые домены, режимы, verification status.
 - API Resource Registry: audiences, scopes, permissions для API-only режима.
 - OIDC Client Registry: client_id, client_secret, redirect URI для web-client режима.
-- Token Issuer: выпуск JWT, refresh/exchange flows при необходимости.
+- Token Issuer: выпуск JWT access/id tokens.
+- Authorization Server: authorize endpoint, token endpoint, PKCE, authorization codes.
 - Key Management: private keys, JWKS, rotation lifecycle.
 - Audit: token created/used/revoked, login started/completed, site verified.
 
-### `idshka-portal`
+### Portal
 Назначение:
 - регистрация/вход пользователя в `idshka.ru`;
+- Socialite вход и привязка внешних аккаунтов;
 - подключение домена;
 - выбор режимов `api_resource` / `web_client`;
 - управление scopes/permissions;
@@ -120,7 +177,7 @@ Gateway обязан:
 
 Ограничение:
 - upstream недоступен напрямую из интернета;
-- если upstream всё же находится в недоверенной сети, он обязан проверять signed context.
+- если upstream находится в недоверенной сети, он обязан проверять signed context.
 
 ## Контракт токена для API-only режима
 
@@ -148,7 +205,7 @@ TTL:
 - max для прямого JWT MVP: 24 часа;
 - для долгоживущего доступа позже вводится opaque token + exchange.
 
-## Контракт web-client / OIDC
+## Контракт web-client / OIDC-like flow
 
 Endpoints `idshka.ru`:
 - `GET /.well-known/openid-configuration`
@@ -197,29 +254,11 @@ Optional signed context:
 - `X-Idshka-Context-Signature: v1=<hmac-sha256>`
 - `X-Idshka-Context-Timestamp: <unix_ts>`
 
-Context JSON:
-
-```json
-{
-  "iss": "https://idshka.ru",
-  "gateway": "api.apishka.ru",
-  "sub": "usr_123",
-  "site_id": "site_apishka",
-  "aud": "apishka.ru",
-  "roles": ["user"],
-  "scopes": ["orders.read"],
-  "permissions": ["orders.read"],
-  "jti": "tok_123",
-  "exp": 1730412345,
-  "request_id": "req_123"
-}
-```
-
 ## Данные и таблицы
-
 Core tables:
 - `users`
 - `user_sessions`
+- `social_accounts`
 - `sites`
 - `site_verifications`
 - `site_modes`
@@ -229,6 +268,8 @@ Core tables:
 - `api_tokens`
 - `oidc_clients`
 - `oidc_redirect_uris`
+- `oauth_authorization_codes`
+- `oauth_refresh_tokens`
 - `signing_keys`
 - `revoked_jti`
 - `audit_events`
@@ -236,43 +277,43 @@ Core tables:
 ## Репозиторий
 
 ```text
-apps/
-  idshka-api/
-  idshka-portal/
-
-examples/
-  apishka-api/
-  apishka-web/
-
+app/
+  Domain/
+  Http/
+  Support/
+bootstrap/
+config/
+database/
+  migrations/
+  seeders/
+docs/
+  API_FLOWS.md
+  GATEWAY_CONTRACT.md
 infra/
+  docker/
   openresty/
     apishka/
       nginx.conf
       lua/
-        jwt_validate.lua
-        jwks_cache.lua
-        context_sign.lua
-        denylist.lua
-
-packages/
-  contracts/
-    jwt/
-    headers/
-    oidc/
-    openapi/
-  shared-config/
-  test-fixtures/
-
-docs/
-  API_FLOWS.md
-  GATEWAY_CONTRACT.md
+resources/
+  views/
+  js/
+  css/
+routes/
+  web.php
+  api.php
+  oauth.php
+examples/
+  apishka-api/
+  apishka-web-laravel/
+tests/
+  Feature/
+  Unit/
 ```
 
-## Нефункциональные требования
-- Fail closed по auth.
-- Никакие raw tokens/secrets не пишутся в логи.
-- Все изменения прав и ключей аудитятся.
-- JWKS key rotation без downtime.
-- `X-Idshka-*` всегда создаются gateway-слоем, а не клиентом.
-- Для web-client flow обязательны state, nonce и PKCE.
-- У каждого подключённого сайта явный режим: `api_resource`, `web_client` или оба.
+## Security boundaries
+- Browser session on `idshka.ru` is first-party Laravel session.
+- Socialite provider access tokens are not used as `idshka` API tokens.
+- API-only tokens are issued by `idshka.ru` and scoped to connected site audience.
+- Gateway headers are trusted only if they originate from the gateway private boundary.
+- Client secrets, private keys and raw tokens are never logged.

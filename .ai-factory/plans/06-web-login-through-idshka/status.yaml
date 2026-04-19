@@ -1,0 +1,6 @@
+status: planned
+plan_id: 06-web-login-through-idshka
+area: "web_client, issuer, laravel, socialite"
+dependencies: "03-site-registry-and-modes, 04-token-issuer-and-jwks"
+outputs: ["oidc_clients schema", "oidc_redirect_uris schema", "oauth_authorization_codes schema", "GET /oauth/authorize", "POST /oauth/token", "GET /oauth/userinfo", "id_token issue", "example apishka-web-laravel callback/custom Socialite provider"]
+acceptance: ["redirect на authorize работает", "callback обменивает code на tokens", "authorization code одноразовый", "PKCE/state/nonce проверяются", "redirect URI mismatch блокируется", "example Laravel apishka-web создаёт локальную сессию"]

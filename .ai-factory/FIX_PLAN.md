@@ -1,3 +1,9 @@
 # FIX_PLAN
 
-Использовать для hotfix-планов после verify/failure. Не смешивать hotfix с feature-планами из roadmap.
+Использовать для багфиксов после реализации. Формат:
+- symptom
+- affected area
+- suspected cause
+- fix steps
+- verification
+- rollback

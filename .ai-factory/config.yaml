@@ -37,6 +37,8 @@ git:
 
 rules:
   base: .ai-factory/rules/base.md
+  laravel: .ai-factory/rules/laravel.md
+  socialite: .ai-factory/rules/socialite.md
   site_registry: .ai-factory/rules/site-registry.md
   issuer: .ai-factory/rules/issuer.md
   gateway: .ai-factory/rules/gateway.md

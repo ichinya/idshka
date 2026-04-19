@@ -1,7 +1,18 @@
-openapi: 3.1.0
-info:
-  title: idshka contracts index
-  version: 0.1.0
-paths: {}
-components:
-  schemas: {}
+project: idshka.ru
+stack: laravel-socialite
+version: 0.1.0
+contracts:
+  issuer: docs/API_FLOWS.md
+  gateway: docs/GATEWAY_CONTRACT.md
+  laravel_modules: docs/LARAVEL_MODULES.md
+areas:
+  - laravel
+  - socialite
+  - site_registry
+  - issuer
+  - gateway
+  - api_resource
+  - web_client
+  - portal
+  - security
+  - ops

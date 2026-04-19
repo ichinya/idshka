@@ -1,8 +1,0 @@
-id: 03-token-issuer-and-jwks
-title: "Token Issuer, JWKS & Revoke"
-status: planned
-area: "issuer, security"
-depends_on: ['01-platform-foundation', '02-site-registry-and-modes']
-outputs: ['signing_keys schema', 'api_tokens schema', 'revoked_jti schema', 'POST /v1/user/api-tokens', 'GET /oauth/jwks.json', 'POST /v1/user/api-tokens/{id}/revoke', 'audit events']
-acceptance: ['можно выпустить токен для aud=apishka.ru', 'JWKS содержит active public key по kid', 'revoked jti появляется в БД/Redis', 'raw token показывается один раз']
-notes: []
