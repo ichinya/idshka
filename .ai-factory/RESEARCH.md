@@ -1,20 +1,14 @@
 # RESEARCH
 
-## Active Summary (input for /aif-plan)
-Проект стартует как greenfield.
-Базовое решение для MVP:
-- `idska.ru` — issuer/control plane;
-- `apishka.ru` — API consumer с OpenResty gateway;
-- токен в первой версии — JWT `RS256` с `aud=apishka`, `kid`, `jti`, `roles`, `permissions`, `scope`;
-- gateway валидирует подпись локально по JWKS и пробрасывает `X-Idska-*` в upstream;
-- стек по умолчанию: TypeScript monorepo + PostgreSQL + Redis + OpenResty.
+## Принятые решения
+- Основной стек: Laravel + Socialite.
+- `idshka.ru` — Laravel modular monolith, а не TypeScript/Node monorepo.
+- Socialite используется как OAuth client для входа через внешние провайдеры.
+- Provider/issuer часть для подключённых сайтов реализуется отдельно: `/oauth/authorize`, `/oauth/token`, `/oauth/jwks.json`.
+- API-only режим для `apishka.ru` проверяется на edge через OpenResty/Nginx.
 
-Открытые вопросы для следующих итераций:
-- когда вводить opaque PAT + exchange flow;
-- нужен ли site-specific RBAC editor уже в MVP;
-- нужна ли emergency introspection как обязательная часть M1 или только M4.
-
-## Sessions
-### 2026-04-15
-Собран стартовый комплект артефактов под AI Factory + AIFHub extension:
-config, description, architecture, roadmap, global/base/area rules и full-plan пакеты.
+## Открытые вопросы
+- Выбрать конкретную PHP JWT/JWK библиотеку для MVP.
+- Решить, нужен ли refresh token в первом релизе или достаточно short-lived API JWT.
+- Выбрать UI-подход: Blade-only, Livewire или Inertia.
+- Выбрать exact policy для auto-link Socialite accounts по email.

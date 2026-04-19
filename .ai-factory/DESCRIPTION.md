@@ -1,55 +1,86 @@
 # DESCRIPTION
 
 ## Что строим
-`idska.ru` — issuer/control plane для пользовательских API-токенов и прав.
-`apishka.ru` — API-only сервис, который принимает токены от `idska` и доверяет
-только предварительно проверенному контексту, проброшенному edge-слоем.
+`idshka.ru` — Laravel-first сервис идентификации, выпуска токенов и управления подключёнными сайтами.
 
-Пользовательский сценарий MVP:
-1. Пользователь заходит на `idska.ru`.
-2. Создаёт токен для конкретной аудитории/сайта, например `apishka`.
-3. Вызывает `api.apishka.ru`, передавая `Authorization: Bearer <token>`.
-4. Nginx/OpenResty на входе `apishka` валидирует подпись, audience, expiry и обязательные claims.
-5. Gateway очищает входящие auth-заголовки, добавляет `X-Idska-*` и проксирует запрос в upstream.
-6. Upstream знает, кто пользователь и какие у него роли/права, не перепроверяя JWT из публичного трафика.
+Пользователь подключает свой сайт, например `apishka.ru`, и выбирает один или оба режима:
 
-## Зачем продукт нужен
-- Централизовать выпуск токенов и права доступа.
-- Не дублировать auth-логику в каждом API.
-- Разделить control plane (`idska`) и data plane (`apishka`).
-- Получить аудит: кто создал токен, когда использовал, какие scopes были выданы.
+1. **API-only / resource API**  
+   `apishka.ru` работает только как API. Для запроса нужен токен, выпущенный на `idshka.ru`. На входе в `apishka.ru` стоит Nginx/OpenResty gateway: он проверяет токен, удаляет поддельные auth-заголовки и добавляет в upstream подтверждённый контекст пользователя.
 
-## Основные возможности MVP
-- Личный кабинет пользователя на `idska`.
-- Самостоятельное создание токенов с label, audience, scopes, expiry.
-- Каталог подключённых consumer-сайтов/аудиторий.
-- JWKS endpoint для публичной проверки подписи.
-- JWT-подпись с ротацией ключей по `kid`.
-- Edge-валидация на `apishka` и проброс auth-context через заголовки.
-- Базовый аудит выдачи, использования и отзыва токенов.
+2. **Web login / login через idshka.ru**  
+   `apishka.ru` имеет web-интерфейс и полноценный вход через `idshka.ru`: пользователь нажимает «Войти через idshka.ru», уходит на `idshka.ru`, после входа возвращается на callback `apishka.ru`, а сайт создаёт локальную web-сессию.
+
+`idshka.ru` не является бизнес-API `apishka.ru`; он является identity provider, issuer и control plane.
+
+## Важное уточнение по Laravel + Socialite
+Проект делается на **Laravel + Socialite**, но роли разделены:
+
+- **Socialite внутри `idshka.ru`** используется для входа пользователей через внешние провайдеры: Google, VK, Yandex и другие OAuth-провайдеры.
+- **`idshka.ru` как issuer/provider для `apishka.ru`** реализуется отдельными Laravel-модулями: OAuth/OIDC-like authorize endpoint, token endpoint, JWKS, userinfo, revoke, подпись JWT.
+- **`apishka.ru` как Laravel web-сайт** может подключаться к `idshka.ru` через кастомный Socialite provider или через обычный OAuth/OIDC client flow.
+
+Socialite — это клиентская сторона OAuth-login. Поэтому выпуск токенов, JWKS и проверка `aud/iss/exp/jti` не прячутся в Socialite, а описываются отдельными сервисами Laravel-приложения.
+
+## Основные пользователи
+
+### Владелец сайта
+- Регистрируется на `idshka.ru`.
+- Подключает домен `apishka.ru`.
+- Подтверждает владение доменом.
+- Создаёт настройки интеграции:
+  - API audience, scopes, permissions;
+  - web client credentials и redirect URI;
+  - gateway/JWKS/introspection настройки.
+
+### Конечный пользователь
+- Заходит на `idshka.ru`.
+- Может войти через email/password или Socialite-провайдеров.
+- Создаёт токен для доступа к `apishka.ru` API, если сайт работает в API-only режиме.
+- Или входит на `apishka.ru` через `idshka.ru`, если сайт работает как web-client.
+- Видит свои токены, сессии, сайты, историю входов и может отзывать доступ.
+
+### Подключённый сайт `apishka.ru`
+- Принимает запросы только после проверки на edge-слое, если режим API-only.
+- Получает в upstream нормализованный контекст пользователя: user id, email/username, roles, scopes, permissions, site id, token id/session id.
+- В web-режиме создаёт собственную локальную сессию после callback от `idshka.ru`.
+
+## MVP-возможности
+- Laravel-приложение `idshka.ru`.
+- Регистрация и вход пользователя на `idshka.ru`.
+- Laravel Socialite login через Google/VK/Yandex-провайдеры.
+- Подключение сайта с доменом `apishka.ru`.
+- Верификация домена через DNS TXT и файл в `/.well-known/`.
+- Два режима сайта: `api_resource` и `web_client`.
+- Выпуск user API token для `aud=apishka.ru` / `site_id=<apishka>`.
+- JWKS endpoint для локальной проверки подписи gateway-слоем.
+- Optional introspection endpoint для online-проверки и hard revoke.
+- Nginx/OpenResty gateway example для `apishka.ru`.
+- Проброс `X-Idshka-*` headers и опционального подписанного `X-Idshka-Context`.
+- Authorization Code + PKCE flow для web-входа на `apishka.ru`.
+- Личный кабинет: сайты, клиенты, токены, revoke, audit.
 
 ## Не в MVP
-- Полноценный OAuth Authorization Code Flow для third-party приложений.
-- SCIM / enterprise provisioning.
-- SSO для браузерных приложений.
-- Мульти-тенантные организации с биллингом.
-- Сложные ABAC-политики и policy DSL.
+- Маркетплейс приложений.
+- SCIM/enterprise provisioning.
+- Billing и тарифы.
+- Сложный policy DSL / ABAC.
+- Полноценная low-code настройка UI авторизации для каждого сайта.
+- Поддержка всех OAuth grant types.
 
-## Бизнес-правила первой версии
-- Каждый токен привязан к одной audience (`apishka`, позже — к site_id).
-- Права кодируются двумя уровнями:
-  - `roles`: компактные роли для UI и coarse-grained checks
-  - `permissions` / `scope`: плоский список разрешений для upstream
-- Upstream запрещено доверять пользовательским `X-Idska-*` из внешнего трафика.
-- Токен действует только пока подпись валидна, срок не истёк, audience совпадает и `jti` не отозван.
+## Базовый технический стек
+Подробно см. `.ai-factory/TECH_STACK.md`.
 
-## Базовый стек для старта
-- Monorepo на TypeScript.
-- `idska-api`: Node.js 22 + Fastify + Zod/TypeBox + Prisma/PostgreSQL.
-- `idska-portal`: Next.js 15 + React + server actions / API client.
-- `apishka-api`: Node.js 22 + Fastify.
-- `apishka-edge`: OpenResty (Nginx + Lua) с локальной JWT-проверкой через JWKS.
-- Redis для denylist/revocation cache и rate limiting.
-- Docker Compose для локального запуска.
+Коротко:
+- Основной backend и portal: **Laravel**.
+- Вход через внешние соцсети: **Laravel Socialite** + кастомные провайдеры при необходимости.
+- UI: Blade + Vite + Tailwind, опционально Livewire/Alpine.
+- DB: PostgreSQL через Eloquent migrations.
+- Cache/queues/rate limit: Redis.
+- JWT/JWKS issuer: Laravel service layer + PHP JWT/JWK library.
 
-Если позже стек изменится, обязательными остаются архитектурные границы и контракт `JWT -> sanitized headers -> upstream`.
+- Локальный запуск: Docker Compose.
+
+## Архитектура
+Подробные архитектурные правила, модульные границы и dependency rules описаны в `.ai-factory/ARCHITECTURE.md`.
+Паттерн: `Modular Monolith`

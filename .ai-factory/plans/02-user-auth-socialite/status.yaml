@@ -1,0 +1,6 @@
+status: planned
+plan_id: 02-user-auth-socialite
+area: "laravel, socialite, security"
+dependencies: "01-laravel-platform-foundation"
+outputs: ["users/social_accounts migrations", "email/password или выбранный auth scaffold", "/auth/{provider}/redirect", "/auth/{provider}/callback", "Google/VK/Yandex provider adapters", "account linking/unlinking", "login audit events"]
+acceptance: ["пользователь входит через минимум один Socialite provider", "social_accounts создаётся с unique(provider, provider_user_id)", "повторный вход находит того же пользователя", "provider tokens не попадают в logs"]

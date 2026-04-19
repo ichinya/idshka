@@ -1,25 +1,11 @@
-# Issuer Area Rules
+# Area: issuer
 
-## Scope
-`idska-api`, key management, token issuance, site registry, audit.
-
-## Правила
-- Выпуск токена всегда требует явный `aud` и набор scopes/permissions.
-- `jti` генерируется на каждый токен и никогда не переиспользуется.
-- `kid` обязателен в каждом подписанном токене.
-- Ключи живут по состояниям: `next`, `active`, `retired`, `revoked`.
-- JWKS публикует только публичные ключи и только в формате, пригодном для edge-кэша.
-- Отзыв токена не удаляет историю — создаётся отдельная запись revoke/audit.
-- Любое изменение схемы claims сначала обновляет контракт и примеры.
-- Токены по умолчанию короткоживущие; увеличение TTL требует явного обоснования.
-
-## API нормы
-- Публичные маршруты версионируются через `/v1/...`.
-- `POST /v1/tokens` возвращает токен и metadata, но raw token повторно не показывается.
-- `POST /v1/tokens/{id}/revoke` должен быть идемпотентным.
-- `GET /v1/.well-known/jwks.json` или эквивалентный endpoint должен кэшироваться безопасно и с понятным TTL.
-
-## Запрещено
-- Логировать raw JWT.
-- Подписывать токены ключом без `kid`.
-- Переиспользовать одну и ту же permission-модель для всех consumer-ов без namespace.
+- Только `idshka.ru` Laravel issuer подписывает токены.
+- JWT должен содержать `iss`, `aud`, `sub`, `site_id`, `token_type`, `jti`, `iat`, `nbf`, `exp`.
+- `kid` обязателен в JWT header.
+- JWKS отдаёт только public key material.
+- Private keys не логировать и не отдавать через API.
+- Authorization code одноразовый и short-lived.
+- PKCE обязателен для web login flow.
+- Refresh token не вводить в MVP без отдельной threat model.
+- Revoke прямого JWT делается через short TTL + optional denylist по `jti`.

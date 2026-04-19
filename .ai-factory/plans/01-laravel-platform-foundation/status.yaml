@@ -1,0 +1,6 @@
+status: planned
+plan_id: 01-laravel-platform-foundation
+area: "laravel, ops"
+dependencies: "Нет"
+outputs: ["Laravel app skeleton", "Docker Compose: nginx/php-fpm/PostgreSQL/Redis", "app/Domain structure", "routes/web.php api.php oauth.php", "health/readiness endpoints", "tests/CI skeleton"]
+acceptance: ["docker compose поднимает Laravel app и зависимости", "php artisan test выполняется", "health/readiness endpoints отвечают", "структура app/Domain создана"]
