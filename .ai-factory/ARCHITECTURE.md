@@ -1,294 +1,82 @@
-# ARCHITECTURE
+# Architecture: Modular Monolith
 
-## Архитектурный стиль
-`idshka.ru` строится как **Laravel modular monolith**: один Laravel-проект содержит личный кабинет, Socialite-login, site registry, token issuer, JWKS, OAuth/OIDC-like endpoints и audit.
+## Overview
+`idshka.ru` строится как **Laravel modular monolith**: один deployable backend содержит личный кабинет, вход через Socialite, site registry, token issuer, JWKS, OAuth/OIDC-like endpoints и audit. Для этого проекта это базовый паттерн, потому что домен сложный и security-sensitive, но текущий этап разработки и roadmap пока не дают оснований усложнять систему до microservices.
 
-Подключённые сайты (`apishka.ru` и другие) остаются внешними consumers.
+Подключённые сайты вроде `apishka.ru` и их gateway-конфиги остаются внешними consumers. Они могут жить как reference examples в репозитории, но не становятся частью core-домена `idshka.ru`. Репозиторий сейчас находится в `spec-first` стадии: до появления Laravel skeleton источником истины являются `docs/` и `.ai-factory/` артефакты, а этот документ задаёт целевые архитектурные границы для дальнейшей реализации.
 
-Архитектурные границы:
+## Decision Rationale
+- **Project type:** identity provider, issuer и control plane для подключённых сайтов с двумя режимами интеграции: `api_resource` и `web_client`.
+- **Tech stack:** PHP, Laravel, Socialite, PostgreSQL, Redis, Blade/Vite/Tailwind, OpenResty/Nginx + Lua.
+- **Key factor:** домен содержит много auth/security инвариантов, поэтому нужны жёсткие модульные границы и явные контракты, но при этом проекту важнее сохранить простую разработку и одну точку деплоя.
+- **Chosen pattern:** `Modular Monolith`.
+- **Why not microservices:** пока нет доказанной потребности в независимом деплое, отдельных runtime-командах и отдельной эксплуатации для `Identity`, `Issuer`, `Sites` и `Portal`.
+- **Why not pure layered architecture:** для такого домена простые горизонтальные слои слишком легко размывают границы между Socialite login, issuer logic, site registry и gateway contracts.
 
-- `idshka.ru Laravel app` — источник истины по пользователям, сайтам, ключам, токенам, клиентам и аудитам.
-- `idshka portal` — Blade/Livewire/Alpine UI внутри Laravel.
-- `connected site` — внешний сайт владельца; в репозитории допускаются только examples/adapters.
-- `edge gateway` — слой на стороне подключённого API-сайта, который валидирует токен до upstream.
-
-## Где используется Laravel Socialite
-
-### Вход на `idshka.ru` через внешние сервисы
+## Folder Structure
 ```text
-Пользователь
-  │
-  │ 1. Нажимает «Войти через Google/VK/Yandex»
-  ▼
-idshka.ru / Laravel
-  │
-  │ 2. Socialite redirect
-  ▼
-External provider
-  │
-  │ 3. login / consent
-  ▼
-idshka.ru / auth/{provider}/callback
-  │
-  │ 4. Socialite получает provider user
-  │ 5. Laravel создаёт/обновляет user + social_account
-  ▼
-Portal session
-```
-
-Socialite отвечает только за внешнюю авторизацию пользователя на `idshka.ru`.
-
-### Вход `apishka.ru` через `idshka.ru`
-`idshka.ru` сам становится provider/issuer. Для этого нужны отдельные Laravel endpoints `/oauth/authorize`, `/oauth/token`, `/oauth/jwks.json`. Если `apishka.ru` тоже Laravel, он может использовать кастомный Socialite provider для `idshka.ru`, но это уже код на стороне `apishka.ru`.
-
-## Два режима подключения сайта
-
-### Mode A: `api_resource`
-`apishka.ru` — API-only.
-
-```text
-Пользователь
-  │
-  │ 1. входит на idshka.ru и создаёт API token для apishka.ru
-  ▼
-idshka.ru Portal ───► Laravel controllers/services ───► PostgreSQL / Redis
-                             │
-                             ├──► /oauth/jwks.json
-                             └──► /v1/user/api-tokens
-
-Клиент / скрипт пользователя
-  │
-  │ 2. Authorization: Bearer <idshka_jwt>
-  ▼
-api.apishka.ru / OpenResty Gateway
-  │ 3. проверка подписи/JWKS/iss/aud/exp/jti
-  │ 4. очистка входящих X-Idshka-*
-  │ 5. добавление X-Idshka-* и/или signed context
-  ▼
-apishka-api upstream
-```
-
-Поведение:
-- токен выпускает только Laravel app `idshka.ru`;
-- `aud` токена равен audience подключённого сайта, например `apishka.ru` или `site_apishka`;
-- gateway на `apishka.ru` проверяет токен до upstream;
-- upstream принимает auth-context только от gateway.
-
-### Mode B: `web_client`
-`apishka.ru` — web-сайт с полноценным входом через `idshka.ru`.
-
-```text
-Браузер пользователя
-  │
-  │ 1. GET https://apishka.ru/login
-  ▼
-apishka-web
-  │
-  │ 2. redirect to https://idshka.ru/oauth/authorize?...client_id=...
-  ▼
-idshka.ru / Laravel
-  │
-  │ 3. login через session/email/socialite + consent
-  ▼
-apishka.ru/callback
-  │
-  │ 4. exchange code -> tokens
-  │ 5. validate id_token / create local session
-  ▼
-apishka-web session
-```
-
-Поведение:
-- `apishka.ru` регистрируется как web client;
-- владелец сайта задаёт redirect URI;
-- используется Authorization Code + PKCE;
-- `idshka.ru` возвращает `id_token` и access token;
-- `apishka.ru` создаёт свою локальную session cookie.
-
-## Laravel bounded contexts
-
-Рекомендуемая структура внутри `app/Domain`:
-
-```text
+.ai-factory/
+  DESCRIPTION.md
+  ARCHITECTURE.md
+  ROADMAP.md
+  rules/
+docs/
+  API_FLOWS.md
+  GATEWAY_CONTRACT.md
+  LARAVEL_MODULES.md
+  SOCIALITE.md
 app/
+  Contracts/
+    Auth/
+      JwtClaims.php
+      GatewayHeaders.php
+      SignedContext.php
+      Scopes.php
   Domain/
-    Identity/          # users, sessions, Socialite identities
-    Sites/             # domain registry, verification, modes
-    ApiResources/      # audience, scopes, permissions
-    OidcClients/       # client_id, client_secret, redirect URIs
-    Issuer/            # JWT, JWKS, authorization codes, token endpoint
-    Gateway/           # context/signature helpers, contracts
-    Audit/             # audit events
+    Identity/
+      Actions/
+      Events/
+      Listeners/
+      Models/
+      Services/
+    Sites/
+      Actions/
+      Events/
+      Models/
+      Services/
+      Verification/
+    ApiResources/
+      Actions/
+      Models/
+      Policies/
+      Services/
+    OidcClients/
+      Actions/
+      Models/
+      Services/
+    Issuer/
+      Actions/
+      DTO/
+      Models/
+      Services/
+    Audit/
+      Actions/
+      Events/
+      Listeners/
   Http/
     Controllers/
-      Auth/            # Socialite redirects/callbacks
-      Portal/          # Blade/Livewire portal pages
-      Api/             # owner/user API
-      OAuth/           # authorize/token/userinfo/jwks/revoke
+      Auth/
+      Portal/
+      Api/
+      OAuth/
     Middleware/
-  Support/
-```
-
-## Основные компоненты
-
-### Laravel app `idshka.ru`
-Bounded contexts:
-- Identity: пользователи, Laravel sessions, Socialite accounts.
-- Site Registry: подключённые домены, режимы, verification status.
-- API Resource Registry: audiences, scopes, permissions для API-only режима.
-- OIDC Client Registry: client_id, client_secret, redirect URI для web-client режима.
-- Token Issuer: выпуск JWT access/id tokens.
-- Authorization Server: authorize endpoint, token endpoint, PKCE, authorization codes.
-- Key Management: private keys, JWKS, rotation lifecycle.
-- Audit: token created/used/revoked, login started/completed, site verified.
-
-### Portal
-Назначение:
-- регистрация/вход пользователя в `idshka.ru`;
-- Socialite вход и привязка внешних аккаунтов;
-- подключение домена;
-- выбор режимов `api_resource` / `web_client`;
-- управление scopes/permissions;
-- создание токенов;
-- управление client credentials;
-- revoke и audit.
-
-### `apishka-edge` / gateway example
-Назначение:
-- публичная точка входа в API-only режим;
-- локальная проверка JWT по JWKS;
-- опциональный online introspection fallback;
-- нормализация прав в upstream contract.
-
-Gateway обязан:
-1. Требовать `Authorization: Bearer <token>`.
-2. Проверять `alg`, `kid`, подпись, `iss`, `aud`, `exp`, `nbf`.
-3. Проверять `jti` по denylist, если включён revoke cache.
-4. Удалять все входящие `X-Idshka-*` headers.
-5. Добавлять собственные `X-Idshka-*` headers.
-6. При необходимости добавлять подписанный context envelope.
-7. Fail closed при любой ошибке.
-
-### `apishka-api` / upstream example
-Назначение:
-- бизнес-логика подключённого API;
-- чтение `X-Idshka-*` или проверка `X-Idshka-Context-Signature`;
-- выполнение permission checks по уже подтверждённому контексту.
-
-Ограничение:
-- upstream недоступен напрямую из интернета;
-- если upstream находится в недоверенной сети, он обязан проверять signed context.
-
-## Контракт токена для API-only режима
-
-Header:
-- `alg`: `RS256` или `EdDSA`, выбранный в Key Management.
-- `kid`: id активного public key.
-- `typ`: `JWT`.
-
-Claims v1:
-- `iss`: `https://idshka.ru`
-- `aud`: audience подключённого API-сайта, например `apishka.ru`
-- `sub`: id пользователя на `idshka.ru`
-- `site_id`: id подключённого сайта
-- `token_type`: `user_api`
-- `jti`: уникальный id токена
-- `iat`, `nbf`, `exp`
-- `scope`: строка scopes через пробел
-- `roles`: массив ролей
-- `permissions`: массив детальных разрешений
-- `email`: опционально
-- `name`: опционально
-
-TTL:
-- default: 1 час;
-- max для прямого JWT MVP: 24 часа;
-- для долгоживущего доступа позже вводится opaque token + exchange.
-
-## Контракт web-client / OIDC-like flow
-
-Endpoints `idshka.ru`:
-- `GET /.well-known/openid-configuration`
-- `GET /oauth/authorize`
-- `POST /oauth/token`
-- `GET /oauth/jwks.json`
-- `GET /oauth/userinfo`
-- `POST /oauth/revoke`
-
-OIDC claims:
-- `iss`
-- `aud` = `client_id`
-- `sub`
-- `email`
-- `email_verified`
-- `name`
-- `auth_time`
-- `iat`
-- `exp`
-- `nonce`
-
-Flow:
-- Authorization Code + PKCE.
-- Strict redirect URI matching.
-- `state` required.
-- `nonce` required for id_token.
-
-## Upstream headers для API-only режима
-Gateway выставляет:
-
-- `X-Idshka-Authenticated: 1`
-- `X-Idshka-User-Id: <sub>`
-- `X-Idshka-Site-Id: <site_id>`
-- `X-Idshka-Audience: <aud>`
-- `X-Idshka-Email: <email>`
-- `X-Idshka-Roles: role1,role2`
-- `X-Idshka-Scopes: orders.read orders.write`
-- `X-Idshka-Permissions: orders.read,orders.write`
-- `X-Idshka-JTI: <jti>`
-- `X-Idshka-Token-Exp: <unix_ts>`
-- `X-Request-Id: <request_id>`
-
-Optional signed context:
-
-- `X-Idshka-Context: <base64url-json>`
-- `X-Idshka-Context-Signature: v1=<hmac-sha256>`
-- `X-Idshka-Context-Timestamp: <unix_ts>`
-
-## Данные и таблицы
-Core tables:
-- `users`
-- `user_sessions`
-- `social_accounts`
-- `sites`
-- `site_verifications`
-- `site_modes`
-- `api_resources`
-- `api_scopes`
-- `api_permissions`
-- `api_tokens`
-- `oidc_clients`
-- `oidc_redirect_uris`
-- `oauth_authorization_codes`
-- `oauth_refresh_tokens`
-- `signing_keys`
-- `revoked_jti`
-- `audit_events`
-
-## Репозиторий
-
-```text
-app/
-  Domain/
-  Http/
+    Requests/
   Support/
 bootstrap/
 config/
 database/
   migrations/
   seeders/
-docs/
-  API_FLOWS.md
-  GATEWAY_CONTRACT.md
 infra/
   docker/
   openresty/
@@ -311,9 +99,158 @@ tests/
   Unit/
 ```
 
-## Security boundaries
-- Browser session on `idshka.ru` is first-party Laravel session.
-- Socialite provider access tokens are not used as `idshka` API tokens.
-- API-only tokens are issued by `idshka.ru` and scoped to connected site audience.
-- Gateway headers are trusted only if they originate from the gateway private boundary.
-- Client secrets, private keys and raw tokens are never logged.
+## Dependency Rules
+Основная идея: Laravel остаётся единым приложением, но каждый модуль имеет собственную зону ответственности и не лезет во внутренности соседнего модуля без явного public contract.
+
+- ✅ `routes/*` и `App\Http\Controllers\*` только принимают HTTP-запрос, валидируют вход и вызывают `Actions` / `Services`.
+- ✅ `App\Domain\Identity`, `Sites`, `ApiResources`, `OidcClients`, `Issuer`, `Audit` владеют своими инвариантами и внутренними моделями.
+- ✅ `Issuer` может обращаться к `Sites`, `Identity`, `ApiResources`, `OidcClients` только через их публичные сервисы, contracts или DTO.
+- ✅ `Audit` слушает domain events и не встраивает свои правила в каждый use case вручную.
+- ✅ `App\Contracts\Auth\*` фиксирует внешний auth-контракт для claims, headers, signed context и scopes.
+- ❌ Controllers, routes, Blade/Livewire components не должны содержать issuer logic, permission logic или key-management logic.
+- ❌ Один модуль не должен читать/менять внутренние Eloquent-модели другого модуля напрямую, если для этого нет явного public API.
+- ❌ Socialite callback не должен выпускать JWT, публиковать JWKS или подменять OAuth/OIDC provider-слой.
+- ❌ `examples/` и `infra/` не должны зависеть от внутренних PHP-классов монолита; для них единственный контракт — HTTP/JWKS/docs.
+
+## Layer/Module Communication
+### Входные точки
+- `routes/web.php` и `Controllers/Auth|Portal` обслуживают portal, login, consent и пользовательские страницы.
+- `routes/api.php` и `Controllers/Api` обслуживают owner/user API для сайтов, токенов и клиентских настроек.
+- `routes/oauth.php` и `Controllers/OAuth` обслуживают provider endpoints: authorize, token, userinfo, revoke, JWKS.
+
+### Правило вызовов
+- Один HTTP use case должен иметь один основной `Action` или `Service`, который собирает сценарий целиком.
+- Межмодульные вызовы проходят через contracts, service interfaces, DTO или domain events.
+- Побочные эффекты вроде аудита, уведомлений и реакций на security actions запускаются через events/listeners, а не копипастой в каждом controller.
+
+### Внешние интеграции
+- Gateway общается с `idshka.ru` только по documented endpoints: `/.well-known/*`, `/oauth/*`, owner/user API.
+- `apishka-api` доверяет только gateway boundary, а не публичному клиенту.
+- `apishka-web-laravel` общается с `idshka.ru` по Authorization Code + PKCE, а не через внутренние классы монолита.
+
+## Core Flows
+### Socialite login на `idshka.ru`
+```text
+User
+  -> GET /auth/{provider}/redirect
+  -> external provider
+  -> GET /auth/{provider}/callback
+  -> Identity module links provider account
+  -> Laravel session for portal
+```
+
+Здесь Socialite отвечает только за внешний вход пользователя на `idshka.ru`. После callback система создаёт или находит локального пользователя и открывает обычную first-party Laravel session.
+
+### API-only режим для `apishka.ru`
+```text
+Portal / user API
+  -> Issuer issues JWT for aud=apishka.ru
+  -> GET /oauth/jwks.json exposes public keys
+
+Client
+  -> api.apishka.ru gateway
+  -> gateway validates JWT, sanitizes headers, adds trusted context
+  -> upstream API reads trusted context only
+```
+
+Здесь `idshka.ru` только выпускает токен и публикует JWKS. Upstream не доверяет raw JWT напрямую; доверие появляется только после gateway validation.
+
+### Web-client режим для `apishka.ru`
+```text
+Browser
+  -> apishka.ru/login
+  -> redirect to idshka.ru/oauth/authorize
+  -> login + consent on idshka.ru
+  -> callback on apishka.ru
+  -> code exchange at /oauth/token
+  -> local session on apishka.ru
+```
+
+Здесь `idshka.ru` выступает как provider/issuer. Обязательны strict redirect URI matching, `state`, `nonce` и `PKCE`.
+
+## Key Principles
+1. Один продукт и один deployable monolith до тех пор, пока обратное не доказано эксплуатацией.
+2. `Contracts first`: claims, headers, scopes, error body и flow boundaries сначала фиксируются в contracts/docs, потом в коде.
+3. `Fail closed`: при невалидной подписи, `aud`, `iss`, `exp`, `jti`, `state`, `nonce`, `PKCE` или происхождении headers запрос отклоняется.
+4. Socialite решает только внешний login пользователя, а не issuer/provider-функции.
+5. Подключённые сайты остаются внешними consumers; в core-монолите хранятся только их настройки, ключи и контракты интеграции.
+
+## Code Examples
+### Thin HTTP controller
+```php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Domain\Sites\Actions\CreateSiteAction;
+use App\Http\Requests\Api\CreateSiteRequest;
+use Illuminate\Http\JsonResponse;
+
+final class CreateSiteController
+{
+    public function __invoke(CreateSiteRequest $request, CreateSiteAction $action): JsonResponse
+    {
+        $site = $action->handle(
+            ownerId: (string) $request->user()->getAuthIdentifier(),
+            domain: $request->string('domain')->toString(),
+            displayName: $request->string('display_name')->toString(),
+        );
+
+        return response()->json([
+            'site_id' => $site->id,
+            'domain' => $site->domain,
+            'verified' => $site->isVerified(),
+        ], 201);
+    }
+}
+```
+
+### Cross-module dependency through contracts
+```php
+<?php
+
+namespace App\Domain\Issuer\Actions;
+
+use App\Domain\ApiResources\Contracts\AudienceResolver;
+use App\Domain\Issuer\Services\TokenIssuer;
+use App\Domain\Sites\Contracts\VerifiedSiteLookup;
+
+final class IssueUserApiTokenAction
+{
+    public function __construct(
+        private VerifiedSiteLookup $sites,
+        private AudienceResolver $audiences,
+        private TokenIssuer $issuer,
+    ) {
+    }
+
+    public function handle(string $userId, string $siteId, array $scopes): IssuedTokenData
+    {
+        $site = $this->sites->requireVerified($siteId);
+        $audience = $this->audiences->forSite($site->id);
+
+        return $this->issuer->issueUserApiToken(
+            userId: $userId,
+            siteId: $site->id,
+            audience: $audience,
+            scopes: $scopes,
+        );
+    }
+}
+```
+
+Этот паттерн обязателен: `Issuer` получает данные о сайте через public contract, а не через прямой доступ к внутренней модели другого модуля.
+
+## Anti-Patterns
+- ❌ Класть JWT issue, JWKS publish или revoke logic внутрь Socialite callback/controller.
+- ❌ Позволять controllers или Blade-компонентам напрямую менять токены, ключи, scopes и client secrets.
+- ❌ Ходить из одного модуля в таблицы другого модуля напрямую, минуя public service/contract.
+- ❌ Доверять входящим `X-Idshka-*` заголовкам от клиента или пускать upstream в интернет без gateway boundary.
+- ❌ Делить проект на microservices до стабилизации contracts, flows и первой рабочей monolith-реализации.
+
+## Security Boundaries
+- Browser session на `idshka.ru` — first-party Laravel session.
+- Socialite provider access tokens не используются как `idshka` API tokens.
+- API-only JWT выпускает только `Issuer` внутри `idshka.ru`.
+- Gateway всегда sanitizes `X-Idshka-*` и при необходимости добавляет signed context.
+- Raw tokens, client secrets, authorization codes, private keys и provider refresh tokens никогда не логируются.

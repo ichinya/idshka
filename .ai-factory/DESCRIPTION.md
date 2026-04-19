@@ -78,8 +78,9 @@ Socialite — это клиентская сторона OAuth-login. Поэто
 - DB: PostgreSQL через Eloquent migrations.
 - Cache/queues/rate limit: Redis.
 - JWT/JWKS issuer: Laravel service layer + PHP JWT/JWK library.
-- Edge для `apishka.ru`: OpenResty/Nginx + Lua.
+
 - Локальный запуск: Docker Compose.
 
-## Главный принцип
-`apishka.ru` не должен сам «угадывать», кто пользователь, по сырому входящему трафику. Сначала идёт проверка через `idshka.ru`-совместимый edge/gateway или web-login callback, потом upstream получает доверенный контекст.
+## Архитектура
+Подробные архитектурные правила, модульные границы и dependency rules описаны в `.ai-factory/ARCHITECTURE.md`.
+Паттерн: `Modular Monolith`
