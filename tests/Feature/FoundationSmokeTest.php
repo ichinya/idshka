@@ -16,8 +16,8 @@ class FoundationSmokeTest extends TestCase
             ->assertHeader('X-Request-Id')
             ->assertJsonPath('status', 'foundation-ready')
             ->assertJsonPath('service', 'IDShka')
-            ->assertJsonPath('routes.health', url('/health'))
-            ->assertJsonPath('routes.up', url('/up'))
+            ->assertJsonPath('routes.health', '/health')
+            ->assertJsonPath('routes.up', '/up')
             ->assertJsonMissingPath('routes.readiness');
 
         $this->assertProbeResponseIsStateless($response);
@@ -116,6 +116,19 @@ class FoundationSmokeTest extends TestCase
                 'Content-Security-Policy',
                 "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self'; connect-src 'self'"
             );
+    }
+
+    public function test_plain_http_probe_responses_ignore_spoofed_forwarded_proto_for_hsts(): void
+    {
+        $response = $this
+            ->withHeaders([
+                'X-Forwarded-Proto' => 'https',
+            ])
+            ->get('/health');
+
+        $response
+            ->assertOk()
+            ->assertHeaderMissing('Strict-Transport-Security');
     }
 
     private function assertProbeResponseIsStateless(TestResponse $response): void

@@ -10,10 +10,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (Request $request): JsonResponse {
     $requestId = $request->attributes->get('request_id');
+    $advertisedRoutes = [
+        'health' => route('foundation.health', absolute: false),
+        'up' => route('foundation.up', absolute: false),
+    ];
 
-    Log::info('[FIX:probe-surface] returning stateless foundation metadata', [
+    Log::info('[FIX:probe-trust] returning stateless foundation metadata with relative probe paths', [
         'request_id' => $requestId,
         'path' => $request->path(),
+        'advertised_routes' => $advertisedRoutes,
     ]);
 
     return response()
@@ -21,10 +26,7 @@ Route::get('/', function (Request $request): JsonResponse {
             'service' => config('app.name'),
             'status' => 'foundation-ready',
             'request_id' => $requestId,
-            'routes' => [
-                'health' => url('/health'),
-                'up' => url('/up'),
-            ],
+            'routes' => $advertisedRoutes,
         ])
         ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
         ->header('Pragma', 'no-cache');

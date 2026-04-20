@@ -29,7 +29,8 @@ final class SetSecurityHeaders
             $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicyFor($contentType));
         }
 
-        if ($request->isSecure() || $request->headers->get('X-Forwarded-Proto') === 'https') {
+        // `isSecure()` will honor forwarded proto only when Laravel trusts the proxy chain.
+        if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
