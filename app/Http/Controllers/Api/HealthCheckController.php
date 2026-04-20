@@ -27,6 +27,7 @@ final class HealthCheckController extends Controller
 
         Log::info('[FIX:probe-surface] returning stateless health payload', [
             'request_id' => $requestId,
+            'path' => $request->path(),
             'status' => $payload['status'],
         ]);
 

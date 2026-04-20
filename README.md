@@ -6,7 +6,7 @@ Laravel-first identity provider, issuer и control plane для подключё
 
 - Laravel 13 foundation в корне репозитория.
 - `routes/web.php`, `routes/api.php`, `routes/oauth.php`.
-- `health`, `ready` и built-in `up` endpoints.
+- Stateless public `health` и `up` JSON probes плюс internal-only `ready` readiness probe.
 - Skeleton модулей `app/Domain/*` и `app/Contracts/Auth`.
 - Docker Compose с `nginx`, `php-fpm`, `PostgreSQL`, `Redis` и OpenResty gateway skeleton.
 - GitHub Actions CI skeleton для `composer`, `npm`, tests и проверки `docker compose config`.
@@ -33,6 +33,8 @@ docker compose exec app php artisan migrate
 ```
 
 Приложение будет доступно на `http://localhost:8080`, gateway skeleton — на `http://localhost:8081`.
+PostgreSQL и Redis в default compose profile остаются на private Docker network; для прямого доступа используйте `docker compose exec pgsql psql ...` и `docker compose exec redis redis-cli ...`.
+Публичный nginx ingress не отдаёт `/ready`; этот readiness probe доступен только из внутреннего runtime path.
 
 ## Структура
 

@@ -8,6 +8,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class SetSecurityHeaders
 {
+    private const JSON_CONTENT_SECURITY_POLICY =
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+
+    private const DOCUMENT_CONTENT_SECURITY_POLICY =
+        "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self'; connect-src 'self'";
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -19,11 +25,8 @@ final class SetSecurityHeaders
 
         $contentType = (string) $response->headers->get('Content-Type', '');
 
-        if (str_starts_with($contentType, 'application/json')) {
-            $response->headers->set(
-                'Content-Security-Policy',
-                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
-            );
+        if (! $response->headers->has('Content-Security-Policy')) {
+            $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicyFor($contentType));
         }
 
         if ($request->isSecure() || $request->headers->get('X-Forwarded-Proto') === 'https') {
@@ -31,5 +34,14 @@ final class SetSecurityHeaders
         }
 
         return $response;
+    }
+
+    private function contentSecurityPolicyFor(string $contentType): string
+    {
+        if (str_starts_with($contentType, 'application/json')) {
+            return self::JSON_CONTENT_SECURITY_POLICY;
+        }
+
+        return self::DOCUMENT_CONTENT_SECURITY_POLICY;
     }
 }

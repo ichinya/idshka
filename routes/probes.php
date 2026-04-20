@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\HealthCheckController;
 use App\Http\Controllers\Api\ReadinessCheckController;
+use App\Http\Middleware\EnsureInternalProbeAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,6 @@ Route::get('/', function (Request $request): JsonResponse {
             'request_id' => $requestId,
             'routes' => [
                 'health' => url('/health'),
-                'readiness' => url('/ready'),
                 'up' => url('/up'),
             ],
         ])
@@ -30,5 +30,8 @@ Route::get('/', function (Request $request): JsonResponse {
         ->header('Pragma', 'no-cache');
 });
 
+Route::get('/up', HealthCheckController::class)->name('foundation.up');
 Route::get('/health', HealthCheckController::class)->name('foundation.health');
-Route::get('/ready', ReadinessCheckController::class)->name('foundation.ready');
+Route::get('/ready', ReadinessCheckController::class)
+    ->middleware(EnsureInternalProbeAccess::class)
+    ->name('foundation.ready');
