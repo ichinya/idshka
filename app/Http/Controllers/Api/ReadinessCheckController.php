@@ -37,9 +37,18 @@ final class ReadinessCheckController extends Controller
             'timestamp' => now()->toISOString(),
         ];
 
+        Log::info('[FIX:probe-surface] returning sanitized readiness payload', [
+            'request_id' => $requestId,
+            'status' => $payload['status'],
+            'components' => array_keys($checks),
+        ]);
+
         Log::info('[readiness.check] completed', $payload);
 
-        return response()->json($payload, $isReady ? 200 : 503);
+        return response()
+            ->json($payload, $isReady ? 200 : 503)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 
     private function checkDatabase(): array
@@ -49,17 +58,20 @@ final class ReadinessCheckController extends Controller
 
             return [
                 'status' => 'ok',
-                'connection' => DB::getDefaultConnection(),
             ];
         } catch (Throwable $exception) {
+            Log::warning('[FIX:probe-surface] database readiness failed', [
+                'connection' => DB::getDefaultConnection(),
+                'exception_class' => $exception::class,
+            ]);
+
             Log::error('[readiness.check.database] failed', [
                 'connection' => DB::getDefaultConnection(),
-                'error' => $exception->getMessage(),
+                'exception_class' => $exception::class,
             ]);
 
             return [
                 'status' => 'failed',
-                'connection' => DB::getDefaultConnection(),
             ];
         }
     }
@@ -69,28 +81,28 @@ final class ReadinessCheckController extends Controller
         if (! $this->shouldCheckRedis()) {
             return [
                 'status' => 'skipped',
-                'connection' => 'default',
-                'reason' => 'redis is not an active runtime dependency for the current environment',
             ];
         }
 
         try {
-            $response = Redis::connection()->ping();
+            Redis::connection()->ping();
 
             return [
                 'status' => 'ok',
-                'connection' => 'default',
-                'response' => is_scalar($response) ? (string) $response : 'PONG',
             ];
         } catch (Throwable $exception) {
+            Log::warning('[FIX:probe-surface] redis readiness failed', [
+                'connection' => 'default',
+                'exception_class' => $exception::class,
+            ]);
+
             Log::error('[readiness.check.redis] failed', [
                 'connection' => 'default',
-                'error' => $exception->getMessage(),
+                'exception_class' => $exception::class,
             ]);
 
             return [
                 'status' => 'failed',
-                'connection' => 'default',
             ];
         }
     }

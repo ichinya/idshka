@@ -25,8 +25,16 @@ final class HealthCheckController extends Controller
             'timestamp' => now()->toISOString(),
         ];
 
+        Log::info('[FIX:probe-surface] returning stateless health payload', [
+            'request_id' => $requestId,
+            'status' => $payload['status'],
+        ]);
+
         Log::info('[health.check] completed', $payload);
 
-        return response()->json($payload);
+        return response()
+            ->json($payload)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 }
