@@ -3,7 +3,7 @@
 ## Overview
 `idshka.ru` строится как **Laravel modular monolith**: один deployable backend содержит личный кабинет, вход через Socialite, site registry, token issuer, JWKS, OAuth/OIDC-like endpoints и audit. Для этого проекта это базовый паттерн, потому что домен сложный и security-sensitive, но текущий этап разработки и roadmap пока не дают оснований усложнять систему до microservices.
 
-Подключённые сайты вроде `apishka.ru` и их gateway-конфиги остаются внешними consumers. Они могут жить как reference examples в репозитории, но не становятся частью core-домена `idshka.ru`. Репозиторий сейчас находится в `spec-first` стадии: до появления Laravel skeleton источником истины являются `docs/` и `.ai-factory/` артефакты, а этот документ задаёт целевые архитектурные границы для дальнейшей реализации.
+Подключённые сайты вроде `apishka.ru` и их gateway-конфиги остаются внешними consumers. Они могут жить как reference examples в репозитории, но не становятся частью core-домена `idshka.ru`. Репозиторий уже вышел из чистой `spec-first` стадии: в корне есть Laravel foundation, локальный Docker Compose/CI skeleton и базовые operational endpoints. При этом доменные модули пока существуют как skeleton-границы и документация, поэтому `docs/` и `.ai-factory/` по-прежнему остаются источником истины для business contracts следующих фаз.
 
 ## Decision Rationale
 - **Project type:** identity provider, issuer и control plane для подключённых сайтов с двумя режимами интеграции: `api_resource` и `web_client`.
@@ -13,7 +13,9 @@
 - **Why not microservices:** пока нет доказанной потребности в независимом деплое, отдельных runtime-командах и отдельной эксплуатации для `Identity`, `Issuer`, `Sites` и `Portal`.
 - **Why not pure layered architecture:** для такого домена простые горизонтальные слои слишком легко размывают границы между Socialite login, issuer logic, site registry и gateway contracts.
 
-## Folder Structure
+## Target Folder Structure
+Это целевая структура modular monolith. На конец плана `01-laravel-platform-foundation` в коде уже существуют `routes/web.php`, `routes/api.php`, `routes/oauth.php`, контроллеры health/readiness, middleware `AssignRequestId`, Docker/OpenResty infra и placeholder-модули `app/Domain/*`; детальное наполнение `Actions/Services/Models` остаётся задачей следующих фаз.
+
 ```text
 .ai-factory/
   DESCRIPTION.md
