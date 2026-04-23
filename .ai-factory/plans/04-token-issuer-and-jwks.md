@@ -11,8 +11,8 @@ issuer, security, laravel
 - api_tokens schema
 - revoked_jti schema
 - GET /oauth/jwks.json
-- POST /v1/user/api-tokens
-- POST /v1/user/api-tokens/{id}/revoke
+- POST /api/v1/user/api-tokens
+- POST /api/v1/user/api-tokens/{id}/revoke
 - TokenIssuer/JwksService/SigningKeyService
 
 ## Зависимости

@@ -26,15 +26,15 @@
     - СЂРµР¶РёРјС‹ СЃР°Р№С‚Р° (`api_resource`, `web_client`) С‡РµСЂРµР· explicit allow-list.
   - РџРѕРґРіРѕС‚РѕРІРёС‚СЊ СЃРµСЂРІРёСЃ РІС‹РґР°С‡Рё verification instructions РґР»СЏ DNS TXT Рё `/.well-known/`.
 
-- [x] **T3. POST /v1/sites (create site + challenge)**
-  - Р”РѕР±Р°РІРёС‚СЊ route Рё РєРѕРЅС‚СЂРѕР»Р»РµСЂ РґР»СЏ `POST /v1/sites`.
+- [x] **T3. POST /api/v1/sites (create site + challenge)**
+  - Р”РѕР±Р°РІРёС‚СЊ route Рё РєРѕРЅС‚СЂРѕР»Р»РµСЂ РґР»СЏ `POST /api/v1/sites`.
   - Р”РѕР±Р°РІРёС‚СЊ request validation (`domain`, `display_name`) + owner authorization.
   - Р’РѕР·РІСЂР°С‰Р°С‚СЊ shape РёР· `docs/API_FLOWS.md`:
     - `site_id`, `domain`, `verified=false`, `verification.dns_txt_*`, `verification.file_*`.
   - Р›РѕРіРёСЂРѕРІР°С‚СЊ СЃРѕР±С‹С‚РёРµ connect Р±РµР· СѓС‚РµС‡РєРё СЃРµРєСЂРµС‚РѕРІ challenge.
   - Р—Р°РІРёСЃРёС‚ РѕС‚: `T1`, `T2`.
 
-- [x] **T4. POST /v1/sites/{site}/verify (dns_txt/file)**
+- [x] **T4. POST /api/v1/sites/{site}/verify (dns_txt/file)**
   - Р”РѕР±Р°РІРёС‚СЊ route, request, controller + owner policy.
   - РџРѕРґРґРµСЂР¶Р°С‚СЊ РјРµС‚РѕРґС‹ `dns_txt` Рё `file` СЃ РѕРґРёРЅР°РєРѕРІС‹Рј РєРѕРЅС‚СЂР°РєС‚РѕРј РѕС€РёР±РєРё.
   - РџСЂРѕРІРµСЂРёС‚СЊ TTL challenge Рё РєРѕСЂСЂРµРєС‚РЅРѕ РїРµСЂРµРІРѕРґРёС‚СЊ status (`verified`/`failed`/`expired`).

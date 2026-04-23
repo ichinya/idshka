@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Domain\Sites\Contracts\DnsTxtRecordLookup;
+use App\Domain\Sites\Events\SiteModeEnabled;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteVerification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -51,6 +53,24 @@ class SiteRegistryApiTest extends TestCase
                     'expires_at',
                 ],
             ]);
+    }
+
+    public function test_invalid_domain_returns_422(): void
+    {
+        $owner = User::factory()->create();
+
+        $response = $this
+            ->actingAs($owner)
+            ->postJson('/api/v1/sites', [
+                'domain' => 'localhost',
+                'display_name' => 'Localhost',
+            ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'invalid_domain');
+
+        $this->assertDatabaseCount('sites', 0);
     }
 
     public function test_verified_domain_cannot_be_registered_by_another_owner(): void
@@ -102,9 +122,7 @@ class SiteRegistryApiTest extends TestCase
 
         $this->app->instance(DnsTxtRecordLookup::class, new class($token) implements DnsTxtRecordLookup
         {
-            public function __construct(private readonly string $token)
-            {
-            }
+            public function __construct(private readonly string $token) {}
 
             public function getTxtRecords(string $host): array
             {
@@ -191,6 +209,34 @@ class SiteRegistryApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('mode', 'web_client');
+    }
+
+    public function test_enable_mode_is_idempotent_and_dispatches_event_once(): void
+    {
+        Event::fake([SiteModeEnabled::class]);
+
+        [$owner, $site] = $this->createSiteViaApi();
+        $this->markVerified($site->id);
+
+        $firstResponse = $this
+            ->actingAs($owner)
+            ->postJson("/api/v1/sites/{$site->id}/modes/api_resource");
+
+        $secondResponse = $this
+            ->actingAs($owner)
+            ->postJson("/api/v1/sites/{$site->id}/modes/api_resource");
+
+        $firstResponse
+            ->assertOk()
+            ->assertJsonPath('mode', 'api_resource');
+
+        $secondResponse
+            ->assertOk()
+            ->assertJsonPath('mode', 'api_resource');
+
+        $this->assertSame($firstResponse->json('enabled_at'), $secondResponse->json('enabled_at'));
+        $this->assertDatabaseCount('site_modes', 1);
+        Event::assertDispatchedTimes(SiteModeEnabled::class, 1);
     }
 
     public function test_foreign_owner_cannot_verify_or_enable_mode(): void

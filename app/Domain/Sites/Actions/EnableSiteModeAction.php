@@ -13,8 +13,7 @@ final class EnableSiteModeAction
 {
     public function __construct(
         private readonly VerifiedSiteLookup $verifiedSiteLookup,
-    ) {
-    }
+    ) {}
 
     public function handle(Site $site, SiteModeType $mode): SiteMode
     {
@@ -37,7 +36,15 @@ final class EnableSiteModeAction
             ],
         );
 
-        SiteModeEnabled::dispatch($site, $mode);
+        if ($siteMode->wasRecentlyCreated) {
+            SiteModeEnabled::dispatch($site, $mode);
+        } else {
+            Log::info('[site.mode.enable] already_enabled', [
+                'site_id' => $site->id,
+                'mode' => $mode->value,
+                'site_mode_id' => $siteMode->id,
+            ]);
+        }
 
         Log::info('[site.mode.enable] completed', [
             'site_id' => $site->id,

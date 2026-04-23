@@ -11,8 +11,8 @@ execution:
     branch: "feat/03-site-registry-and-modes"
 outputs:
   - "migrations: sites/site_verifications/site_modes"
-  - "POST /v1/sites"
-  - "POST /v1/sites/{site}/verify"
+  - "POST /api/v1/sites"
+  - "POST /api/v1/sites/{site}/verify"
   - "site verification services: dns_txt and file"
   - "mode enable endpoints: api_resource + web_client"
   - "guard: unverified site cannot receive production credentials"
