@@ -16,16 +16,6 @@
 - Checks:
   - `composer validate --no-check-publish`
   - `php artisan test`
-  - `php vendor/bin/pint --test` on changed PHP files
+  - `vendor/bin/pint --test` on changed PHP files
 - Notes:
   - `git diff main...HEAD` was empty because changes are uncommitted; verification scope was derived from tracked + untracked working tree files.
-
-## Re-verify After aif-fix (`2026-04-22`)
-
-- [x] Route hardening applied: `web` + `auth:web` + `throttle:site-registry`, plus `can:manage,site` on site-bound endpoints.
-- [x] Verification race guard applied: fail-closed on conflicting verified owner inside transaction.
-- [x] File verification SSRF guard applied: public-IP-only resolution + redirect hardening (`withoutRedirecting`), with testing environment compatibility.
-- [x] Quality gates passed after fixes:
-  - `composer validate --no-check-publish`
-  - `php artisan test`
-  - `php vendor/bin/pint --test` on changed PHP files

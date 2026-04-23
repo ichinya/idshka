@@ -32,18 +32,36 @@ specs:
       - ci
     issue: null
     pr: null
+  - id: 03-site-registry-and-modes
+    title: Site registry and modes
+    completed: 2026-04-22
+    verdict: pass
+    files_changed: 42
+    tests_added: 11
+    tags:
+      - laravel
+      - site_registry
+      - portal
+      - api
+      - security
+    issue: null
+    pr: null
 
 stats:
-  total: 1
+  total: 2
   by_verdict:
-    pass: 0
+    pass: 1
     pass-with-notes: 1
   by_tag:
-    laravel: 1
+    laravel: 2
     ops: 1
     foundation: 1
     docker: 1
     ci: 1
+    site_registry: 1
+    portal: 1
+    api: 1
+    security: 1
 
 _schema:
   spec_entry:

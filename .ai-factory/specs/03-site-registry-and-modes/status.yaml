@@ -30,7 +30,7 @@ verification:
   checks:
     - "composer validate --no-check-publish"
     - "php artisan test"
-    - "php vendor/bin/pint --test (changed php files)"
+    - "vendor/bin/pint --test (changed php files)"
 history:
   - at: "2026-04-22"
     action: "aif-improve"
@@ -44,9 +44,3 @@ history:
   - at: "2026-04-22"
     action: "finalized"
     note: "Archived companion plan pair into .ai-factory/specs/03-site-registry-and-modes/."
-  - at: "2026-04-22"
-    action: "aif-fix"
-    note: "Applied security hardening: explicit route auth/policy/throttle, verification race guard, and SSRF protections for file-based verification."
-  - at: "2026-04-22"
-    action: "aif-verify"
-    note: "Re-verified after security fixes: composer validate, full test suite, and Pint checks passed."
