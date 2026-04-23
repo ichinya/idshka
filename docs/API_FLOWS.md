@@ -2,9 +2,9 @@
 
 # API Flows
 
-Документ разделяет уже реализованные HTTP-сценарии и целевые flows следующих фаз. Это важно: по состоянию репозитория рабочими являются только endpoints site registry из `routes/api.php`; `routes/web.php` и `routes/oauth.php` пока не публикуют реальные endpoints.
+Документ разделяет уже реализованные HTTP-сценарии и целевые flows следующих фаз. Это важно: по состоянию репозитория рабочими являются endpoints session auth + Socialite из `routes/web.php` и site registry из `routes/api.php`; `routes/oauth.php` пока содержит только planned issuer endpoints.
 
-## Реализовано сейчас: site registry
+## Реализовано сейчас: session auth + Socialite + site registry
 
 ### Модель аутентификации и защиты
 
@@ -12,6 +12,22 @@
 - Для browser-based state-changing запросов нужна обычная Laravel session плюс CSRF token.
 - Для site-bound endpoints дополнительно включён `can:manage,site`.
 - На write endpoints действует limiter `site-registry` (`30` запросов в минуту на user id / IP).
+
+### Session auth и Socialite login
+
+- `POST /register` — регистрация + автоматический session login.
+- `POST /login` — email/password login (`throttle:auth-login`).
+- `POST /logout` — завершение session.
+- `GET /auth/{provider}/redirect` — старт Socialite login flow (`google`, `vk`, `yandex`).
+- `GET /auth/{provider}/callback` — callback Socialite flow.
+- `GET /auth/{provider}/link` и `DELETE /auth/{provider}/link` — link/unlink Socialite account для уже аутентифицированного пользователя.
+
+Ошибки для Socialite/session-auth flow:
+- `401` invalid credentials или provider denied auth
+- `404` unsupported provider
+- `409` social account/email conflict
+- `419` expired/mismatched social state
+- `429` limiter for auth endpoints
 
 ### Создать сайт
 
@@ -106,15 +122,9 @@ Content-Type: application/json
 | `422` | невалидный payload, unknown `method` или unsupported `mode` |
 | `429` | сработал limiter `site-registry` |
 
-## Planned later: auth и issuer flows
+## Planned later: issuer flows
 
 Ниже — не текущие endpoints, а целевые сценарии следующих планов.
-
-### Socialite login на `idshka.ru`
-
-Планируется вынести в будущий `web` flow:
-- `GET /auth/{provider}/redirect`
-- `GET /auth/{provider}/callback`
 
 ### Выпуск user API token для `api_resource`
 
@@ -148,5 +158,5 @@ POST https://idshka.ru/api/v1/user/api-tokens
 ## See Also
 
 - [Gateway Contract](GATEWAY_CONTRACT.md) — целевой contract для API-only режима
-- [Socialite](SOCIALITE.md) — будущая роль Socialite в login flow
+- [Socialite](SOCIALITE.md) — текущая роль Socialite в login/link flow
 - [Laravel Modules](LARAVEL_MODULES.md) — где в коде живёт site registry slice

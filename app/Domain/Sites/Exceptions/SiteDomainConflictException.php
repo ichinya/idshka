@@ -4,6 +4,4 @@ namespace App\Domain\Sites\Exceptions;
 
 use RuntimeException;
 
-final class SiteDomainConflictException extends RuntimeException
-{
-}
+final class SiteDomainConflictException extends RuntimeException {}

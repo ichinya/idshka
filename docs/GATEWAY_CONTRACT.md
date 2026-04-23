@@ -1,7 +1,17 @@
+[← Previous Page](API_FLOWS.md) · [Back to README](../README.md) · [Next Page →](SOCIALITE.md)
+
 # GATEWAY_CONTRACT
+
+> Статус: целевой контракт, а не уже поднятый runtime API. В репозитории есть OpenResty skeleton и документированные правила, но issuer/JWKS endpoints ещё не реализованы.
 
 ## Назначение
 Документ фиксирует контракт между gateway `api.apishka.ru` и upstream API.
+
+## Текущий статус в репозитории
+
+- Есть infra skeleton в `infra/openresty/apishka/`.
+- `routes/oauth.php` пока не публикует реальные provider endpoints.
+- JWKS, token issue и revoke/introspection — это следующие implementation phases.
 
 ## Вход от клиента
 Клиент передаёт:
@@ -65,3 +75,9 @@ HMAC key хранится на `apishka.ru` gateway и upstream стороне, 
 - `502 jwks_unavailable` только если политика не позволяет использовать stale valid key
 
 Gateway должен возвращать errors без раскрытия sensitive details.
+
+## See Also
+
+- [API Flows](API_FLOWS.md) — где этот contract уже отделён от текущих реализованных endpoints
+- [Socialite](SOCIALITE.md) — граница между external login и будущим issuer layer
+- [Laravel Modules](LARAVEL_MODULES.md) — модули, которые позже будут обслуживать этот contract

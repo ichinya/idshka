@@ -32,6 +32,19 @@ specs:
       - ci
     issue: null
     pr: null
+  - id: 02-user-auth-socialite
+    title: User auth Socialite
+    completed: 2026-04-23
+    verdict: pass
+    files_changed: 45
+    tests_added: 8
+    tags:
+      - laravel
+      - socialite
+      - auth
+      - security
+    issue: null
+    pr: null
   - id: 03-site-registry-and-modes
     title: Site registry and modes
     completed: 2026-04-22
@@ -48,20 +61,22 @@ specs:
     pr: null
 
 stats:
-  total: 2
+  total: 3
   by_verdict:
-    pass: 1
+    pass: 2
     pass-with-notes: 1
   by_tag:
-    laravel: 2
+    laravel: 3
     ops: 1
     foundation: 1
     docker: 1
     ci: 1
+    socialite: 1
+    auth: 1
+    security: 2
     site_registry: 1
     portal: 1
     api: 1
-    security: 1
 
 _schema:
   spec_entry:

@@ -37,5 +37,19 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(30)->by('site-registry:'.$key);
         });
+
+        RateLimiter::for('auth-login', function (Request $request): Limit {
+            $email = mb_strtolower((string) $request->input('email', ''));
+            $key = hash('sha256', $email.'|'.$request->ip());
+
+            return Limit::perMinute(10)->by('auth-login:'.$key);
+        });
+
+        RateLimiter::for('auth-social', function (Request $request): Limit {
+            $provider = mb_strtolower((string) $request->route('provider'));
+            $key = hash('sha256', $provider.'|'.$request->ip());
+
+            return Limit::perMinute(30)->by('auth-social:'.$key);
+        });
     }
 }

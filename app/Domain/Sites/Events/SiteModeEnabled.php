@@ -15,6 +15,5 @@ final class SiteModeEnabled
     public function __construct(
         public readonly Site $site,
         public readonly SiteModeType $mode,
-    ) {
-    }
+    ) {}
 }

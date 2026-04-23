@@ -131,6 +131,23 @@ class FoundationSmokeTest extends TestCase
             ->assertHeaderMissing('Strict-Transport-Security');
     }
 
+    public function test_incoming_request_id_is_sanitized_and_limited(): void
+    {
+        $response = $this
+            ->withHeaders([
+                'X-Request-Id' => str_repeat('a', 90).' unsafe!',
+            ])
+            ->get('/health');
+
+        $requestId = (string) $response->headers->get('X-Request-Id');
+
+        $response->assertOk();
+
+        $this->assertSame(str_repeat('a', 80), $requestId);
+        $this->assertLessThanOrEqual(80, strlen($requestId));
+        $this->assertMatchesRegularExpression('/^[A-Za-z0-9._:-]+$/', $requestId);
+    }
+
     private function assertProbeResponseIsStateless(TestResponse $response): void
     {
         $contentType = (string) $response->headers->get('Content-Type', '');

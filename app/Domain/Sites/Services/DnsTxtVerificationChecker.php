@@ -10,8 +10,7 @@ final class DnsTxtVerificationChecker
 {
     public function __construct(
         private readonly DnsTxtRecordLookup $dnsLookup,
-    ) {
-    }
+    ) {}
 
     public function check(Site $site, string $token): VerificationCheckResult
     {

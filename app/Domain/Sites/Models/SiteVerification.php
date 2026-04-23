@@ -4,6 +4,7 @@ namespace App\Domain\Sites\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -11,8 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $method
  * @property string $token
  * @property string $status
- * @property \Illuminate\Support\Carbon $expires_at
- * @property \Illuminate\Support\Carbon|null $verified_at
+ * @property Carbon $expires_at
+ * @property Carbon|null $verified_at
  * @property string|null $last_error
  */
 final class SiteVerification extends Model

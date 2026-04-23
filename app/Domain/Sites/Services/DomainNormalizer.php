@@ -2,9 +2,9 @@
 
 namespace App\Domain\Sites\Services;
 
-use InvalidArgumentException;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 final class DomainNormalizer
 {

@@ -13,6 +13,5 @@ final class SiteConnected
 
     public function __construct(
         public readonly Site $site,
-    ) {
-    }
+    ) {}
 }
