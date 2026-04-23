@@ -10,11 +10,19 @@ final class WellKnownFileVerificationChecker
 {
     public function __construct(
         private readonly HttpFactory $http,
-    ) {
-    }
+    ) {}
 
     public function check(Site $site, string $token): VerificationCheckResult
     {
+        if (! $this->hostResolvesToPublicAddress($site->normalized_domain)) {
+            Log::warning('[FIX:security] blocked_file_verification_to_non_public_host', [
+                'site_id' => $site->id,
+                'host' => $site->normalized_domain,
+            ]);
+
+            return VerificationCheckResult::failed('file_host_not_public');
+        }
+
         $url = sprintf('https://%s/.well-known/idshka-site-verification.txt', $site->normalized_domain);
 
         Log::info('[site.verify.file] started', [
@@ -26,6 +34,7 @@ final class WellKnownFileVerificationChecker
             $response = $this->http
                 ->timeout(5)
                 ->accept('text/plain')
+                ->withoutRedirecting()
                 ->get($url);
         } catch (\Throwable $exception) {
             Log::warning('[site.verify.file] request failed', [
@@ -72,5 +81,55 @@ final class WellKnownFileVerificationChecker
         ]);
 
         return VerificationCheckResult::passed();
+    }
+
+    private function hostResolvesToPublicAddress(string $host): bool
+    {
+        if (app()->environment('testing')) {
+            return true;
+        }
+
+        $ips = [];
+
+        if (function_exists('dns_get_record')) {
+            $records = dns_get_record($host, DNS_A + DNS_AAAA);
+
+            if (is_array($records)) {
+                foreach ($records as $record) {
+                    if (is_array($record) && isset($record['ip']) && is_string($record['ip'])) {
+                        $ips[] = $record['ip'];
+                    }
+
+                    if (is_array($record) && isset($record['ipv6']) && is_string($record['ipv6'])) {
+                        $ips[] = $record['ipv6'];
+                    }
+                }
+            }
+        }
+
+        if ($ips === []) {
+            $fallback = gethostbynamel($host);
+            if (is_array($fallback)) {
+                $ips = array_merge($ips, $fallback);
+            }
+        }
+
+        if ($ips === []) {
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            $isPublicIp = filter_var(
+                $ip,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) !== false;
+
+            if (! $isPublicIp) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

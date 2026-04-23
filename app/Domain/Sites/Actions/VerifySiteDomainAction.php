@@ -19,8 +19,7 @@ final class VerifySiteDomainAction
     public function __construct(
         private readonly DnsTxtVerificationChecker $dnsChecker,
         private readonly WellKnownFileVerificationChecker $fileChecker,
-    ) {
-    }
+    ) {}
 
     public function handle(Site $site, SiteVerificationMethod $method): SiteVerification
     {
@@ -57,9 +56,33 @@ final class VerifySiteDomainAction
         }
 
         $result = $this->runChecker($method, $site, $verification->token);
+        $finalResult = $result;
 
-        DB::transaction(function () use ($site, $verification, $result): void {
-            if ($result->passed) {
+        DB::transaction(function () use ($site, $verification, &$finalResult): void {
+            if ($finalResult->passed) {
+                $domainIsTakenByAnotherVerifiedOwner = Site::query()
+                    ->where('normalized_domain', $site->normalized_domain)
+                    ->lockForUpdate()
+                    ->where('owner_user_id', '!=', $site->owner_user_id)
+                    ->where('verification_status', SiteVerificationStatus::Verified->value)
+                    ->exists();
+
+                if ($domainIsTakenByAnotherVerifiedOwner) {
+                    Log::warning('[FIX:security] blocked_conflicting_verified_domain_claim', [
+                        'site_id' => $site->id,
+                        'normalized_domain' => $site->normalized_domain,
+                    ]);
+
+                    $verification->update([
+                        'status' => SiteVerificationStatus::Failed->value,
+                        'last_error' => 'verified_domain_owned_by_another_user',
+                    ]);
+
+                    $finalResult = VerificationCheckResult::failed('verified_domain_owned_by_another_user');
+
+                    return;
+                }
+
                 $verification->update([
                     'status' => SiteVerificationStatus::Verified->value,
                     'verified_at' => now(),
@@ -76,17 +99,17 @@ final class VerifySiteDomainAction
 
             $verification->update([
                 'status' => SiteVerificationStatus::Failed->value,
-                'last_error' => $result->errorCode,
+                'last_error' => $finalResult->errorCode,
             ]);
         });
 
-        SiteVerificationCompleted::dispatch($site->refresh(), $method, $result->passed, $result->errorCode);
+        SiteVerificationCompleted::dispatch($site->refresh(), $method, $finalResult->passed, $finalResult->errorCode);
 
         Log::info('[site.verify] completed', [
             'site_id' => $site->id,
             'method' => $method->value,
-            'success' => $result->passed,
-            'error_code' => $result->errorCode,
+            'success' => $finalResult->passed,
+            'error_code' => $finalResult->errorCode,
         ]);
 
         return $verification->refresh();
