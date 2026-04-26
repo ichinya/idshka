@@ -142,6 +142,29 @@ class OAuthWebLoginFlowTest extends TestCase
             ->assertJsonPath('error', 'redirect_uri_mismatch');
     }
 
+    public function test_authorize_guest_receives_oauth_error_shape(): void
+    {
+        $siteOwner = User::factory()->create();
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [, $challenge] = $this->pkcePair();
+
+        $this
+            ->getJson('/oauth/authorize?'.http_build_query([
+                'response_type' => 'code',
+                'client_id' => $client->client_id,
+                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'scope' => 'openid',
+                'state' => 'state-123',
+                'nonce' => 'nonce-123',
+                'code_challenge' => $challenge,
+                'code_challenge_method' => 'S256',
+            ]))
+            ->assertStatus(401)
+            ->assertJsonPath('error', 'authentication_required')
+            ->assertJsonStructure(['error', 'message', 'request_id']);
+    }
+
     public function test_authorize_preserves_registered_redirect_uri_query_parameters(): void
     {
         $siteOwner = User::factory()->create();
@@ -361,6 +384,24 @@ class OAuthWebLoginFlowTest extends TestCase
             'code_hash' => hash('sha256', (string) $redirectQuery['code']),
             'consumed_at' => null,
         ]);
+    }
+
+    public function test_token_endpoint_authenticates_client_before_redirect_uri_checks(): void
+    {
+        $siteOwner = User::factory()->create();
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [$verifier] = $this->pkcePair();
+
+        $this->postJson('/oauth/token', [
+            'grant_type' => 'authorization_code',
+            'client_id' => $client->client_id,
+            'client_secret' => 'wrong-secret',
+            'code' => 'arbitrary-code',
+            'redirect_uri' => 'https://evil.apishka.ru/auth/idshka/callback',
+            'code_verifier' => $verifier,
+        ])->assertStatus(401)
+            ->assertJsonPath('error', 'invalid_client');
     }
 
     public function test_token_endpoint_rejects_expired_authorization_code(): void

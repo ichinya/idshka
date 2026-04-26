@@ -34,14 +34,11 @@ final class TokenController extends Controller
         ]);
 
         try {
-            $resolvedClient = $clientResolver->resolveForAuthorize(
+            $resolvedClient = $clientResolver->resolveForTokenExchange(
                 clientId: $request->string('client_id')->toString(),
+                clientSecret: $request->string('client_secret')->toString(),
                 redirectUri: $request->string('redirect_uri')->toString(),
             );
-
-            if (! $clientResolver->verifyClientSecret($resolvedClient->client, $request->string('client_secret')->toString())) {
-                return $this->oauthError($request, 401, 'invalid_client', 'Invalid client credentials.');
-            }
 
             $authorizationCode = $authorizationCodes->consume(
                 client: $resolvedClient->client,

@@ -21,10 +21,32 @@ final class OidcClientResolver
         ]);
 
         $client = $this->requireActiveClient($clientId);
+
+        return $this->resolveActiveClientRedirect($client, $redirectUri, 'resolve_authorize');
+    }
+
+    public function resolveForTokenExchange(string $clientId, string $clientSecret, string $redirectUri): ResolvedOidcClient
+    {
+        Log::debug('[oidc.client.resolve_token] started', [
+            'client_id' => $clientId,
+        ]);
+
+        $client = $this->requireActiveClient($clientId);
+
+        if (! $this->verifyClientSecret($client, $clientSecret)) {
+            throw OidcClientException::unauthorized('invalid_client', 'Invalid client credentials.');
+        }
+
+        return $this->resolveActiveClientRedirect($client, $redirectUri, 'resolve_token');
+    }
+
+    private function resolveActiveClientRedirect(OidcClient $client, string $redirectUri, string $logContext): ResolvedOidcClient
+    {
         $site = $client->site;
+        $logPrefix = '[oidc.client.'.$logContext.']';
 
         if (! $site->isVerified()) {
-            Log::warning('[oidc.client.resolve_authorize] unverified_site', [
+            Log::warning($logPrefix.' unverified_site', [
                 'client_id' => $client->client_id,
                 'site_id' => $site->id,
             ]);
@@ -38,7 +60,7 @@ final class OidcClientResolver
             ->exists();
 
         if (! $hasWebClientMode) {
-            Log::warning('[oidc.client.resolve_authorize] web_client_mode_required', [
+            Log::warning($logPrefix.' web_client_mode_required', [
                 'client_id' => $client->client_id,
                 'site_id' => $site->id,
             ]);
@@ -48,7 +70,7 @@ final class OidcClientResolver
 
         $redirect = $this->requireExactRedirectUri($client, $redirectUri);
 
-        Log::debug('[oidc.client.resolve_authorize] completed', [
+        Log::debug($logPrefix.' completed', [
             'client_id' => $client->client_id,
             'site_id' => $site->id,
             'redirect_uri_id' => $redirect->id,
