@@ -1,11 +1,15 @@
 <?php
 
+use App\Contracts\Auth\OidcScopes;
 use App\Contracts\Auth\Permissions;
 use App\Contracts\Auth\Scopes;
 
 return [
     'issuer' => env('ISSUER_IDENTIFIER', rtrim((string) env('APP_URL', 'http://localhost'), '/')),
     'user_api_token_ttl_seconds' => (int) env('ISSUER_USER_API_TOKEN_TTL_SECONDS', 900),
+    'id_token_ttl_seconds' => (int) env('ISSUER_ID_TOKEN_TTL_SECONDS', 300),
+    'web_access_token_ttl_seconds' => (int) env('ISSUER_WEB_ACCESS_TOKEN_TTL_SECONDS', 600),
+    'authorization_code_ttl_seconds' => (int) env('ISSUER_AUTHORIZATION_CODE_TTL_SECONDS', 300),
     'allowed_algs' => array_values(array_filter(array_map(
         static fn (string $algorithm): string => trim($algorithm),
         explode(',', (string) env('ISSUER_ALLOWED_ALGS', 'RS256')),
@@ -26,5 +30,10 @@ return [
     'api_resources' => [
         'allowed_scopes' => Scopes::all(),
         'allowed_permissions' => Permissions::all(),
+    ],
+    'oidc' => [
+        'allowed_scopes' => OidcScopes::all(),
+        'pkce_methods' => ['S256'],
+        'refresh_tokens_enabled' => false,
     ],
 ];

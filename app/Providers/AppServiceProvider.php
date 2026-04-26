@@ -70,5 +70,22 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('jwks-public', function (Request $request): Limit {
             return Limit::perMinute(120)->by('jwks-public:'.$request->ip());
         });
+
+        RateLimiter::for('oauth-authorize', function (Request $request): Limit {
+            $key = (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
+
+            return Limit::perMinute(60)->by('oauth-authorize:'.$key);
+        });
+
+        RateLimiter::for('oauth-token', function (Request $request): Limit {
+            $clientId = mb_strtolower((string) $request->input('client_id', ''));
+            $key = hash('sha256', $clientId.'|'.$request->ip());
+
+            return Limit::perMinute(60)->by('oauth-token:'.$key);
+        });
+
+        RateLimiter::for('oauth-userinfo', function (Request $request): Limit {
+            return Limit::perMinute(120)->by('oauth-userinfo:'.$request->ip());
+        });
     }
 }

@@ -59,6 +59,20 @@ specs:
       - security
     issue: null
     pr: null
+  - id: 04-token-issuer-and-jwks
+    title: Token issuer and JWKS
+    completed: 2026-04-26
+    verdict: pass-with-notes
+    files_changed: 46
+    tests_added: 4
+    tags:
+      - issuer
+      - laravel
+      - security
+      - jwt
+      - jwks
+    issue: null
+    pr: null
   - id: 05-api-resource-gateway-for-apishka
     title: API resource gateway for Apishka
     completed: 2026-04-26
@@ -74,27 +88,51 @@ specs:
       - ci
     issue: null
     pr: null
+  - id: 06-web-login-through-idshka
+    title: Web login through IDShka
+    completed: 2026-04-26
+    verdict: pass-with-notes
+    files_changed: 38
+    tests_added: 3
+    tags:
+      - web_client
+      - issuer
+      - oauth
+      - oidc
+      - pkce
+      - laravel
+      - socialite
+      - security
+    issue: null
+    pr: null
 
 stats:
-  total: 4
+  total: 6
   by_verdict:
     pass: 2
-    pass-with-notes: 2
+    pass-with-notes: 4
   by_tag:
-    laravel: 3
+    laravel: 5
     ops: 2
     foundation: 1
     docker: 1
     ci: 2
-    socialite: 1
+    socialite: 2
     auth: 1
-    security: 3
+    security: 5
     site_registry: 1
     portal: 1
     api: 1
+    issuer: 2
+    jwt: 1
+    jwks: 1
     gateway: 1
     api_resource: 1
     openresty: 1
+    web_client: 1
+    oauth: 1
+    oidc: 1
+    pkce: 1
 
 _schema:
   spec_entry:

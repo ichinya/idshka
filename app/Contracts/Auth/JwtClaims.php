@@ -8,6 +8,10 @@ final readonly class JwtClaims
 {
     public const TOKEN_TYPE_USER_API = 'user_api';
 
+    public const TOKEN_TYPE_ID_TOKEN = 'id_token';
+
+    public const TOKEN_TYPE_WEB_ACCESS = 'web_access';
+
     /**
      * @param  list<string>  $scopes
      * @param  list<string>  $permissions
@@ -24,10 +28,27 @@ final readonly class JwtClaims
         public int $issuedAt,
         public int $notBefore,
         public int $expiresAt,
+        public ?string $nonce = null,
     ) {
-        if ($this->tokenType !== self::TOKEN_TYPE_USER_API) {
+        if (! in_array($this->tokenType, self::supportedTokenTypes(), true)) {
             throw new InvalidArgumentException('unsupported_token_type');
         }
+
+        if ($this->tokenType === self::TOKEN_TYPE_ID_TOKEN && trim((string) $this->nonce) === '') {
+            throw new InvalidArgumentException('nonce_required_for_id_token');
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function supportedTokenTypes(): array
+    {
+        return [
+            self::TOKEN_TYPE_USER_API,
+            self::TOKEN_TYPE_ID_TOKEN,
+            self::TOKEN_TYPE_WEB_ACCESS,
+        ];
     }
 
     /**
@@ -35,18 +56,28 @@ final readonly class JwtClaims
      */
     public function toArray(): array
     {
-        return [
+        $payload = [
             'iss' => $this->issuer,
             'aud' => $this->audience,
             'sub' => $this->subject,
             'site_id' => $this->siteId,
             'token_type' => $this->tokenType,
             'scope' => implode(' ', $this->scopes),
-            'permissions' => $this->permissions,
-            'jti' => $this->jti,
-            'iat' => $this->issuedAt,
-            'nbf' => $this->notBefore,
-            'exp' => $this->expiresAt,
         ];
+
+        if ($this->permissions !== []) {
+            $payload['permissions'] = $this->permissions;
+        }
+
+        if ($this->nonce !== null) {
+            $payload['nonce'] = $this->nonce;
+        }
+
+        $payload['jti'] = $this->jti;
+        $payload['iat'] = $this->issuedAt;
+        $payload['nbf'] = $this->notBefore;
+        $payload['exp'] = $this->expiresAt;
+
+        return $payload;
     }
 }

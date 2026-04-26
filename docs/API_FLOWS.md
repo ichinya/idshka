@@ -192,15 +192,84 @@ Deterministic gateway errors:
 - `401` audience_mismatch
 - `502` jwks_unavailable
 
-### Web login через OAuth / OIDC-like flow
+### Web login through OAuth / OIDC-like flow
 
-Планируется в следующих фазах:
-- `GET /oauth/authorize`
-- `POST /oauth/token`
-- `GET /.well-known/...`
-- `GET /oauth/userinfo`
+Implemented in plan `06-web-login-through-idshka`.
 
-`GET /oauth/jwks.json` уже реализован в issuer/JWKS slice; остальные provider endpoints остаются для plan `06-web-login-through-idshka`.
+Public endpoints:
+
+```http
+GET  https://idshka.ru/oauth/authorize
+POST https://idshka.ru/oauth/token
+GET  https://idshka.ru/oauth/userinfo
+GET  https://idshka.ru/oauth/jwks.json
+```
+
+Authorize request:
+
+```http
+GET https://idshka.ru/oauth/authorize?response_type=code&client_id=client_...&redirect_uri=https%3A%2F%2Fapishka.ru%2Fauth%2Fidshka%2Fcallback&scope=openid+profile+email&state=<state>&nonce=<nonce>&code_challenge=<s256>&code_challenge_method=S256
+Cookie: laravel_session=<idshka-session>
+```
+
+Rules:
+
+- `response_type` must be `code`.
+- `redirect_uri` must exactly match a registered URI for the active client.
+- Client site must be verified and have `web_client` mode enabled.
+- `scope` must include `openid`; supported scopes are `openid`, `profile`, `email`.
+- PKCE supports only `S256`.
+
+Successful authorize redirects to the registered callback with `code` and the original `state`. Authorization codes are stored only as SHA-256 hashes, are short-lived, are bound to client/user/site/redirect URI/nonce/PKCE metadata, and can be consumed once.
+
+Token exchange:
+
+```http
+POST https://idshka.ru/oauth/token
+Content-Type: application/json
+
+{
+  "grant_type": "authorization_code",
+  "client_id": "client_...",
+  "client_secret": "<secret>",
+  "code": "<authorization-code>",
+  "redirect_uri": "https://apishka.ru/auth/idshka/callback",
+  "code_verifier": "<pkce-verifier>"
+}
+```
+
+Response:
+
+```json
+{
+  "access_token": "<jwt>",
+  "id_token": "<jwt>",
+  "token_type": "Bearer",
+  "expires_in": 600,
+  "scope": "email openid profile"
+}
+```
+
+`id_token` is signed with RS256 and contains `iss`, `aud=client_id`, `sub`, `site_id`, `client_id`, `nonce`, `token_type=id_token`, `iat`, `nbf`, `exp`, `jti`, `kid` and `typ=JWT`. The web access token has `token_type=web_access` and is accepted by `GET /oauth/userinfo`.
+
+Userinfo:
+
+```http
+GET https://idshka.ru/oauth/userinfo
+Authorization: Bearer <access_token>
+```
+
+Response includes `sub`, plus `name` for `profile` scope and `email` for `email` scope.
+
+Deterministic OAuth errors:
+
+- Body: `{ "error": "...", "message": "...", "request_id": "..." }`
+- `401` invalid client, invalid grant, missing/invalid bearer token
+- `403` unverified site or missing `web_client` mode
+- `422` validation failure, invalid scope or redirect URI mismatch
+- `429` throttle limit
+
+Security logging rule: raw authorization codes, client secrets, PKCE verifiers, JWTs and private key material are never logged. Logs use request id, client id, site id, user id, jti and code/hash prefixes only.
 
 ## See Also
 
