@@ -71,7 +71,8 @@ echo "[gateway-smoke] checking valid token reaches upstream with sanitized conte
 request GET "$GATEWAY_URL/protected" \
   -H "Authorization: Bearer $valid_token" \
   -H "X-Idshka-User-Id: spoofed-user" \
-  -H "X-Idshka-Scopes: admin"
+  -H "X-Idshka-Scopes: admin" \
+  -H "X-Idshka-Canary: spoofed-canary"
 assert_status 200 "valid token"
 assert_body_contains '"authenticated":"1"' "valid token context"
 assert_body_contains '"audience":"apishka.ru"' "valid token audience"
@@ -80,6 +81,12 @@ assert_body_contains '"permissions":"orders.read"' "valid token permissions"
 
 if printf '%s' "$body" | grep -Fq 'spoofed-user'; then
   echo "FAIL [header sanitization] spoofed X-Idshka-User-Id reached upstream" >&2
+  echo "$body" >&2
+  exit 1
+fi
+
+if printf '%s' "$body" | grep -Fq 'spoofed-canary'; then
+  echo "FAIL [header sanitization] spoofed X-Idshka-Canary reached upstream" >&2
   echo "$body" >&2
   exit 1
 fi

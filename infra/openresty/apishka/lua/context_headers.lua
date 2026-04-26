@@ -1,13 +1,18 @@
 local cjson = require("cjson.safe")
 
 local _M = {}
+local IDSHKA_HEADER_NAME = "x-idshka"
+local IDSHKA_HEADER_PREFIX = "x-idshka-"
 
 local function log_debug(message, context)
     ngx.log(ngx.DEBUG, "[gateway.context_headers] ", message, " ", cjson.encode(context or {}))
 end
 
 local function is_idshka_header(name)
-    return string.sub(string.lower(name), 1, 9) == "x-idshka"
+    local normalized = string.lower(name)
+
+    return normalized == IDSHKA_HEADER_NAME
+        or string.sub(normalized, 1, string.len(IDSHKA_HEADER_PREFIX)) == IDSHKA_HEADER_PREFIX
 end
 
 local function sanitize_incoming_headers()
