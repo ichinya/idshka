@@ -37,4 +37,29 @@ class JwtClaimsTest extends TestCase
             'exp' => 1_700_000_900,
         ], $claims->toArray());
     }
+
+    public function test_id_token_claims_include_nonce_and_oidc_token_type(): void
+    {
+        $claims = new JwtClaims(
+            issuer: 'https://idshka.ru',
+            audience: 'client_01kq000000000000000000000000000001',
+            subject: '42',
+            siteId: 'site_01kq000000000000000000000000000001',
+            tokenType: JwtClaims::TOKEN_TYPE_ID_TOKEN,
+            scopes: ['openid', 'profile', 'email'],
+            permissions: [],
+            jti: 'jti-id-token-123',
+            issuedAt: 1_700_000_000,
+            notBefore: 1_700_000_000,
+            expiresAt: 1_700_000_300,
+            nonce: 'nonce-123',
+        );
+
+        $payload = $claims->toArray();
+
+        $this->assertSame('id_token', $payload['token_type']);
+        $this->assertSame('nonce-123', $payload['nonce']);
+        $this->assertSame('openid profile email', $payload['scope']);
+        $this->assertArrayNotHasKey('permissions', $payload);
+    }
 }

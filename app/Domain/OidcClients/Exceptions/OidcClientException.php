@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Domain\Issuer\Exceptions;
+namespace App\Domain\OidcClients\Exceptions;
 
 use RuntimeException;
 
-final class IssuerFlowException extends RuntimeException
+final class OidcClientException extends RuntimeException
 {
     public function __construct(
         private readonly string $errorCode,

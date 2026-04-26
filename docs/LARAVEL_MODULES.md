@@ -11,8 +11,8 @@
 | `app/Domain/Identity` | implemented slice | session auth, Socialite redirect/callback, social account linking/unlinking |
 | `app/Domain/Sites` | implemented slice | create/verify/mode enablement, policy checks, verifiers |
 | `app/Domain/ApiResources` | implemented minimal slice | audience/scopes/permissions resolver для user API token |
-| `app/Domain/OidcClients` | skeleton | будущие web clients и redirect URI |
-| `app/Domain/Issuer` | implemented slice | user API token issue/revoke, signing keys, JWKS |
+| `app/Domain/OidcClients` | implemented slice | OIDC web clients, hashed client secrets, exact redirect URIs |
+| `app/Domain/Issuer` | implemented slice | user API token issue/revoke, signing keys, JWKS, authorization code + PKCE web login |
 | `app/Domain/Audit` | partial | listeners для site registry, identity и issuer audit events |
 | `app/Contracts/Auth` | implemented slice | JWT claims/headers, scopes, permissions |
 
@@ -66,23 +66,31 @@
 - redirect URI;
 - client secret rotation.
 
+Текущий slice:
+- `OidcClient`
+- `OidcRedirectUri`
+- `OidcClientResolver`
+- strict active-client, verified-site, `web_client` mode and exact redirect URI checks
+- hashed client secret verification
+
 ### `app/Domain/Issuer`
 
 Назначение:
 - user API token issue;
 - JWKS;
 - revoke;
-- future authorization code / PKCE / introspection.
+- authorization code + PKCE web login;
+- future introspection.
 
 Текущие классы:
 - `TokenIssuer`
 - `JwksService`
 - `SigningKeyService`
 - `RevocationService`
-
-Будущие классы для plan `06`:
 - `AuthorizationCodeService`
 - `PkceService`
+- `WebAccessTokenValidator`
+- `OAuthAuthorizationCode`
 
 ### `app/Contracts/Auth`
 
@@ -96,7 +104,7 @@
 
 - `routes/api.php` — рабочие endpoints для site registry и user API token issue/revoke.
 - `routes/web.php` — рабочие auth/social endpoints (`register`, `login`, `logout`, `/auth/{provider}/...`).
-- `routes/oauth.php` — рабочий public JWKS endpoint; provider authorize/token/userinfo endpoints остаются будущей фазой.
+- `routes/oauth.php` — рабочие OAuth endpoints: `GET /oauth/authorize`, `POST /oauth/token`, `GET /oauth/userinfo`, `GET /oauth/jwks.json`.
 
 ## See Also
 
@@ -117,3 +125,16 @@
 - Events/Audit: `UserApiTokenIssued`, `UserApiTokenRevoked`, `RecordIssuerAuditEvent`
 
 Модуль `app/Domain/Issuer` больше не skeleton: реализован user API token issue/revoke + JWKS publication slice.
+
+## Update: Web login OAuth slice (2026-04-26)
+
+Plan `06-web-login-through-idshka` adds the public web-client login surface:
+
+- Persistence: `oidc_clients`, `oidc_redirect_uris`, `oauth_authorization_codes`
+- OIDC client services: exact redirect URI matching, verified-site and `web_client` mode enforcement, hashed client secret verification
+- OAuth controllers: `AuthorizeController`, `TokenController`, `UserInfoController`
+- OAuth requests: `AuthorizeRequest`, `TokenRequest`
+- Issuer services: `AuthorizationCodeService`, `PkceService`, `WebAccessTokenValidator`
+- Tokens: signed `id_token` and short-lived `web_access` token with no refresh-token MVP
+
+The web-client example lives in `examples/apishka-web-laravel` and uses only public HTTP endpoints.
