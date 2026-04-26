@@ -4,12 +4,13 @@ namespace App\Domain\Sites\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property string $site_id
  * @property string $mode
- * @property \Illuminate\Support\Carbon $enabled_at
+ * @property Carbon $enabled_at
  */
 final class SiteMode extends Model
 {

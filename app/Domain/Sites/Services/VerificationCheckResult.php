@@ -7,8 +7,7 @@ final readonly class VerificationCheckResult
     public function __construct(
         public bool $passed,
         public ?string $errorCode = null,
-    ) {
-    }
+    ) {}
 
     public static function passed(): self
     {

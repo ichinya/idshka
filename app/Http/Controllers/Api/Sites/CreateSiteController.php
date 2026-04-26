@@ -10,6 +10,7 @@ use App\Http\Requests\Api\CreateSiteRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 final class CreateSiteController extends Controller
 {
@@ -31,6 +32,8 @@ final class CreateSiteController extends Controller
                 domain: (string) $request->string('domain'),
                 displayName: $request->filled('display_name') ? (string) $request->string('display_name') : null,
             );
+        } catch (InvalidArgumentException) {
+            return $this->errorResponse($request, 422, 'invalid_domain', 'Domain must contain a valid host name.');
         } catch (SiteDomainConflictException $exception) {
             return $this->errorResponse($request, 409, $exception->getMessage(), 'Domain cannot be attached to this owner.');
         }

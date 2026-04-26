@@ -20,8 +20,7 @@ final class CreateSiteAction
     public function __construct(
         private readonly DomainNormalizer $domainNormalizer,
         private readonly SiteIdFactory $siteIdFactory,
-    ) {
-    }
+    ) {}
 
     public function handle(int $ownerUserId, string $domain, ?string $displayName): Site
     {

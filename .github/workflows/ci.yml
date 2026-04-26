@@ -18,7 +18,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'
           extensions: bcmath, pdo_sqlite, redis
           coverage: none
 
@@ -71,6 +71,9 @@ jobs:
 
           test "$ready_status" = "403"
           test "$gateway_status" = "200"
+
+      - name: Smoke API resource gateway
+        run: bash infra/openresty/apishka/smoke.sh
 
       - name: Show container logs on smoke failure
         if: failure()

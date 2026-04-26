@@ -17,6 +17,5 @@ final class SiteVerificationCompleted
         public readonly SiteVerificationMethod $method,
         public readonly bool $success,
         public readonly ?string $errorCode = null,
-    ) {
-    }
+    ) {}
 }

@@ -51,7 +51,7 @@
 
 **Evidence:**
 - Доменные сценарии описаны в [DESCRIPTION.md](DESCRIPTION.md), [docs/LARAVEL_MODULES.md](../docs/LARAVEL_MODULES.md) и планах `02..07`.
-- Статусы ключевых фаз остаются `planned`, например [plans/02-user-auth-socialite/status.yaml](plans/02-user-auth-socialite/status.yaml) и [plans/04-token-issuer-and-jwks/status.yaml](plans/04-token-issuer-and-jwks/status.yaml).
+- `02-user-auth-socialite` и `03-site-registry-and-modes` уже закрыты; следующей ключевой фазой остаётся [plans/04-token-issuer-and-jwks/status.yaml](plans/04-token-issuer-and-jwks/status.yaml).
 - Реализаций в `app/Domain/*` нет.
 
 **Commentary:**
@@ -219,9 +219,9 @@
 
 ## Strategic Priorities
 
-1. Поднять `02-user-auth-socialite`, чтобы заменить placeholder `Identity` первым рабочим вертикальным сценарием login/account-linking.
-2. Реализовать `03-site-registry-and-modes` вместе с предметными migrations, чтобы skeleton перешёл в persistent domain.
-3. После этого включить `04-token-issuer-and-jwks`, чтобы перевести auth/gateway contracts из docs в исполняемые сервисы и security checks.
+1. Поднять `04-token-issuer-and-jwks`, чтобы перевести auth/gateway contracts из docs в исполняемые сервисы и security checks.
+2. Реализовать `05-api-resource-gateway-for-apishka` с локальной проверкой JWT и trusted header boundary.
+3. После этого включить `06-web-login-through-idshka`, чтобы закрыть OAuth/OIDC-like web-client flow.
 
 ## Risks
 
@@ -236,8 +236,8 @@
 ## Suggested Planning Order
 
 1. `01-laravel-platform-foundation` — completed on 2026-04-19
-2. `02-user-auth-socialite`
-3. `03-site-registry-and-modes`
+2. `02-user-auth-socialite` — completed on 2026-04-23
+3. `03-site-registry-and-modes` — completed on 2026-04-22
 4. `04-token-issuer-and-jwks`
 5. `05-api-resource-gateway-for-apishka`
 6. `06-web-login-through-idshka`
@@ -246,5 +246,5 @@
 
 ---
 
-*Last updated: 2026-04-19*
+*Last updated: 2026-04-23*
 *Analyzed slices: 11*

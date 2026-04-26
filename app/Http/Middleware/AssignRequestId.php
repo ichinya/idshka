@@ -52,7 +52,7 @@ final class AssignRequestId
         }
 
         $sanitized = preg_replace('/[^A-Za-z0-9._:-]/', '', $incoming) ?? '';
-        $sanitized = Str::limit($sanitized, 80, '')->toString();
+        $sanitized = Str::limit($sanitized, 80, '');
 
         return $sanitized !== '' ? $sanitized : (string) Str::uuid();
     }

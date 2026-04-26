@@ -48,7 +48,7 @@ Implemented site onboarding for `idshka.ru`: site persistence, domain verificati
 | `database/migrations/2026_04_22_230200_create_site_modes_table.php` | created | Added explicit site mode enablement table with idempotent uniqueness. |
 | `app/Domain/Sites/*` | created | Implemented domain logic for normalization, verification checks, mode gating, and contracts. |
 | `app/Http/Controllers/Api/Sites/*` | created | Added HTTP handlers for create/verify/mode flows with deterministic error payloads. |
-| `routes/api.php` | modified | Registered `/v1/sites`, `/v1/sites/{site}/verify`, `/v1/sites/{site}/modes/{mode}` routes. |
+| `routes/api.php` | modified | Registered `/api/v1/sites`, `/api/v1/sites/{site}/verify`, `/api/v1/sites/{site}/modes/{mode}` routes. |
 | `tests/Feature/SiteRegistryApiTest.php` | created | Added end-to-end feature coverage for owner boundaries and fail-closed behavior. |
 
 ### Dependencies Added

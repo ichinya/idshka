@@ -2,8 +2,8 @@
 
 - [x] Creating `apishka.ru` returns `201` with DNS + file verification instructions.
 - [x] Re-registering a verified domain by another owner is rejected (fail closed).
-- [x] `POST /v1/sites/{site}/verify` with `dns_txt` sets status to `verified` when record matches.
-- [x] `POST /v1/sites/{site}/verify` with `file` sets status to `verified` when file body matches.
+- [x] `POST /api/v1/sites/{site}/verify` with `dns_txt` sets status to `verified` when record matches.
+- [x] `POST /api/v1/sites/{site}/verify` with `file` sets status to `verified` when file body matches.
 - [x] Expired challenge does not verify domain and returns deterministic error.
 - [x] `api_resource` and `web_client` can be enabled only after verification.
 - [x] Unverified site cannot receive production credentials (domain guard).

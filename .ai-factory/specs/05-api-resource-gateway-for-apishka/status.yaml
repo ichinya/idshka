@@ -1,0 +1,102 @@
+status: done
+plan_id: 05-api-resource-gateway-for-apishka
+area:
+  - gateway
+  - api_resource
+  - security
+  - ops
+dependencies:
+  - 04-token-issuer-and-jwks
+outputs:
+  - infra/openresty/apishka/nginx.conf
+  - infra/openresty/apishka/lua/jwks_cache.lua
+  - infra/openresty/apishka/lua/jwt_validate.lua
+  - infra/openresty/apishka/lua/context_headers.lua
+  - optional infra/openresty/apishka/lua/context_sign.lua
+  - minimal apishka-api smoke upstream
+  - gateway smoke scripts or CI step
+  - docs/API_FLOWS.md gateway sync
+  - docs/GATEWAY_CONTRACT.md gateway sync
+acceptance:
+  - "Valid user API token для aud=apishka.ru проходит через gateway до upstream"
+  - "Missing/malformed token возвращает deterministic 401 JSON с request_id"
+  - "Неверная подпись, unknown kid или unsupported alg возвращают 401 invalid_token"
+  - "Неверный aud возвращает 401 audience_mismatch"
+  - "Expired или not-yet-valid token fail closed"
+  - "Входящие X-Idshka-* от клиента удаляются до proxying"
+  - "Upstream получает gateway-generated X-Idshka-User-Id/Site-Id/Audience/Scopes/Permissions/JTI"
+  - "Raw JWT не появляется в upstream response, бизнес-логах или gateway error body"
+  - "JWKS cache выбирает public key по kid и не раскрывает private key material"
+  - "docker compose local flow и/или CI gateway smoke подтверждают внешний contract"
+tasks:
+  - id: T1
+    status: completed
+    title: "Gateway runtime dependencies и config surface"
+    depends_on:
+      - 04-token-issuer-and-jwks
+  - id: T2
+    status: completed
+    title: "OpenResty routing skeleton и upstream boundary"
+    depends_on:
+      - T1
+  - id: T3
+    status: completed
+    title: "jwks_cache.lua"
+    depends_on:
+      - T1
+      - T2
+  - id: T4
+    status: completed
+    title: "jwt_validate.lua"
+    depends_on:
+      - T1
+      - T3
+  - id: T5
+    status: completed
+    title: "context_headers.lua"
+    depends_on:
+      - T4
+  - id: T6
+    status: completed
+    title: "Optional context_sign.lua как config-gated extension"
+    depends_on:
+      - T5
+  - id: T7
+    status: completed
+    title: "Minimal apishka-api smoke upstream"
+    depends_on:
+      - T2
+      - T5
+  - id: T8
+    status: completed
+    title: "Gateway smoke scripts и CI integration"
+    depends_on:
+      - T4
+      - T5
+      - T7
+  - id: T9
+    status: completed
+    title: "Docs sync и implementation notes"
+    depends_on:
+      - T8
+execution:
+  mode: manual
+  runtime: codex
+  subagent: null
+  git:
+    branch: feature/05-api-resource-gateway-for-apishka
+    dirty_tree_at_start: true
+    strategy: continue_on_existing_branch_with_prerequisite_phase_04_changes
+history:
+  - date: "2026-04-25"
+    event: refined_by_aif_improve
+    note: "Expanded short gateway skeleton into implementation-ready OpenResty/JWKS/header-smoke plan with explicit dependencies, config, smoke tests, and docs sync."
+  - date: "2026-04-25"
+    event: implemented
+    note: "Implemented OpenResty gateway reference with JWKS cache, RS256 JWT validation, trusted header injection, apishka-api smoke upstream, gateway smoke script, CI smoke step, and docs sync. Signed context and edge revoke cache remain deferred hardening."
+  - date: "2026-04-25"
+    event: verified
+    note: "Verified with php artisan test --without-tty, php vendor/bin/pint --test, composer validate --strict, docker compose config, git diff --check, and gateway smoke in fresh Compose project idshka_gateway_smoke."
+  - date: "2026-04-26"
+    event: finalized_by_aif_verify
+    note: "Fresh verification passed: pint, composer validate, npm build, Laravel tests, docker compose config, git diff --check, no unfinished markers, and gateway smoke in fresh Compose project idshka_aif_verify. Archived into .ai-factory/specs/05-api-resource-gateway-for-apishka."

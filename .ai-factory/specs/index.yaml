@@ -32,6 +32,19 @@ specs:
       - ci
     issue: null
     pr: null
+  - id: 02-user-auth-socialite
+    title: User auth Socialite
+    completed: 2026-04-23
+    verdict: pass
+    files_changed: 45
+    tests_added: 8
+    tags:
+      - laravel
+      - socialite
+      - auth
+      - security
+    issue: null
+    pr: null
   - id: 03-site-registry-and-modes
     title: Site registry and modes
     completed: 2026-04-22
@@ -46,22 +59,42 @@ specs:
       - security
     issue: null
     pr: null
+  - id: 05-api-resource-gateway-for-apishka
+    title: API resource gateway for Apishka
+    completed: 2026-04-26
+    verdict: pass-with-notes
+    files_changed: 22
+    tests_added: 1
+    tags:
+      - gateway
+      - api_resource
+      - security
+      - ops
+      - openresty
+      - ci
+    issue: null
+    pr: null
 
 stats:
-  total: 2
+  total: 4
   by_verdict:
-    pass: 1
-    pass-with-notes: 1
+    pass: 2
+    pass-with-notes: 2
   by_tag:
-    laravel: 2
-    ops: 1
+    laravel: 3
+    ops: 2
     foundation: 1
     docker: 1
-    ci: 1
+    ci: 2
+    socialite: 1
+    auth: 1
+    security: 3
     site_registry: 1
     portal: 1
     api: 1
-    security: 1
+    gateway: 1
+    api_resource: 1
+    openresty: 1
 
 _schema:
   spec_entry:
