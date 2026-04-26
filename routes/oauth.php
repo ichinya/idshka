@@ -1,7 +1,8 @@
 <?php
 
+use App\Http\Controllers\OAuth\PublicJwksController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('oauth')->group(function (): void {
-    // OAuth / OIDC endpoints will be implemented in plan 06.
+    Route::get('/jwks.json', PublicJwksController::class)->middleware('throttle:jwks-public');
 });

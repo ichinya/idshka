@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Issuer\IssueUserApiTokenController;
+use App\Http\Controllers\Api\Issuer\RevokeUserApiTokenController;
 use App\Http\Controllers\Api\Sites\CreateSiteController;
 use App\Http\Controllers\Api\Sites\EnableSiteModeController;
 use App\Http\Controllers\Api\Sites\VerifySiteController;
@@ -10,5 +12,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/sites', CreateSiteController::class);
         Route::post('/sites/{site}/verify', VerifySiteController::class)->middleware('can:manage,site');
         Route::post('/sites/{site}/modes/{mode}', EnableSiteModeController::class)->middleware('can:manage,site');
+    });
+
+    Route::middleware(['web', 'auth:web', 'throttle:token-issue'])->group(function (): void {
+        Route::post('/user/api-tokens', IssueUserApiTokenController::class);
+    });
+
+    Route::middleware(['web', 'auth:web', 'throttle:token-revoke'])->group(function (): void {
+        Route::post('/user/api-tokens/{id}/revoke', RevokeUserApiTokenController::class)->whereNumber('id');
     });
 });
