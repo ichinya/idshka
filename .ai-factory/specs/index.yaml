@@ -59,24 +59,42 @@ specs:
       - security
     issue: null
     pr: null
+  - id: 05-api-resource-gateway-for-apishka
+    title: API resource gateway for Apishka
+    completed: 2026-04-26
+    verdict: pass-with-notes
+    files_changed: 22
+    tests_added: 1
+    tags:
+      - gateway
+      - api_resource
+      - security
+      - ops
+      - openresty
+      - ci
+    issue: null
+    pr: null
 
 stats:
-  total: 3
+  total: 4
   by_verdict:
     pass: 2
-    pass-with-notes: 1
+    pass-with-notes: 2
   by_tag:
     laravel: 3
-    ops: 1
+    ops: 2
     foundation: 1
     docker: 1
-    ci: 1
+    ci: 2
     socialite: 1
     auth: 1
-    security: 2
+    security: 3
     site_registry: 1
     portal: 1
     api: 1
+    gateway: 1
+    api_resource: 1
+    openresty: 1
 
 _schema:
   spec_entry:

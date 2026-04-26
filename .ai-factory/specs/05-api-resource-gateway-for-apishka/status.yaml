@@ -100,6 +100,3 @@ history:
   - date: "2026-04-26"
     event: finalized_by_aif_verify
     note: "Fresh verification passed: pint, composer validate, npm build, Laravel tests, docker compose config, git diff --check, no unfinished markers, and gateway smoke in fresh Compose project idshka_aif_verify. Archived into .ai-factory/specs/05-api-resource-gateway-for-apishka."
-  - date: "2026-04-26"
-    event: fixed_review_findings
-    note: "Addressed aif-review findings: owner-scoped token revoke lookup, normalized array audience trusted header, and gateway contract docs for current vs future headers. Verified with targeted RED/GREEN checks, gateway smoke, pint, composer validate, docker compose config, git diff --check, and full Laravel tests."

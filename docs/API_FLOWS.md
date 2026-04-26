@@ -2,9 +2,9 @@
 
 # API Flows
 
-Документ разделяет уже реализованные HTTP-сценарии и целевые flows следующих фаз. Это важно: по состоянию репозитория рабочими являются endpoints session auth + Socialite из `routes/web.php` и site registry из `routes/api.php`; `routes/oauth.php` пока содержит только planned issuer endpoints.
+Документ разделяет уже реализованные HTTP-сценарии и целевые flows следующих фаз. По состоянию репозитория рабочими являются endpoints session auth + Socialite из `routes/web.php`, site registry и user API token endpoints из `routes/api.php`, а также public JWKS endpoint из `routes/oauth.php`.
 
-## Реализовано сейчас: session auth + Socialite + site registry
+## Реализовано сейчас: session auth + Socialite + site registry + issuer API tokens/JWKS
 
 ### Модель аутентификации и защиты
 
@@ -122,41 +122,88 @@ Content-Type: application/json
 | `422` | невалидный payload, unknown `method` или unsupported `mode` |
 | `429` | сработал limiter `site-registry` |
 
-## Planned later: issuer flows
-
-Ниже — не текущие endpoints, а целевые сценарии следующих планов.
+## Issuer API token flow
 
 ### Выпуск user API token для `api_resource`
-
-Будущий owner/user API:
 
 ```http
 POST https://idshka.ru/api/v1/user/api-tokens
 ```
 
-Этот endpoint ещё не реализован в текущем `routes/api.php`.
+Issue flow:
+
+1. Требуется аутентифицированный owner (`auth:web`).
+2. `site_id` должен быть verified, принадлежать owner и иметь mode `api_resource`.
+3. Requested `scopes`/`permissions` проходят strict allow-list validation.
+4. В ответ возвращается raw JWT один раз + metadata (`jti`, `kid`, `expires_at`).
+5. В БД хранится только metadata/hash, без raw token.
+
+Revoke flow:
+
+```http
+POST https://idshka.ru/api/v1/user/api-tokens/{id}/revoke
+```
+
+1. Только owner токена может выполнить revoke.
+2. Revoke idempotent: повторный вызов возвращает ok без дублей.
+3. На revoke пишется `api_tokens.revoked_at` и `revoked_jti`.
+4. Redis denylist используется как cache-accelerator; БД остается source of truth.
 
 ### Gateway validation через JWKS
 
-Целевой runtime contract:
-- gateway проверяет JWT по JWKS;
-- валидирует `iss`, `aud`, `exp`, `nbf`, `jti`;
-- удаляет входящие `X-Idshka-*` и выставляет trusted context upstream.
+Реализованный OpenResty reference в `infra/openresty/apishka/`:
+- проверяет Bearer JWT по public JWKS через internal Docker URL `http://nginx/oauth/jwks.json`;
+- валидирует `alg=RS256`, `kid`, подпись, `iss`, `aud=apishka.ru`, `exp`, `nbf`, `sub`, `site_id`, `token_type=user_api`, `scope`, `permissions`, `jti`;
+- удаляет входящие `X-Idshka-*` и `Authorization`;
+- выставляет trusted context в upstream `apishka-api`;
+- возвращает deterministic JSON errors с `error`, `message`, `request_id`.
 
-Пока это design contract; рабочий JWKS endpoint ещё не опубликован.
+JWKS опубликован в Laravel:
+
+```http
+GET https://idshka.ru/oauth/jwks.json
+```
+
+Endpoint работает через stateless `api` middleware, не должен выставлять session/CSRF cookies и отдает только public JWK fields.
+
+Gateway smoke:
+
+```bash
+docker compose up -d --build
+bash infra/openresty/apishka/smoke.sh
+```
+
+Smoke покрывает valid token, missing token, invalid signature, wrong audience, expired/not-before token и header sanitization.
+
+Deterministic issuer errors:
+
+- Body: `{ "error": "...", "message": "...", "request_id": "..." }`
+- `401` authentication_required
+- `403` owner/mode/eligibility violations
+- `422` validation_failed / invalid_scope / invalid_permissions
+- `503` signing_key_* errors
+
+Deterministic gateway errors:
+
+- Body: `{ "error": "...", "message": "...", "request_id": "..." }`
+- `401` missing_token
+- `401` invalid_token
+- `401` expired_token
+- `401` audience_mismatch
+- `502` jwks_unavailable
 
 ### Web login через OAuth / OIDC-like flow
 
 Планируется в следующих фазах:
 - `GET /oauth/authorize`
 - `POST /oauth/token`
-- `GET /.well-known/...` / `GET /oauth/jwks.json`
+- `GET /.well-known/...`
 - `GET /oauth/userinfo`
 
-Сейчас `routes/oauth.php` содержит только placeholder.
+`GET /oauth/jwks.json` уже реализован в issuer/JWKS slice; остальные provider endpoints остаются для plan `06-web-login-through-idshka`.
 
 ## See Also
 
-- [Gateway Contract](GATEWAY_CONTRACT.md) — целевой contract для API-only режима
+- [Gateway Contract](GATEWAY_CONTRACT.md) — gateway/JWKS contract для API-only режима
 - [Socialite](SOCIALITE.md) — текущая роль Socialite в login/link flow
 - [Laravel Modules](LARAVEL_MODULES.md) — где в коде живёт site registry slice

@@ -2,7 +2,7 @@
 
 > Laravel-first identity provider, issuer и control plane для подключённых сайтов.
 
-`idshka.ru` строится как Laravel modular monolith для подключения доменов, верификации сайтов и дальнейших auth/token flows. В репозитории уже есть foundation, реализованный site registry slice, session auth + Socialite login/linking и базовый runtime/CI; следующими фазами остаются issuer и OAuth/OIDC endpoints.
+`idshka.ru` строится как Laravel modular monolith для подключения доменов, верификации сайтов и дальнейших auth/token flows. В репозитории уже есть foundation, site registry, session auth + Socialite login/linking, issuer/JWKS и OpenResty gateway reference для API-only режима.
 
 ## Быстрый старт
 
@@ -27,7 +27,7 @@ php artisan test --without-tty
 npm run build
 ```
 
-Приложение поднимается на `http://localhost:8080`, gateway skeleton — на `http://localhost:8081`. Публичный ingress не отдаёт `/ready`; readiness probe доступен только по внутреннему runtime path.
+Приложение поднимается на `http://localhost:8080`, gateway reference — на `http://localhost:8081`. Публичный ingress не отдаёт `/ready`; readiness probe доступен только по внутреннему runtime path.
 
 ## Что уже реализовано
 
@@ -35,7 +35,9 @@ npm run build
 - Site registry: `POST /v1/sites`, verification через `dns_txt` и `file`, явное включение `api_resource` и `web_client`.
 - Session auth + Socialite: `POST /register`, `POST /login`, `POST /logout`, `/auth/{provider}/redirect|callback|link`.
 - Защита owner flows: `auth:web`, policy check `can:manage,site`, throttle `site-registry`, fail-closed verification hardening.
-- Docker Compose с `nginx`, `php-fpm`, `PostgreSQL`, `Redis` и OpenResty gateway skeleton.
+- Docker Compose с `nginx`, `php-fpm`, `PostgreSQL`, `Redis`, OpenResty gateway и internal `apishka-api` smoke upstream.
+- Issuer/JWKS: user API token issue/revoke, signing keys, public `/oauth/jwks.json`.
+- OpenResty gateway reference: JWKS validation, `X-Idshka-*` sanitization, trusted context proxying и smoke script.
 - GitHub Actions CI с `composer`, `npm`, тестами, smoke-проверкой compose runtime и `PHP 8.5`.
 
 ## Пример текущего сценария
@@ -56,12 +58,11 @@ owner portal session
 | [Docs Overview](docs/README.md) | Карта документации и текущий статус |
 | [Laravel Modules](docs/LARAVEL_MODULES.md) | Границы модулей и что уже реализовано |
 | [API Flows](docs/API_FLOWS.md) | Текущие и плановые HTTP-сценарии |
-| [Gateway Contract](docs/GATEWAY_CONTRACT.md) | Целевой контракт gateway и upstream |
+| [Gateway Contract](docs/GATEWAY_CONTRACT.md) | Реализованный gateway reference и upstream contract |
 | [Socialite](docs/SOCIALITE.md) | Роль Socialite в текущем login/link flow |
 
 ## Ближайшие фазы
 
-1. `04-token-issuer-and-jwks`
-2. `05-api-resource-gateway-for-apishka`
-3. `06-web-login-through-idshka`
-4. `07-portal-token-and-client-management`
+1. `06-web-login-through-idshka`
+2. `07-portal-token-and-client-management`
+3. `08-security-hardening-and-ops`

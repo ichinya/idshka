@@ -78,6 +78,8 @@ Socialite — это клиентская сторона OAuth-login. Поэто
 - DB: PostgreSQL через Eloquent migrations.
 - Cache/queues/rate limit: Redis.
 - JWT/JWKS issuer: Laravel service layer + PHP JWT/JWK library.
+- JWT implementation library: `lcobucci/jwt` (`^5.6`).
+- Gateway JWT verification: OpenResty Lua + explicit `openssl` runtime dependency in the gateway image for RS256 signature checks.
 
 - Локальный запуск: Docker Compose.
 
