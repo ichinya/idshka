@@ -62,6 +62,10 @@ class IssuerApiFlowTest extends TestCase
             'jti' => $response->json('jti'),
             'token_hash' => hash('sha256', $rawToken),
         ]);
+
+        /** @var ApiToken $apiToken */
+        $apiToken = ApiToken::query()->where('jti', (string) $response->json('jti'))->firstOrFail();
+        $this->assertSame($apiToken->id, $response->json('token_id'));
     }
 
     public function test_jwks_endpoint_returns_public_keys_and_no_cookies(): void
@@ -101,18 +105,17 @@ class IssuerApiFlowTest extends TestCase
 
         $issueResponse->assertCreated();
 
-        /** @var ApiToken $apiToken */
-        $apiToken = ApiToken::query()->where('jti', (string) $issueResponse->json('jti'))->firstOrFail();
+        $apiTokenId = (int) $issueResponse->json('token_id');
 
-        $first = $this->actingAs($owner)->postJson('/api/v1/user/api-tokens/'.$apiToken->id.'/revoke');
-        $second = $this->actingAs($owner)->postJson('/api/v1/user/api-tokens/'.$apiToken->id.'/revoke');
+        $first = $this->actingAs($owner)->postJson('/api/v1/user/api-tokens/'.$apiTokenId.'/revoke');
+        $second = $this->actingAs($owner)->postJson('/api/v1/user/api-tokens/'.$apiTokenId.'/revoke');
 
         $first->assertOk();
         $second->assertOk();
 
         $this->assertDatabaseHas('api_tokens', [
-            'id' => $apiToken->id,
-            'jti' => $apiToken->jti,
+            'id' => $apiTokenId,
+            'jti' => $issueResponse->json('jti'),
         ]);
         $this->assertDatabaseCount('revoked_jti', 1);
     }

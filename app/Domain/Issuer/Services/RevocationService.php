@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class RevocationService
 {
@@ -100,7 +101,7 @@ final class RevocationService
             return;
         }
 
-        $ttlSeconds = CarbonImmutable::now()->diffInSeconds(
+        $ttlSeconds = (int) CarbonImmutable::now()->diffInSeconds(
             CarbonImmutable::instance($apiToken->expires_at),
             false,
         );
@@ -112,7 +113,20 @@ final class RevocationService
         $cachePrefix = (string) config('issuer.revocation.cache_prefix', 'issuer:denylist:jti:');
         $cacheKey = $cachePrefix.$apiToken->jti;
 
-        Cache::put($cacheKey, true, max(1, $ttlSeconds));
+        try {
+            Cache::put($cacheKey, true, max(1, $ttlSeconds));
+        } catch (Throwable $exception) {
+            Log::warning('[FIX:issuer-revoke-denylist-best-effort] cache write failed after DB revoke', [
+                'api_token_id' => $apiToken->id,
+                'jti' => $apiToken->jti,
+                'cache_key' => $cacheKey,
+                'ttl_seconds' => $ttlSeconds,
+                'error_class' => $exception::class,
+                'error_message' => $exception->getMessage(),
+            ]);
+
+            return;
+        }
 
         Log::debug('[issuer.revoke.cache_denylist] updated', [
             'cache_key' => $cacheKey,

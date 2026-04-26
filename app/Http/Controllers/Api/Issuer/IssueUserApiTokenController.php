@@ -81,6 +81,7 @@ final class IssueUserApiTokenController extends Controller
 
         return response()->json([
             'token' => $issuedToken->rawToken,
+            'token_id' => $issuedToken->tokenId,
             'token_type' => 'Bearer',
             'site_id' => $siteId,
             'aud' => $issuedToken->audience,

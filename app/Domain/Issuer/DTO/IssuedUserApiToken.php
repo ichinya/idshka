@@ -21,5 +21,6 @@ final readonly class IssuedUserApiToken
         public CarbonImmutable $notBefore,
         public CarbonImmutable $expiresAt,
         public int $signingKeyId,
+        public ?int $tokenId = null,
     ) {}
 }

@@ -31,7 +31,7 @@ Authorization: Bearer <idshka_jwt>
 4. `iss` = configured issuer; в локальном Docker default `http://localhost:8080`.
 5. `aud` соответствует подключённому API resource; для reference smoke это `apishka.ru`.
 6. `exp` не истёк, `nbf` наступил.
-7. `jti` не находится в denylist, если revoke cache включён.
+7. Будущий edge revoke cache / online introspection дополнительно проверит denylist по `jti`; текущий reference gateway только требует наличие `jti` claim и прокидывает его upstream.
 8. Token type подходит: `token_type=user_api`.
 
 ## Headers в upstream

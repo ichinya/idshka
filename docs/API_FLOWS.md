@@ -135,7 +135,7 @@ Issue flow:
 1. Требуется аутентифицированный owner (`auth:web`).
 2. `site_id` должен быть verified, принадлежать owner и иметь mode `api_resource`.
 3. Requested `scopes`/`permissions` проходят strict allow-list validation.
-4. В ответ возвращается raw JWT один раз + metadata (`jti`, `kid`, `expires_at`).
+4. В ответ возвращается raw JWT один раз + metadata (`token_id`, `jti`, `kid`, `expires_at`).
 5. В БД хранится только metadata/hash, без raw token.
 
 Revoke flow:
@@ -147,7 +147,7 @@ POST https://idshka.ru/api/v1/user/api-tokens/{id}/revoke
 1. Только owner токена может выполнить revoke.
 2. Revoke idempotent: повторный вызов возвращает ok без дублей.
 3. На revoke пишется `api_tokens.revoked_at` и `revoked_jti`.
-4. Redis denylist используется как cache-accelerator; БД остается source of truth.
+4. Redis denylist используется как best-effort cache-accelerator; БД остается source of truth, а revoke response не зависит от доступности cache backend.
 
 ### Gateway validation через JWKS
 

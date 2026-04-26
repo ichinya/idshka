@@ -48,7 +48,8 @@ final class IssueUserApiTokenAction
             permissions: $access->permissions,
         );
 
-        ApiToken::query()->create([
+        /** @var ApiToken $apiToken */
+        $apiToken = ApiToken::query()->create([
             'user_id' => $userId,
             'site_id' => $access->siteId,
             'signing_key_id' => $issuedToken->signingKeyId,
@@ -74,11 +75,24 @@ final class IssueUserApiTokenAction
         Log::info('[issuer.issue_user_api_token] completed', [
             'user_id' => $userId,
             'site_id' => $access->siteId,
+            'api_token_id' => $apiToken->id,
             'audience' => $access->audience,
             'jti' => $issuedToken->jti,
             'kid' => $issuedToken->kid,
         ]);
 
-        return $issuedToken;
+        return new IssuedUserApiToken(
+            rawToken: $issuedToken->rawToken,
+            jti: $issuedToken->jti,
+            kid: $issuedToken->kid,
+            audience: $issuedToken->audience,
+            scopes: $issuedToken->scopes,
+            permissions: $issuedToken->permissions,
+            issuedAt: $issuedToken->issuedAt,
+            notBefore: $issuedToken->notBefore,
+            expiresAt: $issuedToken->expiresAt,
+            signingKeyId: $issuedToken->signingKeyId,
+            tokenId: $apiToken->id,
+        );
     }
 }
