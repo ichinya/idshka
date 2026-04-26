@@ -72,6 +72,9 @@ jobs:
           test "$ready_status" = "403"
           test "$gateway_status" = "200"
 
+      - name: Smoke API resource gateway
+        run: bash infra/openresty/apishka/smoke.sh
+
       - name: Show container logs on smoke failure
         if: failure()
         run: docker compose logs --no-color
