@@ -33,8 +33,8 @@ The platform SHALL expose a first-party authenticated authorization endpoint for
 - **THEN** the platform SHALL fail closed and SHALL NOT issue an authorization code.
 
 #### Scenario: Authorize endpoint is called repeatedly
-- **WHEN** callers use the authorize endpoint
-- **THEN** the platform SHALL apply the `oauth-authorize` rate limit.
+- **WHEN** guest or authenticated callers use the authorize endpoint repeatedly
+- **THEN** the platform SHALL apply the `oauth-authorize` rate limit before authentication short-circuits the request.
 
 ### Requirement: Authorization Code Lifecycle
 The platform SHALL issue short-lived authorization codes that are returned raw once and stored only as hashes.

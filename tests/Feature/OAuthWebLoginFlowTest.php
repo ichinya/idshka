@@ -13,7 +13,9 @@ use App\Domain\Sites\Enums\SiteVerificationStatus;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteMode;
 use App\Domain\Sites\Services\SiteIdFactory;
+use App\Http\Middleware\ThrottleOAuthAuthorizeRequests;
 use App\Models\User;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,7 +36,35 @@ class OAuthWebLoginFlowTest extends TestCase
 
         $this->assertContains('web', $middleware);
         $this->assertContains('auth:web', $middleware);
-        $this->assertContains('throttle:oauth-authorize', $middleware);
+        $this->assertContains('throttle.oauth-authorize', $middleware);
+        $this->assertLessThan(
+            array_search('auth:web', $middleware, true),
+            array_search('throttle.oauth-authorize', $middleware, true),
+        );
+
+        app(HttpKernel::class);
+
+        $resolvedMiddleware = app('router')->gatherRouteMiddleware($route);
+
+        $this->assertLessThan(
+            array_search('Illuminate\Auth\Middleware\Authenticate:web', $resolvedMiddleware, true),
+            array_search(ThrottleOAuthAuthorizeRequests::class, $resolvedMiddleware, true),
+        );
+    }
+
+    public function test_authorize_guest_requests_are_throttled_before_authentication(): void
+    {
+        for ($request = 1; $request <= 60; $request++) {
+            $this
+                ->getJson('/oauth/authorize')
+                ->assertStatus(401)
+                ->assertJsonPath('error', 'authentication_required');
+        }
+
+        $this
+            ->getJson('/oauth/authorize')
+            ->assertTooManyRequests()
+            ->assertJsonPath('error', 'rate_limited');
     }
 
     public function test_authorization_code_pkce_flow_issues_tokens_and_userinfo(): void
