@@ -1,0 +1,45 @@
+{
+  "changeId": "06-web-login-through-idshka",
+  "archived": true,
+  "skipSpecs": false,
+  "command": "openspec",
+  "args": [
+    "archive",
+    "06-web-login-through-idshka",
+    "--yes",
+    "--no-color"
+  ],
+  "exitCode": 0,
+  "ok": true,
+  "status": "PASS",
+  "preArchiveStatus": {
+    "ok": false,
+    "command": "openspec",
+    "args": [
+      "status",
+      "--change",
+      "06-web-login-through-idshka",
+      "--json",
+      "--no-color"
+    ],
+    "exitCode": 1,
+    "json": null,
+    "stdout": "\n",
+    "stderr": "× Error: Invalid change name '06-web-login-through-idshka': Change name must start with a letter\n",
+    "error": {
+      "code": "non-zero-exit",
+      "message": "OpenSpec command failed with exit code 1."
+    }
+  },
+  "rawStdoutPath": ".ai-factory/qa/06-web-login-through-idshka/raw/openspec-archive.stdout",
+  "rawStderrPath": ".ai-factory/qa/06-web-login-through-idshka/raw/openspec-archive.stderr",
+  "error": null,
+  "warnings": [
+    {
+      "code": "openspec-status-unavailable",
+      "message": "OpenSpec status was unavailable before archive; archive result is still authoritative.",
+      "detail": "OpenSpec command failed with exit code 1."
+    }
+  ],
+  "errors": []
+}

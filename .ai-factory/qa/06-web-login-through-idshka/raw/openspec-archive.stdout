@@ -1,0 +1,9 @@
+Task status: ✓ Complete
+
+Specs to update:
+  oauth-web-login: create
+Applying changes to openspec/specs/oauth-web-login/spec.md:
+  + 6 added
+Totals: + 6, ~ 0, - 0, → 0
+Specs updated successfully.
+Change '06-web-login-through-idshka' archived as '2026-05-01-06-web-login-through-idshka'.
