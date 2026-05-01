@@ -15,6 +15,7 @@ use App\Domain\Sites\Models\SiteMode;
 use App\Domain\Sites\Services\SiteIdFactory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Lcobucci\JWT\Encoding\JoseEncoder;
@@ -24,6 +25,17 @@ use Tests\TestCase;
 class OAuthWebLoginFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_authorize_route_uses_web_auth_and_oauth_throttle_middleware(): void
+    {
+        $route = app('router')->getRoutes()->match(Request::create('/oauth/authorize', 'GET'));
+
+        $middleware = $route->gatherMiddleware();
+
+        $this->assertContains('web', $middleware);
+        $this->assertContains('auth:web', $middleware);
+        $this->assertContains('throttle:oauth-authorize', $middleware);
+    }
 
     public function test_authorization_code_pkce_flow_issues_tokens_and_userinfo(): void
     {

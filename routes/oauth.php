@@ -7,7 +7,7 @@ use App\Http\Controllers\OAuth\UserInfoController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('oauth')->group(function (): void {
-    Route::get('/authorize', AuthorizeController::class)->middleware(['web', 'throttle:oauth-authorize']);
+    Route::get('/authorize', AuthorizeController::class)->middleware(['web', 'auth:web', 'throttle:oauth-authorize']);
     Route::post('/token', TokenController::class)->middleware('throttle:oauth-token');
     Route::get('/userinfo', UserInfoController::class)->middleware('throttle:oauth-userinfo');
     Route::get('/jwks.json', PublicJwksController::class)->middleware('throttle:jwks-public');

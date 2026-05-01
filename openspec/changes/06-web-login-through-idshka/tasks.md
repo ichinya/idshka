@@ -1,5 +1,18 @@
 # Tasks
 
+## Implementation Checklist
+
+- [x] T1 - OAuth/OIDC config and contracts
+- [x] T2 - OIDC client and redirect URI schema/models
+- [x] T3 - Client resolver, secret verification and redirect URI matcher
+- [x] T4 - Authorize request validation and route
+- [x] T5 - Authorization code service with PKCE
+- [x] T6 - Token endpoint for authorization code exchange
+- [x] T7 - ID token and web access token issuance
+- [x] T8 - Userinfo endpoint
+- [x] T9 - Minimal `apishka-web-laravel` example
+- [x] T10 - Tests, docs sync and verification evidence
+
 ## Migrated legacy tasks
 
 # Task

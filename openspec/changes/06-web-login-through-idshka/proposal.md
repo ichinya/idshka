@@ -1,12 +1,17 @@
 # Proposal: 06-web-login-through-idshka
 
-## Intent
+## Why
 
-- [x] T2 - OIDC client and redirect URI schema/models
-  - Files: `database/migrations/*_create_oidc_clients_table.php`, `database/migrations/*_create_oidc_redirect_uris_table.php`, `app/Domain/OidcClients/Models/OidcClient.php`, `app/Domain/OidcClients/Models/OidcRedirectUri.php`.
-  - Deliverable: persist `site_id`, `owner_user_id`, generated `client_id`, hashed `client_secret`, display name, revoked status and exact redirect URIs with indexes on `site_id`, `owner_user_id`, `client_id`.
-  - Logging: migration/model work does not log; future service logs must include only client id, site id and redirect URI hash when needed.
-  - Depends on: T1.
+`apishka.ru` needs a web login flow where users authenticate through `idshka.ru`, return to the connected site, and open a local session without sharing internal Laravel classes or raw secrets between applications.
+
+## What Changes
+
+- Add OIDC web-client persistence with hashed client secrets, revoked state, and exact redirect URI records.
+- Add `GET /oauth/authorize` for authenticated first-party users with strict request validation, `state`, `nonce`, and S256 PKCE.
+- Add one-time short-lived authorization codes stored only as hashes and bound to client, user, site, redirect URI, scopes, nonce, and PKCE challenge.
+- Add `POST /oauth/token` for `authorization_code` only, with client secret, redirect URI, authorization code, and PKCE verifier checks.
+- Add signed `id_token`, short-lived web access token, and `GET /oauth/userinfo` claim projection by scopes.
+- Document the external Laravel web-client flow and keep refresh tokens out of the MVP.
 
 ## Scope
 
