@@ -36,6 +36,13 @@
         "chrome-devtools-mcp@latest",
         "--no-usage-statistics"
       ]
+    },
+    "aifhub": {
+      "type": "stdio",
+      "command": "ai-factory",
+      "args": [
+        "aifhub-mcp"
+      ]
     }
   }
 }

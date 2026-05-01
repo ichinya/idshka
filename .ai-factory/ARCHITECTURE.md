@@ -1,258 +1,105 @@
-# Architecture: Modular Monolith
+﻿# Архитектура: Modular Monolith
 
-## Overview
-`idshka.ru` строится как **Laravel modular monolith**: один deployable backend содержит личный кабинет, вход через Socialite, site registry, token issuer, JWKS, OAuth/OIDC-like endpoints и audit. Для этого проекта это базовый паттерн, потому что домен сложный и security-sensitive, но текущий этап разработки и roadmap пока не дают оснований усложнять систему до microservices.
+## Обзор
+Проект idshka.ru построен как модульный монолит (Modular Monolith) на базе платформы Laravel. Этот выбор продиктован необходимостью совместить простоту разработки, характерную для монолитного приложения, с четким разделением ответственностей между различными доменами (выпуск токенов, управление сайтами, идентификация пользователей). Модульный монолит позволяет поддерживать высокую связность внутри бизнес-процессов, избегая при этом распределенных транзакций и накладных расходов микросервисов.
 
-Подключённые сайты вроде `apishka.ru` и их gateway-конфиги остаются внешними consumers. Они могут жить как reference examples в репозитории, но не становятся частью core-домена `idshka.ru`. Репозиторий уже вышел из чистой `spec-first` стадии: в корне есть Laravel foundation, локальный Docker Compose/CI skeleton и базовые operational endpoints. При этом доменные модули пока существуют как skeleton-границы и документация, поэтому `docs/` и `.ai-factory/` по-прежнему остаются источником истины для business contracts следующих фаз.
+## Обоснование выбора
+- **Тип проекта:** Identity provider, issuer и control plane.
+- **Стек технологий:** PHP, Laravel, PostgreSQL, Redis.
+- **Ключевой фактор:** Четкие границы предметных областей (Identity, Issuer, Sites) при сохранении потребности в работе с единой базой данных и простом развертывании в рамках одного приложения.
 
-## Decision Rationale
-- **Project type:** identity provider, issuer и control plane для подключённых сайтов с двумя режимами интеграции: `api_resource` и `web_client`.
-- **Tech stack:** PHP, Laravel, Socialite, PostgreSQL, Redis, Blade/Vite/Tailwind, OpenResty/Nginx + Lua.
-- **Key factor:** домен содержит много auth/security инвариантов, поэтому нужны жёсткие модульные границы и явные контракты, но при этом проекту важнее сохранить простую разработку и одну точку деплоя.
-- **Chosen pattern:** `Modular Monolith`.
-- **Why not microservices:** пока нет доказанной потребности в независимом деплое, отдельных runtime-командах и отдельной эксплуатации для `Identity`, `Issuer`, `Sites` и `Portal`.
-- **Why not pure layered architecture:** для такого домена простые горизонтальные слои слишком легко размывают границы между Socialite login, issuer logic, site registry и gateway contracts.
+## Структура директорий
+Структура приложения расширяет стандартные соглашения Laravel, вынося бизнес-логику в директорию pp/Domain/ по ограниченным контекстам (Bounded Contexts):
 
-## Target Folder Structure
-Это целевая структура modular monolith. На конец плана `01-laravel-platform-foundation` в коде уже существуют `routes/web.php`, `routes/api.php`, `routes/oauth.php`, контроллеры health/readiness, middleware `AssignRequestId`, Docker/OpenResty infra и placeholder-модули `app/Domain/*`; детальное наполнение `Actions/Services/Models` остаётся задачей следующих фаз.
-
-```text
-.ai-factory/
-  DESCRIPTION.md
-  ARCHITECTURE.md
-  ROADMAP.md
-  rules/
-docs/
-  API_FLOWS.md
-  GATEWAY_CONTRACT.md
-  LARAVEL_MODULES.md
-  SOCIALITE.md
+```ext
 app/
-  Contracts/
-    Auth/
-      JwtClaims.php
-      GatewayHeaders.php
-      SignedContext.php
-      Scopes.php
-  Domain/
-    Identity/
-      Actions/
-      Events/
-      Listeners/
-      Models/
-      Services/
-    Sites/
-      Actions/
-      Events/
-      Models/
-      Services/
-      Verification/
-    ApiResources/
-      Actions/
-      Models/
-      Policies/
-      Services/
-    OidcClients/
-      Actions/
-      Models/
-      Services/
-    Issuer/
-      Actions/
-      DTO/
-      Models/
-      Services/
-    Audit/
-      Actions/
-      Events/
-      Listeners/
-  Http/
-    Controllers/
-      Auth/
-      Portal/
-      Api/
-      OAuth/
-    Middleware/
-    Requests/
-  Support/
-bootstrap/
-config/
-database/
-  migrations/
-  seeders/
-infra/
-  docker/
-  openresty/
-    apishka/
-      nginx.conf
-      lua/
-resources/
-  views/
-  js/
-  css/
-routes/
-  web.php
-  api.php
-  oauth.php
-examples/
-  apishka-api/
-  apishka-web-laravel/
-tests/
-  Feature/
-  Unit/
+├── Contracts/              # Глобальные интерфейсы и контракты (опционально)
+├── Domain/                 # Бизнес-модули
+│   ├── ApiResources/       # Логика работы с API-ресурсами
+│   ├── Audit/              # Аудит действий
+│   ├── Identity/           # Пользователи, профили, пароли
+│   ├── Issuer/             # Выпуск JWT и проверка токенов, revoke
+│   ├── OidcClients/        # Обработка OIDC-агентов
+│   └── Sites/              # Управление подключенными сайтами (apishka.ru)
+├── Http/                   # Транспортный (презентационный) слой
+│   ├── Controllers/        # HTTP контроллеры
+│   ├── Middleware/         # HTTP посредники (проверка edge/gateway)
+│   └── Requests/           # Валидация HTTP запросов
+├── Models/                 # Eloquent модели (работа с БД)
+├── Policies/               # Политики авторизации (Laravel Authorization)
+└── Providers/              # Сервис-провайдеры (DI и конфигурация)
 ```
 
-## Dependency Rules
-Основная идея: Laravel остаётся единым приложением, но каждый модуль имеет собственную зону ответственности и не лезет во внутренности соседнего модуля без явного public contract.
+## Правила зависимостей
+Границы модулей задают четкие правила видимости и импорта:
 
-- ✅ `routes/*` и `App\Http\Controllers\*` только принимают HTTP-запрос, валидируют вход и вызывают `Actions` / `Services`.
-- ✅ `App\Domain\Identity`, `Sites`, `ApiResources`, `OidcClients`, `Issuer`, `Audit` владеют своими инвариантами и внутренними моделями.
-- ✅ `Issuer` может обращаться к `Sites`, `Identity`, `ApiResources`, `OidcClients` только через их публичные сервисы, contracts или DTO.
-- ✅ `Audit` слушает domain events и не встраивает свои правила в каждый use case вручную.
-- ✅ `App\Contracts\Auth\*` фиксирует внешний auth-контракт для claims, headers, signed context и scopes.
-- ❌ Controllers, routes, Blade/Livewire components не должны содержать issuer logic, permission logic или key-management logic.
-- ❌ Один модуль не должен читать/менять внутренние Eloquent-модели другого модуля напрямую, если для этого нет явного public API.
-- ❌ Socialite callback не должен выпускать JWT, публиковать JWKS или подменять OAuth/OIDC provider-слой.
-- ❌ `examples/` и `infra/` не должны зависеть от внутренних PHP-классов монолита; для них единственный контракт — HTTP/JWKS/docs.
+- ✅ **Модули зависят от инфраструктуры Laravel:** Использование Illuminate\* классов, Models или Contracts внутри модулей pp/Domain/ разрешено.
+- ✅ **Транспортный слой использует модули:** Контроллеры из pp/Http/ вызывают сервисы и классы из pp/Domain/.
+- ❌ **Циклические зависимости модулей:** Модуль A не должен жестко зависеть от внутренней логики модуля B, если модуль B зависит от A. 
+- ❌ **Обход публичного API модуля:** Другие ресурсы не должны вызывать внутренние приватные классы или методы домена напрямую. Контакты между доменами должны быть описаны через сервис-контракты, DTO или систему событий.
 
-## Layer/Module Communication
-### Входные точки
-- `routes/web.php` и `Controllers/Auth|Portal` обслуживают portal, login, consent и пользовательские страницы.
-- `routes/api.php` и `Controllers/Api` обслуживают owner/user API для сайтов, токенов и клиентских настроек.
-- `routes/oauth.php` и `Controllers/OAuth` обслуживают provider endpoints: authorize, token, userinfo, revoke, JWKS.
+## Взаимодействие модулей/слоев
+- **Синхронное:** Контроллер уровня Http обращается к сервису/Action-классу нужного домена (например, CreateSiteAction в Domain/Sites).
+- **Событийное (Асинхронное/Слабосвязанное):** Если модулю Audit нужно зафиксировать информацию после отзыва токена модулем Issuer, Issuer выбрасывает событие (Event: TokenRevoked), на которое Audit подписывается через Event Listener (в EventServiceProvider).
+- **Публичные контракты:** Если модулям нужно совместно использовать данные (например, валидация прав сайта), они могут делать это через интерфейсы, определенные в pp/Contracts/.
 
-### Правило вызовов
-- Один HTTP use case должен иметь один основной `Action` или `Service`, который собирает сценарий целиком.
-- Межмодульные вызовы проходят через contracts, service interfaces, DTO или domain events.
-- Побочные эффекты вроде аудита, уведомлений и реакций на security actions запускаются через events/listeners, а не копипастой в каждом controller.
+## Ключевые принципы
+1. **Толстый домен, тонкие контроллеры:** Контроллеры в pp/Http/ отвечают только за прием Request, вызов доменного сервиса и возврат Response (или Blade-шаблона). Истинная бизнес-логика живет в pp/Domain/.
+2. **Изоляция изменений:** Внутреннее устройство (lcobucci/jwt, логика подписей Auth) скрыто внутри домена Issuer. Наружные слои обращаются только к четким интерфейсам типа createTokenForSite().
+3. **Единая база данных:** Приложение по-прежнему имеет единую реляционную модель БД (pp/Models/*.php + Eloquent), упрощая целостность данных без Saga или распределенных блокировок.
 
-### Внешние интеграции
-- Gateway общается с `idshka.ru` только по documented endpoints: `/.well-known/*`, `/oauth/*`, owner/user API.
-- `apishka-api` доверяет только gateway boundary, а не публичному клиенту.
-- `apishka-web-laravel` общается с `idshka.ru` по Authorization Code + PKCE, а не через внутренние классы монолита.
+## Примеры кода
 
-## Core Flows
-### Socialite login на `idshka.ru`
-```text
-User
-  -> GET /auth/{provider}/redirect
-  -> external provider
-  -> GET /auth/{provider}/callback
-  -> Identity module links provider account
-  -> Laravel session for portal
-```
-
-Здесь Socialite отвечает только за внешний вход пользователя на `idshka.ru`. После callback система создаёт или находит локального пользователя и открывает обычную first-party Laravel session.
-
-### API-only режим для `apishka.ru`
-```text
-Portal / user API
-  -> Issuer issues JWT for aud=apishka.ru
-  -> GET /oauth/jwks.json exposes public keys
-
-Client
-  -> api.apishka.ru gateway
-  -> gateway validates JWT, sanitizes headers, adds trusted context
-  -> upstream API reads trusted context only
-```
-
-Здесь `idshka.ru` только выпускает токен и публикует JWKS. Upstream не доверяет raw JWT напрямую; доверие появляется только после gateway validation.
-
-### Web-client режим для `apishka.ru`
-```text
-Browser
-  -> apishka.ru/login
-  -> redirect to idshka.ru/oauth/authorize
-  -> login + consent on idshka.ru
-  -> callback on apishka.ru
-  -> code exchange at /oauth/token
-  -> local session on apishka.ru
-```
-
-Здесь `idshka.ru` выступает как provider/issuer. Обязательны strict redirect URI matching, `state`, `nonce` и `PKCE`.
-
-## Key Principles
-1. Один продукт и один deployable monolith до тех пор, пока обратное не доказано эксплуатацией.
-2. `Contracts first`: claims, headers, scopes, error body и flow boundaries сначала фиксируются в contracts/docs, потом в коде.
-3. `Fail closed`: при невалидной подписи, `aud`, `iss`, `exp`, `jti`, `state`, `nonce`, `PKCE` или происхождении headers запрос отклоняется.
-4. Socialite решает только внешний login пользователя, а не issuer/provider-функции.
-5. Подключённые сайты остаются внешними consumers; в core-монолите хранятся только их настройки, ключи и контракты интеграции.
-
-## Code Examples
-### Thin HTTP controller
+### Изоляция бизнес-логики в доменном Action-классе
 ```php
-<?php
+namespace App\Domain\Sites\Actions;
 
-namespace App\Http\Controllers\Api;
+use App\Models\Site;
+use App\Models\User;
+use App\Domain\Sites\DTOs\SiteData;
 
-use App\Domain\Sites\Actions\CreateSiteAction;
-use App\Http\Requests\Api\CreateSiteRequest;
-use Illuminate\Http\JsonResponse;
-
-final class CreateSiteController
+class RegisterNewSiteAction
 {
-    public function __invoke(CreateSiteRequest $request, CreateSiteAction $action): JsonResponse
+    public function execute(User \, SiteData \): Site
     {
-        $site = $action->handle(
-            ownerId: (string) $request->user()->getAuthIdentifier(),
-            domain: $request->string('domain')->toString(),
-            displayName: $request->string('display_name')->toString(),
-        );
+        // 1. Создание сайта 
+        \ = Site::create([
+            'owner_id' => \->id,
+            'domain' => \->domain,
+        ]);
 
-        return response()->json([
-            'site_id' => $site->id,
-            'domain' => $site->domain,
-            'verified' => $site->isVerified(),
-        ], 201);
+        // 2. Выброс доменного события
+        event(new \App\Domain\Sites\Events\SiteRegistered(\));
+
+        return \;
     }
 }
 ```
 
-### Cross-module dependency through contracts
+### Контроллер не содержит бизнес-логики
 ```php
-<?php
+namespace App\Http\Controllers;
 
-namespace App\Domain\Issuer\Actions;
+use Illuminate\Http\Request;
+use App\Domain\Sites\Actions\RegisterNewSiteAction;
+use App\Domain\Sites\DTOs\SiteData;
 
-use App\Domain\ApiResources\Contracts\AudienceResolver;
-use App\Domain\Issuer\Services\TokenIssuer;
-use App\Domain\Sites\Contracts\VerifiedSiteLookup;
-
-final class IssueUserApiTokenAction
+class SiteController extends Controller
 {
-    public function __construct(
-        private VerifiedSiteLookup $sites,
-        private AudienceResolver $audiences,
-        private TokenIssuer $issuer,
-    ) {
-    }
-
-    public function handle(string $userId, string $siteId, array $scopes): IssuedTokenData
+    public function store(Request \, RegisterNewSiteAction \)
     {
-        $site = $this->sites->requireVerified($siteId);
-        $audience = $this->audiences->forSite($site->id);
+        // Только валидация и транспорт 
+        \ = \->validate(['domain' => 'required|url']);
+        \ = new SiteData(\['domain']);
+        
+        \ = \->execute(\->user(), \);
 
-        return $this->issuer->issueUserApiToken(
-            userId: $userId,
-            siteId: $site->id,
-            audience: $audience,
-            scopes: $scopes,
-        );
+        return response()->json(\, 201);
     }
 }
 ```
 
-Этот паттерн обязателен: `Issuer` получает данные о сайте через public contract, а не через прямой доступ к внутренней модели другого модуля.
-
-## Anti-Patterns
-- ❌ Класть JWT issue, JWKS publish или revoke logic внутрь Socialite callback/controller.
-- ❌ Позволять controllers или Blade-компонентам напрямую менять токены, ключи, scopes и client secrets.
-- ❌ Ходить из одного модуля в таблицы другого модуля напрямую, минуя public service/contract.
-- ❌ Доверять входящим `X-Idshka-*` заголовкам от клиента или пускать upstream в интернет без gateway boundary.
-- ❌ Делить проект на microservices до стабилизации contracts, flows и первой рабочей monolith-реализации.
-
-## Security Boundaries
-- Browser session на `idshka.ru` — first-party Laravel session.
-- Socialite provider access tokens не используются как `idshka` API tokens.
-- API-only JWT выпускает только `Issuer` внутри `idshka.ru`.
-- Gateway всегда sanitizes `X-Idshka-*` и при необходимости добавляет signed context.
-- Raw tokens, client secrets, authorization codes, private keys и provider refresh tokens никогда не логируются.
+## Антипаттерны
+- ❌ **Слепое переплетение моделей:** Не стоит выполнять сложную логику управления OIDC клиентами прямо из контроллеров или внутри модели User, перегружая ее.
+- ❌ **Множественные Eloquent-запросы из Views:** Обращаться напрямую в базу из Blade-шаблонов минуя контроллеры (кроме простых отношений без "Тяжелой" логики).
+- ❌ **Доступ к скрытым сервисам домена:** Использование чужих внутренних репозиториев или кэшированных классов другого домена напрямую, минуя его публичный Service API или контракты.

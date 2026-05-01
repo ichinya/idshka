@@ -1,0 +1,52 @@
+status: done
+plan_id: 03-site-registry-and-modes
+area: "site_registry, laravel, portal"
+dependencies: "02-user-auth-socialite"
+execution:
+  mode: manual
+  runtime: codex
+  subagent: null
+  git:
+    enabled: true
+    branch: "feat/03-site-registry-and-modes"
+outputs:
+  - "migrations: sites/site_verifications/site_modes"
+  - "POST /api/v1/sites"
+  - "POST /api/v1/sites/{site}/verify"
+  - "site verification services: dns_txt and file"
+  - "mode enable endpoints: api_resource + web_client"
+  - "guard: unverified site cannot receive production credentials"
+  - "feature tests for site registry and verification gates"
+acceptance:
+  - "site can be created with DNS/file verification instructions"
+  - "DNS/file verification moves site status to verified"
+  - "api_resource and web_client are enabled only after verify"
+  - "unverified domain cannot receive production credentials"
+  - "verified domain cannot belong to two owners"
+verification:
+  verdict: pass
+  verified_at: "2026-04-22"
+  mode: normal
+  checks:
+    - "composer validate --no-check-publish"
+    - "php artisan test"
+    - "php vendor/bin/pint --test (changed php files)"
+history:
+  - at: "2026-04-22"
+    action: "aif-improve"
+    note: "Refined iteration 3: expanded high-level checklist into executable tasks with dependencies and security gates."
+  - at: "2026-04-22"
+    action: "aif-implement"
+    note: "Implemented T1-T10: migrations, site registry API, verification checkers, mode gating, audit events, docs update, and feature tests."
+  - at: "2026-04-22"
+    action: "aif-verify"
+    note: "Verification passed in normal mode."
+  - at: "2026-04-22"
+    action: "finalized"
+    note: "Archived companion plan pair into .ai-factory/specs/03-site-registry-and-modes/."
+  - at: "2026-04-22"
+    action: "aif-fix"
+    note: "Applied security hardening: explicit route auth/policy/throttle, verification race guard, and SSRF protections for file-based verification."
+  - at: "2026-04-22"
+    action: "aif-verify"
+    note: "Re-verified after security fixes: composer validate, full test suite, and Pint checks passed."

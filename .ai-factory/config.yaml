@@ -1,40 +1,55 @@
+config_version: 1
 language:
   ui: ru
   artifacts: ru
   technical_terms: keep
-
+aifhub:
+  artifactProtocol: openspec
+  openspec:
+    root: openspec
+    installSkills: false
+    validateOnPlan: true
+    validateOnImprove: true
+    validateOnVerify: true
+    statusOnVerify: true
+    archiveOnDone: true
+    useInstructionsApply: true
+    compileRulesOnSync: true
+    validateOnSync: true
+    requireCliForVerify: false
+    requireCliForDone: true
 paths:
   description: .ai-factory/DESCRIPTION.md
   architecture: .ai-factory/ARCHITECTURE.md
-  docs: docs/
   roadmap: .ai-factory/ROADMAP.md
   research: .ai-factory/RESEARCH.md
-  rules_file: .ai-factory/RULES.md
-  plan: .ai-factory/PLAN.md
-  plans: .ai-factory/plans/
-  fix_plan: .ai-factory/FIX_PLAN.md
-  security: .ai-factory/SECURITY.md
-  references: .ai-factory/references/
-  patches: .ai-factory/patches/
-  evolutions: .ai-factory/evolutions/
+  plans: openspec/changes
+  specs: openspec/specs
+  rules: .ai-factory/rules
+  state: .ai-factory/state
+  qa: .ai-factory/qa
+  generated_rules: .ai-factory/rules/generated
+  docs: docs/
   evolution: .ai-factory/evolution/
-  specs: .ai-factory/specs/
-  rules: .ai-factory/rules/
-
+  evolutions: .ai-factory/evolutions/
+  fix_plan: .ai-factory/FIX_PLAN.md
+  patches: .ai-factory/patches/
+  plan: .ai-factory/PLAN.md
+  references: .ai-factory/references/
+  rules_file: .ai-factory/RULES.md
+  security: .ai-factory/SECURITY.md
 workflow:
   auto_create_dirs: true
   plan_id_format: slug
   analyze_updates_architecture: true
   architecture_updates_roadmap: true
   verify_mode: normal
-
 git:
   enabled: true
   base_branch: main
   create_branches: true
   branch_prefix: feature/
   skip_push_after_commit: false
-
 rules:
   base: .ai-factory/rules/base.md
   laravel: .ai-factory/rules/laravel.md
@@ -47,5 +62,4 @@ rules:
   portal: .ai-factory/rules/portal.md
   security: .ai-factory/rules/security.md
   ops: .ai-factory/rules/ops.md
-
 agent_profile: default

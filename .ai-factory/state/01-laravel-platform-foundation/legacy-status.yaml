@@ -1,0 +1,49 @@
+status: done
+plan_id: 01-laravel-platform-foundation
+area: "laravel, ops"
+dependencies: "Нет"
+outputs:
+  - "Laravel app skeleton"
+  - "Docker Compose: nginx/php-fpm/PostgreSQL/Redis"
+  - "app/Domain structure"
+  - "routes/web.php api.php oauth.php"
+  - "health/readiness endpoints"
+  - "tests/CI skeleton"
+acceptance:
+  - "docker compose поднимает Laravel app и зависимости"
+  - "php artisan test выполняется"
+  - "health/readiness endpoints отвечают"
+  - "структура app/Domain создана"
+execution:
+  mode: manual
+  runtime: local
+  subagent: null
+  git:
+    enabled: true
+    base_branch: main
+    working_branch: feature/01-laravel-platform-foundation
+    strategy: feature-branch
+history:
+  - at: "2026-04-19"
+    action: "started"
+    note: "Создана рабочая ветка feature/01-laravel-platform-foundation и начата реализация foundation."
+  - at: "2026-04-19"
+    action: "completed"
+    note: "Поднят Laravel foundation с Docker Compose, health/readiness endpoints, request-id logging, CI и smoke-проверками."
+  - at: "2026-04-19"
+    action: "verified"
+    note: "Верификация завершена с verdict pass-with-notes; implementation соответствует плану, есть только внешний Docker Hub timeout note и context drift note."
+evidence:
+  - "composer validate --strict"
+  - "php artisan test --without-tty"
+  - "npm run build"
+  - "docker compose config"
+  - "docker compose up -d --build"
+  - "GET /health"
+  - "GET /ready"
+verification:
+  verdict: pass-with-notes
+  verified_at: "2026-04-19"
+  notes:
+    - "Повторный docker compose up -d --build во время verify упёрся в transient TLS handshake timeout к Docker Hub, но уже поднятый стек остался healthy."
+    - "`.ai-factory/rules/base.md` всё ещё содержит wording про spec-first стадию; это context drift, а не дефект foundation implementation."

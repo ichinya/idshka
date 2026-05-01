@@ -1,0 +1,27 @@
+# Verify
+
+- [x] `config/issuer.php` has explicit web-client TTLs, allowed OIDC scopes and no-refresh-token MVP settings.
+- [x] OIDC token/claim contracts support `id_token` and web access token without weakening existing `user_api` token validation.
+- [x] `oidc_clients` and `oidc_redirect_uris` migrations/models exist with required indexes and no raw client secret persistence.
+- [x] Client resolver rejects unknown/revoked clients, unverified sites, missing `web_client` mode and cross-site misuse.
+- [x] Redirect URI matching is exact and rejects wildcard, suffix, host-only and mismatched URI cases.
+- [x] `GET /oauth/authorize` route exists with explicit `web`, `auth:web` and `throttle:oauth-authorize` middleware.
+- [x] Authorize validation requires `response_type=code`, `client_id`, `redirect_uri`, `scope`, `state`, `nonce`, `code_challenge` and `code_challenge_method=S256`.
+- [x] Valid authorize request redirects to the registered callback with `code` and original `state`.
+- [x] `oauth_authorization_codes` stores only code hash, client/user/site/redirect URI/scope/nonce/PKCE metadata, expiry and consumed state.
+- [x] Authorization code replay, expired code, wrong client, wrong redirect URI and wrong PKCE verifier fail closed.
+- [x] `POST /oauth/token` supports only `authorization_code`, verifies hashed client secret, consumes code transactionally and returns deterministic JSON errors.
+- [x] `id_token` contains `iss`, `aud`, `sub`, `site_id`, `nonce`, `iat`, `nbf`, `exp`, `jti`, `kid`, `typ=JWT` and valid signature.
+- [x] Web access token is short-lived, signed, has a distinct token type and can be used only for `GET /oauth/userinfo`.
+- [x] `GET /oauth/userinfo` validates Bearer token and returns only claims allowed by requested scopes.
+- [x] Raw authorization code, client secret, PKCE verifier, id token, access token and private keys are not logged or persisted in raw form.
+- [x] OAuth endpoints have deterministic `401`/`403`/`422`/`429` behavior with `request_id` in JSON errors where applicable.
+- [x] `examples/apishka-web-laravel` documents login redirect, callback exchange, id token validation, userinfo call and local session creation using public endpoints only.
+- [x] `docs/API_FLOWS.md`, `docs/LARAVEL_MODULES.md`, `docs/SOCIALITE.md` and `docs/README.md` match implemented behavior.
+- [x] Feature tests cover happy path, redirect mismatch, missing PKCE, code replay, invalid verifier, invalid client secret, nonce/id token, userinfo and log-safety cases.
+- [x] Unit tests cover PKCE S256 verification, code hash/consume behavior, client secret verification and token claim construction.
+- [x] `composer validate --strict` passes.
+- [x] `php artisan route:list --path=oauth` shows authorize, token, userinfo and jwks routes.
+- [x] `php artisan test --without-tty` passes.
+- [x] `php vendor/bin/pint --test` passes.
+- [x] `npm run build`, `docker compose config` and `git diff --check` pass or verification notes explain exact blockers.

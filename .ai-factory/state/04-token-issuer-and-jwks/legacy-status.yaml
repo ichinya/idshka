@@ -1,0 +1,127 @@
+status: done
+plan_id: 04-token-issuer-and-jwks
+area:
+  - issuer
+  - security
+  - laravel
+dependencies:
+  - 03-site-registry-and-modes
+outputs:
+  - JWT/JWK dependency and issuer config
+  - app/Contracts/Auth/JwtClaims.php
+  - app/Contracts/Auth/Scopes.php
+  - signing_keys schema and model
+  - api_tokens schema and model
+  - revoked_jti schema and model
+  - SigningKeyService
+  - JwksService
+  - TokenIssuer
+  - IssueUserApiTokenAction
+  - RevocationService
+  - GET /oauth/jwks.json
+  - POST /api/v1/user/api-tokens
+  - POST /api/v1/user/api-tokens/{id}/revoke
+acceptance:
+  - "Можно выпустить user API token для verified owned site с mode api_resource и aud=apishka.ru"
+  - "JWT содержит iss/aud/sub/site_id/token_type=user_api/scope/permissions/jti/iat/nbf/exp"
+  - "JWT header содержит kid, допустимый alg и typ=JWT"
+  - "JWKS содержит active public key по kid и не содержит private key material"
+  - "Raw token показывается только один раз и не хранится/не логируется в сыром виде"
+  - "Revoke idempotent, пишет api_tokens.revoked_at и revoked_jti; Redis denylist optional"
+  - "Unverified site, чужой site, site без api_resource и invalid scopes fail closed"
+  - "Token issue/revoke имеют audit events, rate limits и deterministic JSON errors"
+tasks:
+  - id: T1
+    status: completed
+    title: "JWT/JWK dependency, issuer config и contracts first"
+    depends_on: []
+  - id: T2
+    status: completed
+    title: "Persistence schema и Eloquent models"
+    depends_on: []
+  - id: T3
+    status: completed
+    title: "SigningKeyService и JwksService"
+    depends_on:
+      - T1
+      - T2
+  - id: T4
+    status: completed
+    title: "Audience/scope/permissions resolver и eligibility guard"
+    depends_on:
+      - 03-site-registry-and-modes
+  - id: T5
+    status: completed
+    title: "TokenIssuer и IssueUserApiTokenAction"
+    depends_on:
+      - T1
+      - T2
+      - T3
+      - T4
+  - id: T6
+    status: completed
+    title: "POST /api/v1/user/api-tokens"
+    depends_on:
+      - T5
+  - id: T7
+    status: completed
+    title: "RevocationService и POST /api/v1/user/api-tokens/{id}/revoke"
+    depends_on:
+      - T2
+      - T5
+  - id: T8
+    status: completed
+    title: "Public stateless GET /oauth/jwks.json endpoint"
+    depends_on:
+      - T3
+  - id: T9
+    status: completed
+    title: "Audit, logging, rate limits и docs sync"
+    depends_on:
+      - T6
+      - T7
+      - T8
+  - id: T10
+    status: completed
+    title: "Feature/unit verification"
+    depends_on:
+      - T1
+      - T2
+      - T3
+      - T4
+      - T5
+      - T6
+      - T7
+      - T8
+      - T9
+history:
+  - date: "2026-04-23"
+    event: refined_by_aif_improve
+    note: "Expanded high-level issuer/JWKS plan into concrete contracts, persistence, services, routes, security, docs, and verification tasks."
+  - date: "2026-04-23"
+    event: implemented
+    note: "Completed T1-T10: issuer contracts, persistence, services, API endpoints, JWKS publication, audit hooks, docs sync, and automated verification."
+  - date: "2026-04-23"
+    event: fix_applied
+    note: "Fixed issuer verification gaps: real SiteIdFactory IDs, deterministic FormRequest validation errors, issuer/JWKS docs sync, DESCRIPTION encoding, and trailing whitespace cleanup."
+  - date: "2026-04-26"
+    event: finalized_by_aif_verify
+    note: "Fresh verification passed with notes: composer validate, Laravel tests, Pint, npm build, docker compose config, route/event sanity, and git diff --check passed. Archived into .ai-factory/specs/04-token-issuer-and-jwks/."
+verification:
+  verdict: pass-with-notes
+  verified_at: "2026-04-26"
+  mode: normal
+  checks:
+    - "composer validate --strict"
+    - "php artisan test --without-tty"
+    - "php vendor/bin/pint --test"
+    - "npm run build"
+    - "docker compose config"
+    - "git diff --check"
+    - "php artisan route:list --path=api/v1/user/api-tokens"
+    - "php artisan route:list --path=oauth/jwks"
+    - "php artisan event:list"
+  notes:
+    - "Implementation satisfies all T1-T10 plan tasks and acceptance criteria."
+    - "Roadmap context still has stale language describing plan 04 as pending; refresh via $aif-roadmap."
+    - "references/CONTEXT-GATES-AND-OWNERSHIP.md was not found, so ownership gates were checked from available project rules and skill instructions."

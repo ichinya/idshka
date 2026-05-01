@@ -1,0 +1,61 @@
+status: done
+plan_id: 02-user-auth-socialite
+area: "laravel, socialite, security"
+dependencies: "01-laravel-platform-foundation"
+execution:
+  mode: manual
+  runtime: codex
+  subagent: null
+  git:
+    enabled: true
+    branch: "main"
+outputs: ["users/social_accounts migrations", "email/password or selected auth scaffold", "/auth/{provider}/redirect", "/auth/{provider}/callback", "Google/VK/Yandex provider adapters", "account linking/unlinking", "login audit events"]
+acceptance: ["user can sign in via at least one Socialite provider", "social_accounts has unique(provider, provider_user_id)", "repeat sign-in resolves the same user", "provider tokens are never logged"]
+history:
+  - at: "2026-04-23"
+    action: "aif-implement"
+    note: "Implemented social_accounts schema, session auth endpoints, Socialite redirect/callback/link/unlink, provider adapters (Google/VK/Yandex), and identity audit events."
+  - at: "2026-04-23"
+    action: "verification"
+    note: "Verified with route list and full test suite."
+  - at: "2026-04-23"
+    action: "aif-verify"
+    note: "Verification failed in normal mode: implementation exists, but public auth/Socialite endpoints lack required feature/smoke tests."
+  - at: "2026-04-23"
+    action: "aif-fix"
+    note: "Added feature tests for register/login/logout, mocked Socialite redirect/callback, repeated social login reuse, link/unlink, unsupported provider handling, and provider token log safety; fixed Str::limit string handling exposed by tests."
+  - at: "2026-04-23"
+    action: "aif-verify"
+    note: "Verification failed in normal mode: functional checks pass, but Pint formatting fails for tests/Feature/AuthSocialiteFlowTest.php."
+  - at: "2026-04-23"
+    action: "aif-fix"
+    note: "Formatted AuthSocialiteFlowTest.php with Pint and cleaned authorized app/Domain/Sites Pint drift so repository-wide Pint passes."
+  - at: "2026-04-23"
+    action: "aif-verify"
+    note: "Verification passed in normal mode."
+  - at: "2026-04-23"
+    action: "finalized"
+    note: "Archived companion plan pair into .ai-factory/specs/02-user-auth-socialite/."
+verification:
+  verdict: pass
+  verified_at: "2026-04-23"
+  mode: normal
+  checks:
+    - "composer validate --strict"
+    - "php artisan route:list --name=auth"
+    - "php artisan event:list"
+    - "php artisan test --without-tty --filter=AuthSocialiteFlowTest"
+    - "php artisan test --without-tty --filter=SiteRegistryApiTest"
+    - "php artisan test --without-tty --filter=FoundationSmokeTest"
+    - "php artisan test --without-tty"
+    - "npm run build"
+    - "php -l (changed PHP files)"
+    - "php vendor/bin/pint --test"
+    - "git diff --check"
+  fixes:
+    - ".ai-factory/plans/02-user-auth-socialite/fixes/2026-04-23-14.27-auth-socialite-feature-tests.md"
+    - ".ai-factory/plans/02-user-auth-socialite/fixes/2026-04-23-14.43-auth-socialite-pint-format.md"
+  notes:
+    - "Functional Socialite/auth tests pass and previous missing-test rules gate is satisfied."
+    - "Pint now passes repository-wide after formatting AuthSocialiteFlowTest.php and the authorized app/Domain/Sites drift."
+    - "Plan finalized into .ai-factory/specs/02-user-auth-socialite/."

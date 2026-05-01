@@ -1,0 +1,135 @@
+status: done
+plan_id: 06-web-login-through-idshka
+area:
+  - web_client
+  - issuer
+  - laravel
+  - socialite
+  - security
+dependencies:
+  - 03-site-registry-and-modes
+  - 04-token-issuer-and-jwks
+execution:
+  mode: manual
+  runtime: codex
+  git:
+    enabled: true
+    branch: feature/06-web-login-through-idshka
+    dirty_tree_at_refinement: true
+    note: "Unrelated dirty plan-04 finalization artifacts existed before this refinement."
+settings:
+  testing: yes
+  logging: verbose
+  docs: yes
+  roadmap_milestone: 06-web-login-through-idshka
+outputs:
+  - OAuth/OIDC web-client issuer config and contracts
+  - oidc_clients schema and model
+  - oidc_redirect_uris schema and model
+  - oauth_authorization_codes schema and model
+  - OIDC client resolver and exact redirect URI matcher
+  - PKCE service
+  - GET /oauth/authorize
+  - POST /oauth/token
+  - signed id_token issue
+  - short-lived web access token issue
+  - GET /oauth/userinfo
+  - example apishka-web-laravel callback/custom Socialite provider docs
+  - feature/unit tests and docs sync
+acceptance:
+  - "GET /oauth/authorize validates client_id, exact redirect_uri, response_type=code, scope, state, nonce, code_challenge and code_challenge_method=S256"
+  - "Valid authorize request for an authenticated user redirects to the registered callback with code and original state"
+  - "Unknown client, revoked client, unverified site, missing web_client mode, invalid scope, redirect mismatch and missing PKCE fail closed"
+  - "Authorization code is short-lived, stored only as a hash, bound to client/user/site/redirect URI/nonce/PKCE, and consumed once"
+  - "POST /oauth/token exchanges a valid code plus PKCE verifier for tokens and rejects replay/mismatched verifier"
+  - "id_token contains iss, aud/client_id, sub, site_id, nonce, iat, nbf, exp, jti, kid and typ=JWT"
+  - "GET /oauth/userinfo returns claims only for a valid web access token and requested scopes"
+  - "Raw authorization code, client_secret, id_token, access_token and private keys are never logged"
+  - "example apishka-web-laravel creates a local session using only public HTTP/OAuth endpoints"
+tasks:
+  - id: T1
+    status: completed
+    title: "OAuth/OIDC config and contracts"
+    depends_on: []
+  - id: T2
+    status: completed
+    title: "OIDC client and redirect URI schema/models"
+    depends_on:
+      - T1
+  - id: T3
+    status: completed
+    title: "Client resolver, secret verification and redirect URI matcher"
+    depends_on:
+      - T2
+      - 03-site-registry-and-modes
+  - id: T4
+    status: completed
+    title: "Authorize request validation and route"
+    depends_on:
+      - T3
+  - id: T5
+    status: completed
+    title: "Authorization code service with PKCE"
+    depends_on:
+      - T4
+  - id: T6
+    status: completed
+    title: "Token endpoint for authorization code exchange"
+    depends_on:
+      - T5
+  - id: T7
+    status: completed
+    title: "ID token and web access token issuance"
+    depends_on:
+      - T6
+      - 04-token-issuer-and-jwks
+  - id: T8
+    status: completed
+    title: "Userinfo endpoint"
+    depends_on:
+      - T7
+  - id: T9
+    status: completed
+    title: "Minimal apishka-web-laravel example"
+    depends_on:
+      - T8
+  - id: T10
+    status: completed
+    title: "Tests, docs sync and verification evidence"
+    depends_on:
+      - T1
+      - T2
+      - T3
+      - T4
+      - T5
+      - T6
+      - T7
+      - T8
+      - T9
+history:
+  - date: "2026-04-26"
+    event: refined_by_aif_improve
+    note: "Expanded placeholder plan into 10 implementation tasks with dependencies, file targets, security gates, logging requirements, tests, docs and verification commands."
+  - date: "2026-04-26"
+    event: implemented_t1_t3
+    note: "Completed OAuth/OIDC config and token-type contracts, OIDC client/redirect URI persistence, PKCE service, and client resolver with exact redirect URI and web_client mode checks."
+  - date: "2026-04-26"
+    event: implemented_t4_t9
+    note: "Completed authorize/token/userinfo endpoints, one-time authorization code exchange with S256 PKCE, signed id_token and web access token issuance, and apishka-web Laravel HTTP-only example docs."
+  - date: "2026-04-26"
+    event: verification_passed
+    note: "Completed plan 06 verification: composer validate, OAuth route list, targeted OAuth/PKCE/resolver/JWT tests, full php artisan test, Pint, npm build, docker compose config and git diff --check."
+  - date: "2026-04-26"
+    event: finalized_by_aif_verify
+    note: "Archived verified plan 06 into .ai-factory/specs/06-web-login-through-idshka with PASS with notes verdict."
+verification:
+  expected_checks:
+    - "composer validate --strict"
+    - "php artisan route:list --path=oauth"
+    - "php artisan test --without-tty --filter=OAuthWebLoginFlowTest"
+    - "php artisan test --without-tty --filter=PkceServiceTest"
+    - "php artisan test --without-tty"
+    - "php vendor/bin/pint --test"
+    - "npm run build"
+    - "docker compose config"
+    - "git diff --check"
