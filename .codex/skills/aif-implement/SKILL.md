@@ -1,19 +1,19 @@
 ---
 name: aif-implement
 description: Execute implementation tasks from the current plan. Works through tasks sequentially, marks completion, and preserves progress for continuation across sessions. Use when user says "implement", "start coding", "execute plan", or "continue implementation".
-argument-hint: '[--list] [@plan-file] [task-id or "status"]'
+argument-hint: '[--list] [--without-plan <description>] [@plan-file] [task-id or "status"]'
 allowed-tools: Read Write Edit Glob Grep Bash TaskList TaskGet TaskUpdate AskUserQuestion Questions mcp__handoff__handoff_sync_status mcp__handoff__handoff_push_plan mcp__handoff__handoff_get_task mcp__handoff__handoff_list_tasks mcp__handoff__handoff_update_task
 disable-model-invocation: false
 ---
 
 <!-- aif-ext:aifhub-extension:aif-implement:prepend:start -->
-## AIFHub Implement Companion-Artifact Override
+## AIFHub Implement OpenSpec-native Override
 
 Apply this block before the upstream `aif-implement` body. When any rule below conflicts with the base skill text, this block wins.
 
 ### Goal
 
-Use the built-in `/aif-implement` skill as the canonical execution command and orchestration owner for the extension workflow.
+Use the built-in `/aif-implement` skill as the canonical execution command for both OpenSpec-native changes and the extension's legacy companion plan workflow.
 
 ### Skill-Context Resolution
 
@@ -24,7 +24,74 @@ Read skill-context in this order:
 
 If both exist, `aif-implement` wins.
 
-### Plan Resolution
+### Mode Detection
+
+Before resolving an implementation target, read `.ai-factory/config.yaml` when it exists.
+
+- If the config contains `aifhub.artifactProtocol: openspec`, use **OpenSpec-native mode**.
+- Otherwise, use **Legacy AI Factory-only mode**.
+- If the config is missing, continue with Legacy AI Factory-only mode and state that no OpenSpec-native protocol was detected.
+
+### OpenSpec-native mode
+
+When `.ai-factory/config.yaml` declares `aifhub.artifactProtocol: openspec`, `/aif-implement` executes implementation tasks for the active OpenSpec change.
+
+Use `buildImplementationContext(options)` from `scripts/openspec-execution-context.mjs` when available before editing implementation files. Treat the returned resolver diagnostics, canonical artifacts, generated rules, OpenSpec apply instructions, runtime paths, warnings, and errors as the machine-readable implementation context. If the helper is unavailable, fall back to the explicit filesystem reads and runtime boundaries in this section.
+
+Use shared vocabulary consistently: `OpenSpec-native mode`, `canonical OpenSpec change`, `active change`, `change-id`, `base specs`, `delta specs`, `generated rules`, `runtime state`, `QA evidence`, and `legacy AI Factory-only mode`.
+
+Resolve the active change using `scripts/active-change-resolver.mjs` when available:
+
+- Prefer an explicit `<change-id>` or `@openspec/changes/<change-id>` input when provided.
+- Otherwise use `resolveActiveChange` behavior: current working directory, current branch mapping, current pointer, then single active change.
+- Treat selected source, candidate list, warnings, and errors as user-visible implementation context.
+- If an explicit or inferred `<change-id>` cannot be resolved as an OpenSpec change, check for matching legacy AI Factory plan artifacts through `detectMigrationNeed(options)` from `scripts/legacy-plan-migration.mjs` or equivalent read-only detection. If migration is suggested, do not auto-migrate. Show exactly:
+
+```text
+Found legacy AI Factory plan artifacts for `<change-id>` but no OpenSpec change at `openspec/changes/<change-id>`.
+Run the legacy migration script with:
+
+node scripts/migrate-legacy-plans.mjs <change-id> --dry-run
+node scripts/migrate-legacy-plans.mjs <change-id>
+```
+
+Read canonical OpenSpec artifacts before editing implementation files:
+
+- `openspec/specs/**`
+- `openspec/changes/<change-id>/proposal.md`
+- `openspec/changes/<change-id>/design.md`
+- `openspec/changes/<change-id>/tasks.md`
+- `openspec/changes/<change-id>/specs/**/spec.md`
+
+Read generated rules as derived implementation guidance when present:
+
+- `.ai-factory/rules/generated/openspec-merged-<change-id>.md`
+- `.ai-factory/rules/generated/openspec-change-<change-id>.md`
+- `.ai-factory/rules/generated/openspec-base.md`
+
+Execution trace and runtime state boundaries:
+
+- Prefer `writeExecutionTrace(changeId, trace, options)` from `scripts/openspec-execution-context.mjs` for implementation traces.
+- Write implementation progress, task execution traces, degraded capability notes, and runner metadata only under `.ai-factory/state/<change-id>/`.
+- Do not write runtime-only files, summaries, validation output, or execution traces under `openspec/changes/<change-id>/`.
+- Do not create legacy plan-folder execution artifacts in OpenSpec-native mode.
+- QA evidence belongs under `.ai-factory/qa/<change-id>/` and is owned by `/aif-verify`; implementation may name the path in normal output but should not write verification results there.
+
+Normal implementation responses should report:
+
+- selected `change-id` and resolver source;
+- canonical artifacts read;
+- generated rules freshness or missing/stale `WARN`;
+- runtime state path under `.ai-factory/state/<change-id>/`;
+- task progress from the OpenSpec `tasks.md`;
+- next step `/aif-verify <change-id>` when implementation is ready.
+
+Do not install OpenSpec skills or slash commands.
+Do not route users to deprecated workflow aliases or legacy `*-plus` command names.
+
+### Legacy AI Factory-only mode
+
+When OpenSpec-native mode is not enabled, preserve the existing legacy companion plan workflow.
 
 Resolve all of these inputs to one active plan pair before execution starts:
 
@@ -34,18 +101,18 @@ Resolve all of these inputs to one active plan pair before execution starts:
 
 If only the folder exists, create the missing companion plan file first and record the migration event in `status.yaml.history`.
 
-### Workflow Rules
+Legacy AI Factory-only workflow rules:
 
 - `/aif-implement` is the canonical execution command for this extension workflow.
 - When no plan exists yet, route the user through `/aif-plan full "<task>" -> /aif-improve`.
 - `/aif-implement` owns git strategy resolution and must persist `execution.git.*` in `status.yaml`.
 - `/aif-implement` also owns `execution.mode`, `execution.runtime`, and `execution.subagent` updates.
-- After tasks complete, route to `/aif-verify`; passing verification finalizes there unless `--check-only` is used.
+- After tasks complete, route to `/aif-verify`; a passing verification leaves the plan ready for optional `/aif-done` finalization.
 - Do not route users to deprecated workflow aliases or legacy `*-plus` command names.
 
 ### Subagent Compatibility
 
-When checking optional Claude worker availability, support both current and legacy filenames:
+When checking optional Claude worker availability in Legacy AI Factory-only mode, support both current and legacy filenames:
 
 - prefer `.claude/agents/implement-coordinator.md`
 - support `.claude/agents/implement-worker.md`
@@ -64,7 +131,8 @@ Prefer `implement-coordinator` when available.
 ### Execution Metadata
 
 - Preserve sibling keys when updating `execution.*`.
-- Record git-strategy decisions, runtime changes, legacy upgrades, and mode switches in `status.yaml.history`.
+- In Legacy AI Factory-only mode, record git-strategy decisions, runtime changes, legacy upgrades, and mode switches in `status.yaml.history`.
+- In OpenSpec-native mode, write runtime state only under `.ai-factory/state/<change-id>/`.
 - When the implementation flow needs a manual checkpoint, the next command is `/aif-verify`, not a deprecated finalize alias.
 
 ### Compatibility Note
@@ -120,9 +188,11 @@ Handoff sync is handled inline — see **Step 0.2** (after reading the plan file
    - `rules.base` plus any named `rules.<area>` entries
 2. Parse arguments:
    - --list → list available plans only (no implementation; STOP)
+   - --without-plan <description> → inline implementation mode; skip plan discovery and jump to Step 0.inline
    - @<path> → explicit plan file override (highest priority)
    - <number> → start from specific task
    - status → status-only mode
+   - Optional inline-mode flag: --docs=yes|no|warn (only valid with --without-plan; default: warn)
 3. If `git.enabled = true`, check for uncommitted changes (`git status`)
 4. If `git.enabled = true`, check current branch
 ```
@@ -153,6 +223,151 @@ If `$ARGUMENTS` contains `--list`, run read-only plan discovery and stop.
 For detailed output format and examples, see:
 
 - `skills/aif-implement/references/IMPLEMENTATION-GUIDE.md` → "List Available Plans (`--list`)"
+
+### Step 0.inline: Inline Implementation Mode (`--without-plan`)
+
+If `$ARGUMENTS` contains `--without-plan`, execute a single scoped task from the description WITHOUT creating or reading any plan file. This is the lightweight path for small `feat`/`chore` tasks that do not justify a full plan but are not bug fixes either (use `$aif-fix` for bugs).
+
+**Argument parsing:**
+
+```
+1. description = everything after `--without-plan`, excluding any recognized flag tokens (`--docs=...`).
+2. docs_policy = value of `--docs=yes|no|warn` if present, else `warn` (default).
+3. Validation:
+   - description is empty →
+     ERROR: "Usage: $aif-implement --without-plan <description> [--docs=yes|no|warn]"
+     → STOP
+   - arguments also contain `@<path>`, `status`, or a bare task id number →
+     ERROR: "`--without-plan` is mutually exclusive with @plan-file, status, and task id."
+     → STOP
+   - `--docs=<value>` where <value> not in {yes, no, warn} →
+     ERROR: "Invalid --docs value. Expected yes|no|warn."
+     → STOP
+```
+
+**Scope guard (prevent silent mega-tasks):**
+
+Before executing, assess the description. If it looks too broad for a one-shot inline task — multiple unrelated imperatives joined by "and"/"и", references to multiple subsystems, or roughly more than ~300 characters of scope — do NOT attempt to guess a plan. Instead print:
+
+```
+Description looks too broad for inline implementation. Recommended:
+  $aif-plan fast <description>
+```
+
+→ STOP.
+
+Small, focused descriptions (e.g. "add GET /healthz returning 200 with {status:\"ok\"}") proceed.
+
+**Surprise-warn on existing plan artifacts (non-blocking):**
+
+Inline mode ignores plan files by design. If any of these exist on disk, emit a `WARN [inline]` line so the user notices the intentional skip (do NOT read them, do NOT redirect):
+
+- `<configured plans dir>/<branch>.md` (git mode only)
+- resolved fast plan path (`paths.plan`)
+- resolved fix plan path (`paths.fix_plan`)
+
+Example: `WARN [inline] paths.plan exists but is ignored in --without-plan mode.`
+
+**Load project context (same as regular implement):**
+
+Use the resolved config from Step 0:
+
+- `paths.description` (DESCRIPTION.md) if present
+- `paths.architecture` (ARCHITECTURE.md) if present
+- `paths.rules_file` (RULES.md) + `rules.base` + named `rules.<area>` entries
+- `.ai-factory/skill-context/aif-implement/SKILL.md` — MANDATORY if the file exists (same precedence and enforcement as regular mode in Step 0.1)
+- `language.ui`, `language.artifacts`
+
+**Plan artifact policy:** inline mode does NOT load or use plan/fix-plan files. Plan files are never read, parsed, or executed. A minimal existence probe is permitted (see the surprise-warn section above) solely to emit the `WARN [inline]` line — nothing is read from disk. Also skip: resume/recovery reconciliation, TaskList loading, checkbox state comparison.
+
+**Execute the task (one-shot):**
+
+1. Announce: `Inline implementation: <description>`
+2. Read only files relevant to the described scope
+3. Apply changes following existing code patterns and skill-context rules
+4. Apply verbose logging per `references/LOGGING-GUIDE.md`
+5. Do not add tests by default. Add them only if the description explicitly requests tests (e.g. "with tests", "add tests for X") OR if existing project conventions / touched code paths clearly require them (e.g. a test file mirrors every source file in the area being changed, or a RULES.md / skill-context rule mandates test coverage for this kind of change). When in doubt, prefer NO tests and let the user follow up via `$aif-plan` if wider test coverage is needed.
+6. Verify the change compiles/runs and the described behavior works
+
+**Prohibited in inline mode:**
+
+- Do NOT create or read `paths.plan` / `paths.plans/*` / `paths.fix_plan`.
+- Do NOT invoke `$aif-plan` or `$aif-fix`.
+- Do NOT create entries under `paths.patches` (no `[FIX]` self-improvement patch — this is not a bugfix flow).
+- Do NOT call `TaskList` / `TaskGet` / `TaskUpdate` (no plan = no persisted tasks).
+- Do NOT search for or modify plan checkboxes on disk.
+- Do NOT trigger the roadmap milestone completion check, docs checkpoint-from-plan-setting, plan-file cleanup prompt, or worktree merge prompt (those belong to the plan-backed workflow).
+
+**Handoff inline support:**
+
+> Naming clarification: `--without-plan` means "without a **local** plan artifact on disk" (no `paths.plan` / `paths.plans/*` / `paths.fix_plan`). When a Handoff task is linked, the task is still represented as a synthetic plan **inside Handoff** via `handoff_push_plan` — that's a remote representation, not a local file. The local-no-plan contract is preserved; only the remote sync surface is unchanged.
+
+**When `HANDOFF_MODE` is `1` (autonomous Handoff agent invoked inline mode):**
+
+- Do NOT call any `mcp__handoff__*` tool (the coordinator manages status/sync directly — same rule as Step 0 (pre)).
+- Do NOT create local plan artifacts (the regular Prohibited list above still applies).
+- Do NOT switch branches, create worktrees, merge worktrees, or otherwise alter the branch/worktree the coordinator set up — inline mode operates on the working tree it was invoked in.
+- Proceed with the one-shot execution; the coordinator marks the task complete after the skill returns.
+
+**When `HANDOFF_MODE` is NOT `1` and `HANDOFF_TASK_ID` is set (manual Claude Code session linked to a Handoff task):**
+
+1. Build synthetic plan content:
+
+   ```markdown
+   # Inline implementation
+   - [ ] <description>
+   ```
+
+2. Call `handoff_sync_status` with `{ taskId: <HANDOFF_TASK_ID>, newStatus: "implementing", sourceTimestamp: "<current UTC ISO 8601>", direction: "aif_to_handoff", paused: true }`.
+3. Call `handoff_push_plan` with `{ taskId: <HANDOFF_TASK_ID>, planContent: <synthetic content above> }`.
+4. After successful execution, flip the checkbox to `- [x]` in the synthetic content and call `handoff_push_plan` again with the updated text.
+5. Finalize sync:
+   - If `HANDOFF_SKIP_REVIEW` is `1` → `handoff_sync_status` → `"done"` with `paused: false`.
+   - Otherwise → `handoff_sync_status` → `"review"` with `paused: true`.
+
+If `HANDOFF_TASK_ID` is missing → skip all MCP sync for this run.
+
+**Docs policy (inline mode, driven by `--docs`):**
+
+- `--docs=yes` → after completion, show the docs checkpoint (same AskUserQuestion as `Docs: yes` in regular mode) and route changes through `$aif-docs`.
+- `--docs=no` → suppress the documentation checkpoint, emit `WARN [docs] --docs=no in inline mode; documentation checkpoint skipped`.
+- `--docs=warn` (default) → emit `WARN [docs] Inline mode default is warn-only; documentation checkpoint skipped. Pass --docs=yes to enable.`
+
+**Context maintenance in inline mode:**
+
+- Resolved description artifact updates: allowed, same rules as regular mode (only factual deltas for new deps/integrations).
+- Resolved architecture artifact + `AGENTS.md`: allowed only if new modules/folders were actually created.
+- Resolved roadmap artifact: NOT updated in inline mode (no milestone linkage available without a plan).
+- Resolved rules file: NOT edited in inline mode (same as regular).
+
+**Completion output (inline mode):**
+
+```
+## Inline Implementation Complete
+
+Task: <description>
+
+Files modified:
+- <file> (created|modified)
+Documentation: <outcome per --docs>
+
+What's next?
+
+1. 🔍 $aif-verify — Verify the change (recommended)
+2. 💾 $aif-commit — Commit directly
+```
+
+Then offer:
+
+```
+AskUserQuestion: Inline task complete. What's next?
+
+Options:
+1. Verify first — Run $aif-verify (recommended)
+2. Skip to commit — Go straight to $aif-commit
+```
+
+→ **STOP** after the chosen follow-up completes. No summary document, no report file.
 
 ### Step 0.0: Resume / Recovery (after a break or after /clear)
 
@@ -806,6 +1021,15 @@ $aif-implement @.ai-factory/plans/feature-user-auth.md status
 ```
 
 Uses the provided plan file instead of auto-detecting by branch/default files.
+
+### Inline Implementation (No Plan)
+
+```
+$aif-implement --without-plan add GET /healthz endpoint returning {"status":"ok"}
+$aif-implement --without-plan rename LogLevel.VERBOSE to LogLevel.TRACE --docs=yes
+```
+
+One-shot execution of a small task without any plan file. Mutually exclusive with `@plan-file`, `status`, and task id. Does not create `FIX_PLAN.md` or patches. Default docs policy is `warn`; pass `--docs=yes` to run the docs checkpoint, `--docs=no` to silence the warning. See **Step 0.inline** for the full flow.
 
 ### Start from Specific Task
 

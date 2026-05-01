@@ -7,9 +7,11 @@
 Different agents use different interaction tools:
 
 - Codex Default mode: no form tool. Ask a short plain-text question in the assistant message.
-- Codex Plan mode: use `request_user_input`.
+- Codex Plan mode: use `request_user_input` only after the user has already switched the session into Plan mode, and keep it to 1-3 short questions.
 - Claude Code / Kilo CLI / OpenCode: use `question(questions: [...])`.
 - pi: use `question(...)` for one question and `questionnaire(...)` for multiple questions.
+
+For Codex planning and refinement flows, prompts may recommend Plan mode, but they cannot switch the client mode automatically.
 
 If you are writing or updating a skill, pick the format that matches the runtime instead of copying examples from another agent.
 
@@ -21,6 +23,8 @@ If you are writing or updating a skill, pick the format that matches the runtime
 
 Codex cannot render a question form in Default mode. Do not fake a `question(...)` block there.
 
+If the Codex session is still in Default mode during planning or refinement, continue with plain-text questions or record assumptions instead of emitting a form call.
+
 Use a short plain-text question in the assistant message instead.
 
 Example:
@@ -31,7 +35,7 @@ Which path should I take: continue with the default fix, or stop and review firs
 
 ### Plan Mode
 
-Codex form UI is available through `request_user_input`.
+Codex form UI is available through `request_user_input`, but only when the user has already put the session into Plan mode.
 
 ```text
 request_user_input({
@@ -164,15 +168,41 @@ questionnaire({
 
 ---
 
+## Autonomous / Subagent Mode
+
+When the agent is running as a subagent (Claude Code worker, Codex subagent, or any non-interactive context), it must not ask interactive questions.
+
+Rules:
+
+1. Do not call `question(...)`, `questionnaire(...)`, or `request_user_input` from a subagent.
+2. When a decision point requires user input, record the assumption, list blockers, and return them to the parent agent.
+3. Return structured output: a clear list of assumptions made and open questions that the parent should resolve.
+4. The parent agent (running in interactive mode) is responsible for asking the user and passing answers back.
+
+Example return pattern:
+
+```text
+Assumptions:
+- Using default authentication flow (OAuth2) since no preference was specified.
+- Targeting Node 20 runtime.
+
+Open questions (parent to resolve):
+- Should the API use REST or GraphQL?
+- Is there an existing database schema to follow?
+```
+
+---
+
 ## Rules
 
 1. Choose the question format by runtime, not by habit.
-2. Do not use `question(...)` or `questionnaire(...)` in Codex Default mode.
-3. Use `request_user_input` in Codex only when the session is in Plan mode.
+2. Do not use `question(...)` or `questionnaire(...)` anywhere in Codex.
+3. Use `request_user_input` in Codex only when the session is already in Plan mode, and only for 1-3 short questions.
 4. For `question(questions: [...])`, keep `header` short and every option descriptive.
 5. Mark the preferred option with `(Recommended)`.
 6. Do not turn a free-text data capture step into a forced menu if the workflow still needs user text.
 7. In this repository, canonical planning guidance should reference `/aif-plan` or `/aif-plan full`, not `/aif-new`.
+8. In autonomous or subagent mode, do not ask interactive questions — record assumptions and return blockers/open questions to the parent.
 
 ---
 
@@ -188,6 +218,7 @@ If a question UI does not render:
 
 2. Check the mode.
    - In Codex, `request_user_input` is unavailable outside Plan mode.
+   - If a planning skill recommends Plan mode, the user must switch modes manually.
 
 3. Check the syntax for the target runtime.
    - Codex Plan mode expects the `request_user_input` schema.
@@ -208,10 +239,12 @@ If a question UI does not render:
 |---------|------------|--------------------|----------|---------------|
 | Codex Default mode | yes | no | no | no |
 | Codex Plan mode | yes | yes | no | no |
-| Claude Code | yes | no | yes | no |
+| Claude Code (interactive) | yes | no | yes | no |
+| Claude Code (subagent) | assumptions only | no | no | no |
 | Kilo CLI | yes | no | yes | no |
 | OpenCode | yes | no | yes | no |
 | pi | yes | no | yes | yes |
+| Any subagent / autonomous | assumptions only | no | no | no |
 
 ---
 

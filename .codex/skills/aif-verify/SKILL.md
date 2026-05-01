@@ -14,13 +14,13 @@ metadata:
 ---
 
 <!-- aif-ext:aifhub-extension:aif-verify:prepend:start -->
-## AIFHub Verify Finalization Override
+## AIFHub Verify OpenSpec-native Override
 
 Apply this block before the upstream `aif-verify` body. When this guidance conflicts with the base skill text, this block wins.
 
 ### Goal
 
-Use the built-in `/aif-verify` skill as the canonical verification and finalization command for the extension workflow.
+Use the built-in `/aif-verify` skill as the canonical verification command for OpenSpec-native changes and the extension's legacy companion plan workflow.
 
 ### Skill-Context Resolution
 
@@ -31,36 +31,101 @@ Read skill-context in this order:
 
 If both exist, `aif-verify` wins.
 
-### Plan Resolution
+### Mode Detection
+
+Before resolving verification scope, read `.ai-factory/config.yaml` when it exists.
+
+- If the config contains `aifhub.artifactProtocol: openspec`, use **OpenSpec-native mode**.
+- Otherwise, use **Legacy AI Factory-only mode**.
+- If the config is missing, continue with Legacy AI Factory-only mode and state that no OpenSpec-native protocol was detected.
+
+### OpenSpec-native mode
+
+When `.ai-factory/config.yaml` declares `aifhub.artifactProtocol: openspec`, `/aif-verify` verifies implementation against the active OpenSpec change.
+
+Before running lint, tests, code review, security review, or rules review, resolve the active change, ensure runtime layout, and use `scripts/openspec-verification-context.mjs` with `scripts/openspec-runner.mjs` when available. Fail invalid OpenSpec artifacts before code checks. Treat missing CLI as degraded missing-CLI behavior unless strict config (`aifhub.openspec.requireCliForVerify`) requires the CLI. Use `shouldRunCodeVerification` as the handoff signal: `false` blocks code checks and routes to `/aif-fix <change-id>`; `true` allows normal code verification to continue.
+
+Use shared vocabulary consistently: `OpenSpec-native mode`, `canonical OpenSpec change`, `active change`, `change-id`, `base specs`, `delta specs`, `generated rules`, `runtime state`, `QA evidence`, and `legacy AI Factory-only mode`.
+
+Resolve the active change using `scripts/active-change-resolver.mjs` when available:
+
+- Prefer an explicit `<change-id>` or `@openspec/changes/<change-id>` input when provided.
+- Otherwise use `resolveActiveChange` behavior: current working directory, current branch mapping, current pointer, then single active change.
+- Treat selected source, candidate list, warnings, and errors as user-visible verification context.
+- If an explicit or inferred `<change-id>` cannot be resolved as an OpenSpec change, check for matching legacy AI Factory plan artifacts through `detectMigrationNeed(options)` from `scripts/legacy-plan-migration.mjs` or equivalent read-only detection. If migration is suggested, do not auto-migrate. Show exactly:
+
+```text
+Found legacy AI Factory plan artifacts for `<change-id>` but no OpenSpec change at `openspec/changes/<change-id>`.
+Run the legacy migration script with:
+
+node scripts/migrate-legacy-plans.mjs <change-id> --dry-run
+node scripts/migrate-legacy-plans.mjs <change-id>
+```
+
+Validate and review against canonical OpenSpec artifacts:
+
+- `openspec/specs/**`
+- `openspec/changes/<change-id>/proposal.md`
+- `openspec/changes/<change-id>/design.md`
+- `openspec/changes/<change-id>/tasks.md`
+- `openspec/changes/<change-id>/specs/**/spec.md`
+
+Read generated rules as derived verification guidance when present:
+
+- `.ai-factory/rules/generated/openspec-merged-<change-id>.md`
+- `.ai-factory/rules/generated/openspec-change-<change-id>.md`
+- `.ai-factory/rules/generated/openspec-base.md`
+
+Runtime state and QA evidence boundaries:
+
+- Read implementation runtime state from `.ai-factory/state/<change-id>/` when present.
+- Write verification findings, verdicts, command results, and review evidence only under `.ai-factory/qa/<change-id>/`.
+- Record OpenSpec validation/status evidence under `.ai-factory/qa/<change-id>/` before code verification.
+- Do not write QA evidence or runtime-only files into `openspec/changes/<change-id>/`.
+- Do not archive. `/aif-verify` records verification evidence only; `/aif-done <change-id>` owns OpenSpec archive/finalization.
+- Do not create legacy plan-folder verification artifacts in OpenSpec-native mode.
+
+Normal verification responses should report:
+
+- selected `change-id` and resolver source;
+- canonical artifacts inspected;
+- generated rules freshness or missing/stale `WARN`;
+- OpenSpec validation status and `shouldRunCodeVerification`;
+- QA evidence path under `.ai-factory/qa/<change-id>/`;
+- verdict and finding counts;
+- fix guidance `/aif-fix <change-id>` when verification fails;
+- optional finalization guidance `/aif-done <change-id>` when verification passes.
+
+End verification output and `.ai-factory/qa/<change-id>/verify.md` with exactly one final fenced `aif-gate-result` JSON block using `"gate": "verify"` and lowercase JSON `status`: `pass`, `warn`, or `fail`. Use `fail` for blocking OpenSpec validation, test, lint, build, review, security, or rules failures; use `warn` only for non-blocking notes after verification completes.
+
+Do not install OpenSpec skills or slash commands.
+Do not redirect the user to legacy finalize aliases.
+
+### Legacy AI Factory-only mode
+
+When OpenSpec-native mode is not enabled, preserve the current companion plan verification contract.
 
 Resolve the active target as a companion pair:
 
 - `.ai-factory/plans/<plan-id>.md`
 - `.ai-factory/plans/<plan-id>/`
 
-If verification enters through a legacy folder-only plan, create the missing companion plan file before finalization and record the migration in `status.yaml.history`.
+If verification enters through a legacy folder-only plan, create the missing companion plan file before verification and record the migration in `status.yaml.history`.
 
-### Plan-Folder Contract
-
-When the resolved target is a plan folder, preserve the current verification contract:
+Plan-folder contract:
 
 - read `task.md`, `context.md`, `rules.md`, `verify.md`, `status.yaml`, optional `constraints-*.md`, optional `explore.md`
 - update only `status.yaml` and `verify.md`
 - keep source code and project context files read-only
 
-### Workflow Integration and Finalization
+Workflow integration:
 
 - In the extension workflow, `/aif-implement` hands off to `/aif-verify`.
 - Route failing verification to `/aif-fix`.
-- On `PASS` or `PASS with notes`, finalize automatically unless the user passed `--check-only`.
-- Finalization must archive the companion plan file and plan folder into `.ai-factory/specs/<plan-id>/`, update `.ai-factory/specs/index.yaml`, and set `status.yaml.status` to `done`.
-- Copy the companion plan file into the archive as `plan.md`.
-- Copy these plan-folder artifacts into the archive when present: `task.md`, `context.md`, `rules.md`, `verify.md`, `status.yaml`, optional `explore.md`, and the full `fixes/` directory.
-- Generate `spec.md` using `injections/references/aif-verify/spec-template.md`.
-- Create or update `specs/index.yaml` using `injections/references/aif-verify/index-schema.yaml` as the schema reference when bootstrapping the catalog.
-- Preserve frontmatter on metadata-bearing archived markdown artifacts; the copied `plan.md` may remain plain markdown if the source companion file has no frontmatter.
-- When `--check-only` is present, skip archiving and leave the plan ready for a later final verification run.
-- Do not redirect the user to deprecated finalize or legacy verify aliases. `/aif-verify` is the canonical command.
+- On `PASS` or `PASS with notes`, stop at the verified state and recommend `/aif-done` only when archive/commit/PR/follow-up finalization is needed.
+- Never archive into `.ai-factory/specs/`, never create `spec.md`, never update `specs/index.yaml`, and never set `status.yaml.status` to `done`.
+- When `--check-only` is present, keep the same no-archive behavior and return a verification-only gate result for downstream review/finalization flows.
+- Do not redirect the user to legacy finalize aliases, and do not present `/aif-done` as a replacement for `/aif-verify`; `/aif-done` is an optional post-verify AIFHub finalizer.
 <!-- aif-ext:aifhub-extension:aif-verify:prepend:end -->
 
 # Verify — Post-Implementation Quality Check
@@ -94,6 +159,7 @@ If config.yaml doesn't exist, use defaults:
 ### 0.1 Load Ownership and Gate Contract
 
 - Read `references/CONTEXT-GATES-AND-OWNERSHIP.md` first.
+- Read `references/GATE-RESULT-CONTRACT.md` for the machine-readable quality gate summary.
 - Treat it as the canonical source for:
   - command-to-artifact ownership,
   - read-only behavior for `aif-commit`/`aif-review`/`aif-verify`,
@@ -348,9 +414,23 @@ Strict mode behavior:
 - Clear roadmap mismatch fails verification.
 - Missing milestone linkage for `feat`/`fix`/`perf` remains a warning (even when `.ai-factory/ROADMAP.md` exists).
 
-Logging/reporting format:
+Human logging/reporting format:
 - Non-blocking findings: `WARN [gate-name] ...`
 - Blocking findings: `ERROR [gate-name] ...`
+
+If the user wants a standalone rules-only pass, suggest `$aif-rules-check`. Keep human context-gate labels at `WARN` / `ERROR`, then derive the final machine-readable gate result from the full verification report.
+
+Machine-readable gate result:
+- Append one final fenced `aif-gate-result` JSON block after the human-readable verification report.
+- Use `"gate": "verify"`.
+- Use `"status": "pass|warn|fail"` where:
+  - `fail` = incomplete required tasks, failed blocking quality checks, strict-mode context gate failures, or other blockers requiring remediation.
+  - `warn` = only non-blocking warnings remain, optional checks were skipped, docs/test gaps were accepted as warnings, or context drift is ambiguous.
+  - `pass` = no blocking or warning findings remain.
+- Use `"blocking": true|false`; set it to `true` only when the result should stop commit or merge flow.
+- Include only blocking findings in `"blockers": [`; keep non-blocking notes in the human summary.
+- Include changed or implicated paths in `"affected_files": [`.
+- Set `"suggested_next": {` to `$aif-fix`, `$aif-rules`, `$aif-architecture`, `$aif-roadmap`, `$aif-commit`, or `null` according to `references/GATE-RESULT-CONTRACT.md`.
 
 ### 3.6 Context Drift (Optional Remediation)
 
@@ -417,6 +497,27 @@ Options:
 - **All Green** — everything verified, no issues
 - **Minor Issues** — small gaps that can be fixed quickly
 - **Significant Gaps** — tasks missing or partially done, needs re-implementation
+
+### 4.2.1 Append Machine-Readable Gate Result
+
+After the human-readable report and overall status, append exactly one final `aif-gate-result` fenced JSON block.
+
+```aif-gate-result
+{
+  "schema_version": 1,
+  "gate": "verify",
+  "status": "pass",
+  "blocking": false,
+  "blockers": [],
+  "affected_files": [],
+  "suggested_next": {
+    "command": "$aif-commit",
+    "reason": "Verification passed without blockers."
+  }
+}
+```
+
+Schema reminder: `"status": "pass|warn|fail"`, `"blocking": true|false`, `"blockers": [`, `"affected_files": [`, `"suggested_next": {`.
 
 ### 4.3 Action on Issues
 

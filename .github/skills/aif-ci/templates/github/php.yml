@@ -1,7 +1,7 @@
 # GitHub Actions CI — PHP
 # Template variables:
-#   PHP_VERSION: e.g., '8.3'
-#   PHP_VERSIONS: e.g., ['8.2', '8.3', '8.4']
+#   PHP_VERSION: e.g., '8.5'
+#   PHP_VERSIONS: e.g., ['8.5']
 #   COVERAGE_DRIVER: xdebug | pcov
 #   HAS_PHPSTAN: boolean
 #   HAS_PSALM: boolean

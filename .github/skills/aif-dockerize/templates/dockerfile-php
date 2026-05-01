@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.composer/cache \
     composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader
 
 # --- Development ---
-FROM php:8.4-fpm-alpine AS development
+FROM php:8.5-fpm-alpine AS development
 RUN docker-php-ext-install pdo_mysql opcache bcmath
 RUN apk add --no-cache $PHPIZE_DEPS && \
     pecl install xdebug && docker-php-ext-enable xdebug
@@ -21,7 +21,7 @@ EXPOSE 9000
 CMD ["php-fpm"]
 
 # --- Production ---
-FROM php:8.4-fpm-alpine AS production
+FROM php:8.5-fpm-alpine AS production
 RUN docker-php-ext-install pdo_mysql opcache bcmath && \
     docker-php-ext-enable opcache
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini

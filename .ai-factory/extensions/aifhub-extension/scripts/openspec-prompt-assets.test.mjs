@@ -10,13 +10,11 @@ const REPO_ROOT = resolve(__dirname, '..');
 
 const EXPLICIT_REFERENCE_ASSETS = [
   'skills/aif-analyze/references/config-template.yaml',
-  'skills/aif-done/references/finalization-contract.md',
-  'skills/aif-rules-check/references/RULES-CHECK-CONTRACT.md'
+  'skills/aif-done/references/finalization-contract.md'
 ];
 
 const MODE_GATED_PROMPTS = [
   'skills/aif-done/SKILL.md',
-  'skills/aif-rules-check/SKILL.md',
   'injections/core/aif-rules-check-openspec-generated-rules.md',
   'injections/core/aif-implement-plan-folder.md',
   'injections/core/aif-fix-plan-folder.md',
@@ -27,6 +25,11 @@ const VERIFY_PROMPT_ASSETS = [
   'injections/core/aif-verify-plan-folder.md',
   'agent-files/codex/aifhub-verifier.toml',
   'agent-files/claude/aifhub-verifier.md'
+];
+
+const PLAN_POLISHER_PROMPT_ASSETS = [
+  'agent-files/codex/aifhub-plan-polisher.toml',
+  'agent-files/claude/aifhub-plan-polisher.md'
 ];
 
 const DONE_PROMPT_ASSETS = [
@@ -178,8 +181,6 @@ describe('OpenSpec-native prompt asset contract', () => {
     for (const expected of [
       'skills/aif-analyze/SKILL.md',
       'skills/aif-done/SKILL.md',
-      'skills/aif-rules-check/SKILL.md',
-      'skills/aif-rules-check/references/RULES-CHECK-CONTRACT.md',
       'injections/core/aif-rules-check-openspec-generated-rules.md',
       'injections/core/aif-implement-plan-folder.md',
       'agent-files/codex/aifhub-verifier.toml',
@@ -191,6 +192,7 @@ describe('OpenSpec-native prompt asset contract', () => {
     for (const asset of assets) {
       assert.ok(!asset.startsWith('injections/handoff/'), `active discovery should exclude dormant handoff stub ${asset}`);
       assert.ok(!asset.startsWith('.ai-factory/extensions/'), `active discovery should exclude installed snapshot ${asset}`);
+      assert.ok(!asset.startsWith('skills/aif-rules-check/'), `active discovery should exclude retired fallback ${asset}`);
     }
   });
 
@@ -246,13 +248,17 @@ describe('OpenSpec-native prompt asset contract', () => {
       assertNotIncludes(openspec, 'status.yaml as source of truth', `${relativePath} OpenSpec-native mode`);
       assertNotIncludes(openspec, 'active plan pair', `${relativePath} OpenSpec-native mode`);
       assertNotIncludes(openspec, 'plan-local `rules.md`', `${relativePath} OpenSpec-native mode`);
+      assert.doesNotMatch(
+        openspec,
+        /(?:runtime state|QA evidence|verification findings|verdicts|command results|trace(?:s)?)\s+(?:under|inside|to|into)\s+`?openspec\/changes/i,
+        `${relativePath} OpenSpec-native mode should not direct runtime-only writes into openspec/changes`
+      );
       assertIncludes(legacy, '.ai-factory/plans/<plan-id>/', `${relativePath} Legacy AI Factory-only mode`);
     }
   });
 
   it('keeps rules-check generated-rules hierarchy in the prompt-assets contract', async () => {
     for (const relativePath of [
-      'skills/aif-rules-check/SKILL.md',
       'injections/core/aif-rules-check-openspec-generated-rules.md'
     ]) {
       const asset = await readRepoFile(relativePath);
@@ -320,6 +326,54 @@ describe('OpenSpec-native prompt asset contract', () => {
         `${relativePath} should forbid archive from /aif-verify`
       );
     }
+  });
+
+  it('requires plan-polisher prompts to validate touched OpenSpec artifacts', async () => {
+    for (const relativePath of PLAN_POLISHER_PROMPT_ASSETS) {
+      const asset = stripFencedBlocks(await readRepoFile(relativePath));
+
+      for (const expected of [
+        'proposal.md',
+        'design.md',
+        'tasks.md',
+        'specs/**/spec.md',
+        'scripts/openspec-runner.mjs',
+        'validateOpenSpecChange(changeId)'
+      ]) {
+        assertIncludes(asset, expected, relativePath);
+      }
+
+      assert.match(
+        asset,
+        /After touching .*OpenSpec artifacts|After touching .*proposal\.md.*design\.md.*tasks\.md.*specs/i,
+        `${relativePath} should require validation after artifact edits`
+      );
+      assert.match(
+        asset,
+        /degraded validation|CLI is unavailable|missing CLI/i,
+        `${relativePath} should report degraded validation when the CLI is unavailable`
+      );
+    }
+  });
+
+  it('keeps verify prompt wording aligned with done-owned archive finalization', async () => {
+    const asset = stripFencedBlocks(await readRepoFile('injections/core/aif-verify-plan-folder.md'));
+
+    assert.doesNotMatch(
+      asset,
+      /archive integration (?:is )?deferred to issue #33|deferred archive status/i,
+      'verify injection should not describe OpenSpec archive integration as deferred'
+    );
+    assert.match(
+      asset,
+      /\/aif-verify.*records verification evidence|verification evidence only/i,
+      'verify injection should describe /aif-verify as evidence-only'
+    );
+    assert.match(
+      asset,
+      /\/aif-done.*owns OpenSpec archive\/finalization/i,
+      'verify injection should state that /aif-done owns OpenSpec archive/finalization'
+    );
   });
 
   it('suggests explicit legacy migration without auto-migrating in improve, implement, and verify prompts', async () => {

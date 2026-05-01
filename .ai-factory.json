@@ -183,8 +183,8 @@
       },
       "managedAgentFiles": {
         "aifhub-done-finalizer.toml": {
-          "sourceHash": "74852e9bc08f3a8771d88e1cacfa7c30f15c42fd59136b9cbcc737bc4434a6ec",
-          "installedHash": "74852e9bc08f3a8771d88e1cacfa7c30f15c42fd59136b9cbcc737bc4434a6ec"
+          "sourceHash": "cfdd7d0ccbf5f1359dc4bb61717c009ad3c62da352ac54a9f8175f7edaa11640",
+          "installedHash": "cfdd7d0ccbf5f1359dc4bb61717c009ad3c62da352ac54a9f8175f7edaa11640"
         },
         "aifhub-fixer.toml": {
           "sourceHash": "e3b4789c83a3e9ffc98cf8b464bb271380060932349e4cb3231c5e2c952d5f1d",
@@ -195,24 +195,24 @@
           "installedHash": "65e1470e00710f3e1a3a4cf526343eaaf358e1377d50dfeabc17ab9933172d67"
         },
         "aifhub-plan-polisher.toml": {
-          "sourceHash": "02e7cae30c7bdbfe5b48f352f4fe8ff77476fea8f2c9606f7ca1d340538f0f67",
-          "installedHash": "02e7cae30c7bdbfe5b48f352f4fe8ff77476fea8f2c9606f7ca1d340538f0f67"
+          "sourceHash": "6ac0f89435ae28d88bad4b30aefb9031d09bcacc2fc827ec9372329904626315",
+          "installedHash": "6ac0f89435ae28d88bad4b30aefb9031d09bcacc2fc827ec9372329904626315"
         },
         "aifhub-review-sidecar.toml": {
-          "sourceHash": "d62e21d6d8ad86d464c5d550c30400b0d6a4a6d6b6e9296b66db9c9e2c3db217",
-          "installedHash": "d62e21d6d8ad86d464c5d550c30400b0d6a4a6d6b6e9296b66db9c9e2c3db217"
+          "sourceHash": "0f9112685b596d57be441b9b9ab0193786d61ca68b6acc747b526ce1748110df",
+          "installedHash": "0f9112685b596d57be441b9b9ab0193786d61ca68b6acc747b526ce1748110df"
         },
         "aifhub-rules-sidecar.toml": {
           "sourceHash": "d7062d5f14f8d2242d322e479c25c6c1e57743f49851fb65fdf511a86cab2550",
           "installedHash": "d7062d5f14f8d2242d322e479c25c6c1e57743f49851fb65fdf511a86cab2550"
         },
         "aifhub-security-sidecar.toml": {
-          "sourceHash": "378ffe17a0b06204215875e58ff3cd9018d3ca4505748b7a4d403b6210d79f50",
-          "installedHash": "378ffe17a0b06204215875e58ff3cd9018d3ca4505748b7a4d403b6210d79f50"
+          "sourceHash": "6e9fff71899e4b4b49006b9e22e2084692ccb9106610ae4b5d3ffe4e99c24124",
+          "installedHash": "6e9fff71899e4b4b49006b9e22e2084692ccb9106610ae4b5d3ffe4e99c24124"
         },
         "aifhub-verifier.toml": {
-          "sourceHash": "6184fb5b3fe79599373c8adb96d2af1baca04063589a67bf0fc3e16c1a0079ee",
-          "installedHash": "6184fb5b3fe79599373c8adb96d2af1baca04063589a67bf0fc3e16c1a0079ee"
+          "sourceHash": "d4b79a9bb4031dbe3306129093249e266f2685a1800852e894742362cdd1d89e",
+          "installedHash": "d4b79a9bb4031dbe3306129093249e266f2685a1800852e894742362cdd1d89e"
         }
       },
       "mcp": {
@@ -366,7 +366,7 @@
     {
       "name": "aifhub-extension",
       "source": "https://github.com/ichinya/aifhub-extension.git",
-      "version": "1.0.6"
+      "version": "1.0.8"
     }
   ]
 }

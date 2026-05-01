@@ -1,105 +1,187 @@
-﻿# Архитектура: Modular Monolith
+# Архитектура: Modular Monolith
 
 ## Обзор
-Проект idshka.ru построен как модульный монолит (Modular Monolith) на базе платформы Laravel. Этот выбор продиктован необходимостью совместить простоту разработки, характерную для монолитного приложения, с четким разделением ответственностей между различными доменами (выпуск токенов, управление сайтами, идентификация пользователей). Модульный монолит позволяет поддерживать высокую связность внутри бизнес-процессов, избегая при этом распределенных транзакций и накладных расходов микросервисов.
+`idshka.ru` строится как Laravel-first модульный монолит: один деплой, одна основная база данных и строгие границы предметных модулей внутри приложения. Такой подход сохраняет скорость разработки и простоту эксплуатации, но не превращает identity provider, issuer и control plane в набор слабо связанных контроллеров.
+
+Модульный монолит здесь выбран осознанно: в проекте есть несколько доменов с разными правилами (`Identity`, `Sites`, `Issuer`, `OidcClients`, `ApiResources`, `Audit`), но им нужна согласованная транзакционная модель, единая авторизация Laravel и простой локальный запуск через Docker Compose. Микросервисы на текущем этапе добавили бы сетевые контракты, распределенные транзакции и операционную сложность раньше, чем появится реальная потребность в независимом масштабировании.
 
 ## Обоснование выбора
-- **Тип проекта:** Identity provider, issuer и control plane.
-- **Стек технологий:** PHP, Laravel, PostgreSQL, Redis.
-- **Ключевой фактор:** Четкие границы предметных областей (Identity, Issuer, Sites) при сохранении потребности в работе с единой базой данных и простом развертывании в рамках одного приложения.
+- **Тип проекта:** identity provider, OAuth/OIDC-like issuer и control plane для подключенных сайтов.
+- **Технический стек:** PHP 8.5, Laravel 13, PostgreSQL, Redis, Blade/Vite/Tailwind, OpenResty/Nginx gateway examples.
+- **Ключевой фактор:** security-sensitive бизнес-правила требуют явных доменных границ, но продукту выгодны один deploy unit, одна база и Laravel ecosystem.
 
 ## Структура директорий
-Структура приложения расширяет стандартные соглашения Laravel, вынося бизнес-логику в директорию pp/Domain/ по ограниченным контекстам (Bounded Contexts):
+Структура расширяет стандартный Laravel layout, не заменяя его:
 
-```ext
+```text
 app/
-├── Contracts/              # Глобальные интерфейсы и контракты (опционально)
-├── Domain/                 # Бизнес-модули
-│   ├── ApiResources/       # Логика работы с API-ресурсами
-│   ├── Audit/              # Аудит действий
-│   ├── Identity/           # Пользователи, профили, пароли
-│   ├── Issuer/             # Выпуск JWT и проверка токенов, revoke
-│   ├── OidcClients/        # Обработка OIDC-агентов
-│   └── Sites/              # Управление подключенными сайтами (apishka.ru)
-├── Http/                   # Транспортный (презентационный) слой
-│   ├── Controllers/        # HTTP контроллеры
-│   ├── Middleware/         # HTTP посредники (проверка edge/gateway)
-│   └── Requests/           # Валидация HTTP запросов
-├── Models/                 # Eloquent модели (работа с БД)
-├── Policies/               # Политики авторизации (Laravel Authorization)
-└── Providers/              # Сервис-провайдеры (DI и конфигурация)
+├── Contracts/
+│   └── Auth/                  # Общие protocol contracts: claims, scopes, permissions, headers
+├── Domain/
+│   ├── ApiResources/          # Проверка доступа API-resource сайтов
+│   ├── Audit/                 # Аудит доменных событий
+│   ├── Identity/              # Пользовательская идентичность и Socialite account linking
+│   ├── Issuer/                # JWT/JWKS, authorization codes, revoke, PKCE, token validation
+│   ├── OidcClients/           # OIDC/web-client registry и redirect URI rules
+│   └── Sites/                 # Site registry, verification, modes
+├── Http/
+│   ├── Controllers/           # Тонкий транспортный слой
+│   ├── Middleware/            # Request id, security headers, probe protection, throttling
+│   └── Requests/              # HTTP validation и deterministic error shape
+├── Models/                    # Shared Laravel models, когда модель не живет внутри домена
+├── Policies/                  # Laravel authorization policies
+└── Providers/                 # Composition root, DI, events, framework wiring
+
+config/                        # Laravel config, включая issuer/services/logging/rate limits
+database/
+├── migrations/                # Единая relational schema
+├── factories/
+└── seeders/
+routes/
+├── web.php                    # Browser auth и Socialite endpoints
+├── api.php                    # Owner/user API endpoints
+├── oauth.php                  # OAuth/OIDC-like endpoints
+└── probes.php                 # Health/readiness probes
+docs/                          # Human-facing contracts and guides
+openspec/
+├── specs/                     # Source of truth для external behavior requirements
+└── changes/                   # Active and archived implementation changes
+examples/                      # Reference consumers/adapters outside the core product
+infra/                         # Docker/OpenResty/runtime integration assets
+tests/
+├── Feature/                   # Full flow tests
+└── Unit/                      # Domain/service tests
 ```
 
 ## Правила зависимостей
-Границы модулей задают четкие правила видимости и импорта:
+Разрешено:
 
-- ✅ **Модули зависят от инфраструктуры Laravel:** Использование Illuminate\* классов, Models или Contracts внутри модулей pp/Domain/ разрешено.
-- ✅ **Транспортный слой использует модули:** Контроллеры из pp/Http/ вызывают сервисы и классы из pp/Domain/.
-- ❌ **Циклические зависимости модулей:** Модуль A не должен жестко зависеть от внутренней логики модуля B, если модуль B зависит от A.
-- ❌ **Обход публичного API модуля:** Другие ресурсы не должны вызывать внутренние приватные классы или методы домена напрямую. Контакты между доменами должны быть описаны через сервис-контракты, DTO или систему событий.
+- `routes/*` и `app/Http/Controllers/*` вызывают доменные `Actions`/`Services`, FormRequest-классы валидируют вход, policies проверяют доступ.
+- Домены внутри `app/Domain/*` могут использовать Laravel primitives (`DB`, `Log`, `config`, events), Eloquent models своего домена и общие contracts/DTO.
+- `app/Contracts/*` содержит стабильные protocol-level constants и value definitions, которые могут использовать разные домены.
+- `Audit` слушает доменные события через Laravel events/listeners, не встраивая аудит вручную в каждый controller.
+- `docs/` и `openspec/specs/` обновляются вместе с кодом при изменении внешнего flow, claims, headers, scopes, permissions или error shape.
 
-## Взаимодействие модулей/слоев
-- **Синхронное:** Контроллер уровня Http обращается к сервису/Action-классу нужного домена (например, CreateSiteAction в Domain/Sites).
-- **Событийное (Асинхронное/Слабосвязанное):** Если модулю Audit нужно зафиксировать информацию после отзыва токена модулем Issuer, Issuer выбрасывает событие (Event: TokenRevoked), на которое Audit подписывается через Event Listener (в EventServiceProvider).
-- **Публичные контракты:** Если модулям нужно совместно использовать данные (например, валидация прав сайта), они могут делать это через интерфейсы, определенные в pp/Contracts/.
+Запрещено:
+
+- Не размещать бизнес-логику Issuer/Sites/Identity напрямую в controllers, routes, Blade views или middleware.
+- Не делать циклические доменные зависимости: если двум доменам нужен общий язык, использовать contract, DTO, event или явный service boundary.
+- Не использовать Laravel Socialite как token issuer или JWKS/authorization server. Socialite отвечает только за login/linking через внешних провайдеров.
+- Не добавлять отдельный Node/Fastify/Next backend для core auth/control-plane без отдельного архитектурного решения.
+- Не смешивать внешний consumer `apishka.ru` с core-продуктом `idshka.ru`; consumer-код живет в `examples/`, `infra/` или docs.
+
+## Взаимодействие модулей и слоев
+- **HTTP entrypoint:** route -> middleware/policy -> FormRequest -> controller -> доменный Action/Service -> response.
+- **Синхронные доменные операции:** Actions координируют транзакции и вызывают сервисы внутри своего bounded context.
+- **Междоменные side effects:** домен публикует событие, `Audit` или другой listener реагирует без обратной зависимости.
+- **Protocol contracts:** claims, scopes, permissions, headers, request/response shapes фиксируются в `app/Contracts/Auth`, OpenSpec specs и docs.
+- **Gateway boundary:** OpenResty/Nginx examples проверяют JWT/JWKS, удаляют клиентские `X-Idshka-*` и передают upstream только нормализованный доверенный контекст.
 
 ## Ключевые принципы
-1. **Толстый домен, тонкие контроллеры:** Контроллеры в pp/Http/ отвечают только за прием Request, вызов доменного сервиса и возврат Response (или Blade-шаблона). Истинная бизнес-логика живет в pp/Domain/.
-2. **Изоляция изменений:** Внутреннее устройство (lcobucci/jwt, логика подписей Auth) скрыто внутри домена Issuer. Наружные слои обращаются только к четким интерфейсам типа createTokenForSite().
-3. **Единая база данных:** Приложение по-прежнему имеет единую реляционную модель БД (pp/Models/*.php + Eloquent), упрощая целостность данных без Saga или распределенных блокировок.
+1. **Laravel-first:** стандартные механизмы Laravel использовать как composition/runtime layer; не дублировать framework через параллельный stack.
+2. **Толстый домен, тонкий транспорт:** controllers не принимают security-sensitive решений, а только переводят HTTP в доменный вызов и обратно.
+3. **Fail closed:** любые сомнения в подписи, audience, issuer, TTL, redirect URI, PKCE, state/nonce или источнике headers приводят к отказу.
+4. **Contracts first:** внешние claims, scopes, gateway headers, OAuth errors и callback flows сначала фиксируются в contracts/specs/docs.
+5. **Единая база без распределенных транзакций:** пока домены живут в одном приложении, использовать транзакции Laravel/Eloquent вместо premature service extraction.
+6. **Extraction-ready boundaries:** если домен позже понадобится вынести, его публичные Actions/Services, events, DTO и specs уже должны описывать boundary.
 
 ## Примеры кода
 
-### Изоляция бизнес-логики в доменном Action-классе
+### Доменная операция инкапсулирует бизнес-правила
 ```php
 namespace App\Domain\Sites\Actions;
 
-use App\Models\Site;
-use App\Models\User;
-use App\Domain\Sites\DTOs\SiteData;
+use App\Domain\Sites\Enums\SiteVerificationStatus;
+use App\Domain\Sites\Events\SiteConnected;
+use App\Domain\Sites\Exceptions\SiteDomainConflictException;
+use App\Domain\Sites\Models\Site;
+use App\Domain\Sites\Services\DomainNormalizer;
+use App\Domain\Sites\Services\SiteIdFactory;
+use Illuminate\Support\Facades\DB;
 
-class RegisterNewSiteAction
+final class CreateSiteAction
 {
-    public function execute(User \, SiteData \): Site
+    public function __construct(
+        private readonly DomainNormalizer $domainNormalizer,
+        private readonly SiteIdFactory $siteIdFactory,
+    ) {}
+
+    public function handle(int $ownerUserId, string $domain, ?string $displayName): Site
     {
-        // 1. Создание сайта
-        \ = Site::create([
-            'owner_id' => \->id,
-            'domain' => \->domain,
-        ]);
+        $normalizedDomain = $this->domainNormalizer->normalize($domain);
 
-        // 2. Выброс доменного события
-        event(new \App\Domain\Sites\Events\SiteRegistered(\));
+        if (Site::query()->where('normalized_domain', $normalizedDomain)->where('owner_user_id', $ownerUserId)->exists()) {
+            throw new SiteDomainConflictException('site_for_domain_already_exists');
+        }
 
-        return \;
+        $site = DB::transaction(function () use ($ownerUserId, $domain, $displayName, $normalizedDomain): Site {
+            return Site::query()->create([
+                'id' => $this->siteIdFactory->make(),
+                'owner_user_id' => $ownerUserId,
+                'domain' => $domain,
+                'display_name' => $displayName,
+                'normalized_domain' => $normalizedDomain,
+                'verification_status' => SiteVerificationStatus::Pending->value,
+            ]);
+        });
+
+        SiteConnected::dispatch($site);
+
+        return $site;
     }
 }
 ```
 
-### Контроллер не содержит бизнес-логики
+### Controller остается транспортным адаптером
 ```php
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\Sites;
 
-use Illuminate\Http\Request;
-use App\Domain\Sites\Actions\RegisterNewSiteAction;
-use App\Domain\Sites\DTOs\SiteData;
+use App\Domain\Sites\Actions\CreateSiteAction;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\CreateSiteRequest;
+use Illuminate\Http\JsonResponse;
 
-class SiteController extends Controller
+final class CreateSiteController extends Controller
 {
-    public function store(Request \, RegisterNewSiteAction \)
+    public function __invoke(CreateSiteRequest $request, CreateSiteAction $createSite): JsonResponse
     {
-        // Только валидация и транспорт
-        \ = \->validate(['domain' => 'required|url']);
-        \ = new SiteData(\['domain']);
+        $site = $createSite->handle(
+            ownerUserId: (int) $request->user()->id,
+            domain: $request->string('domain')->toString(),
+            displayName: $request->string('display_name')->toString() ?: null,
+        );
 
-        \ = \->execute(\->user(), \);
-
-        return response()->json(\, 201);
+        return response()->json([
+            'site_id' => $site->id,
+            'domain' => $site->domain,
+            'verification_status' => $site->verification_status,
+        ], 201);
     }
+}
+```
+
+### Междоменный аудит идет через события
+```php
+namespace App\Providers;
+
+use App\Domain\Issuer\Events\UserApiTokenIssued;
+use App\Domain\Audit\Listeners\RecordIssuerAuditEvent;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+
+final class EventServiceProvider extends ServiceProvider
+{
+    protected $listen = [
+        UserApiTokenIssued::class => [
+            RecordIssuerAuditEvent::class,
+        ],
+    ];
 }
 ```
 
 ## Антипаттерны
-- ❌ **Слепое переплетение моделей:** Не стоит выполнять сложную логику управления OIDC клиентами прямо из контроллеров или внутри модели User, перегружая ее.
-- ❌ **Множественные Eloquent-запросы из Views:** Обращаться напрямую в базу из Blade-шаблонов минуя контроллеры (кроме простых отношений без "Тяжелой" логики).
-- ❌ **Доступ к скрытым сервисам домена:** Использование чужих внутренних репозиториев или кэшированных классов другого домена напрямую, минуя его публичный Service API или контракты.
+- Писать OAuth token issuance, PKCE validation или JWKS logic прямо в controller.
+- Передавать raw token, `client_secret`, private key или authorization code в logs, exceptions или audit payload.
+- Делать permissive defaults для scopes, permissions, roles или missing claims.
+- Давать upstream доверять публичным `X-Idshka-*` headers без gateway sanitization.
+- Создавать shortcut в другом домене через внутренние модели/сервисы, если есть contract, public Action/Service или domain event.
+- Обновлять код внешнего flow без соответствующего изменения `openspec/specs`, docs и tests/evidence.

@@ -155,7 +155,7 @@ Detect the project's language version to use in CI:
 
 | Language | Version Source | Example |
 |----------|---------------|---------|
-| PHP | `composer.json` -> `require.php` | `>=8.2` -> `['8.2', '8.3', '8.4']` |
+| PHP | `composer.json` -> `require.php` | `^8.5` -> `['8.5']` |
 | Node.js | `package.json` -> `engines.node`, `.nvmrc`, `.node-version` | `>=18` -> `[18, 20, 22]` |
 | Python | `pyproject.toml` -> `requires-python`, `.python-version` | `>=3.11` -> `['3.11', '3.12', '3.13']` |
 | Go | `go.mod` -> `go` directive | `go 1.23` -> `'1.23'` |

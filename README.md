@@ -6,7 +6,7 @@
 
 ## Быстрый старт
 
-Требования: `PHP ^8.3`, Composer, Node.js/NPM и Docker Compose для самого короткого локального старта. CI сейчас прогоняется на `PHP 8.5` и `Node 24`.
+Требования: `PHP ^8.5`, Composer, Node.js/NPM и Docker Compose для самого короткого локального старта. CI сейчас прогоняется на `PHP 8.5` и `Node 24`.
 
 ### Через Docker Compose
 

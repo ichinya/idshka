@@ -345,7 +345,7 @@ Using the language-specific template as a base:
   - Go: read `go` directive in `go.mod` → e.g. `go 1.24` → `golang:1.24-alpine`
   - Node.js: read `engines.node` in `package.json`, `.nvmrc`, or `.node-version` → e.g. `node:22-alpine`
   - Python: read `requires-python` in `pyproject.toml` or `.python-version` → e.g. `python:3.13-slim`
-  - PHP: read `require.php` in `composer.json` → e.g. `php:8.4-fpm-alpine`
+  - PHP: read `require.php` in `composer.json` → e.g. `php:8.5-fpm-alpine`
   - Rust: read `rust-version` in `Cargo.toml` or `rust-toolchain.toml` → e.g. `rust:1.82-slim`
 - Entry point to match `entry_point`
 - Build command to match project's actual build script

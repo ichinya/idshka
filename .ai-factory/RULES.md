@@ -17,6 +17,7 @@
 14. **Short-lived over clever revoke.** Для прямых JWT предпочитать короткий TTL; долгоживущие ключи позже делать opaque + exchange.
 15. **Deterministic errors.** `401` — проблема аутентификации, `403` — токен валиден, но прав недостаточно.
 16. **No raw secrets in logs.** Raw token, client_secret, private key, authorization code, Socialite access token и refresh token никогда не логируются.
+17. **PHP 8.5.** Проект использует PHP 8.5; новые runtime/config/dependency assumptions должны исходить из PHP 8.5.
 
 ## Карта area rules
 - `laravel` — структура Laravel, сервисы, migrations, tests.

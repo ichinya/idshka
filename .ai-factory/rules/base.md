@@ -1,13 +1,13 @@
 # Project Rules: Base
 
-> Базовые правила проекта на текущем этапе. Репозиторий пока spec-first: основной источник истины здесь — docs и `.ai-factory` артефакты, а не готовый Laravel код.
+> Базовые правила проекта. Репозиторий уже содержит рабочее Laravel-приложение, OpenSpec-спеки и AI Factory артефакты; при изменении внешних контрактов код, specs/docs и evidence должны обновляться согласованно.
 
 ## Coding Standards
 
 ### Language & Style
-- **Primary implementation language:** PHP для Laravel modular monolith; вспомогательные артефакты ведутся в Markdown, gateway reference ожидается на OpenResty/Nginx + Lua.
-- **Style guide:** для PHP-кода держаться Laravel conventions и PSR-12; текст артефактов писать на русском, а классы, роуты, claims, scopes, headers и другие protocol terms оставлять на английском.
-- **Formatting:** в репозитории пока нет зафиксированного formatter tool, поэтому стиль должен оставаться framework-native и консистентным с соседними файлами.
+- **Primary implementation language:** PHP 8.5 для Laravel 13 modular monolith; фронтенд собирается через Blade/Vite/Tailwind, gateway reference живёт в OpenResty/Nginx + Lua.
+- **Style guide:** Laravel conventions + PSR-12; текст AI Factory/OpenSpec артефактов писать на русском, а классы, роуты, claims, scopes, headers и protocol terms оставлять на английском.
+- **Formatting:** PHP форматировать Laravel Pint (`laravel/pint`); YAML держать с indent 2, кроме compose-файлов с indent 4 по `.editorconfig`.
 
 ### Naming Conventions
 - **Functions/Methods:** `camelCase`, с явным глаголом по доменной операции, например `createSite`, `verifyDomain`, `issueToken`.
@@ -18,13 +18,15 @@
 ## Architecture Constraints
 
 ### Module Boundaries
-- Доменные правила и security-sensitive logic держать в `app/Domain/*`; HTTP controllers и routes должны оставаться тонкими координаторами.
-- Внешние consumers (`apishka.ru`, gateway examples, callback adapters) не смешивать с core-продуктом `idshka.ru`; для них допустимы только examples/adapters/docs, а не отдельный бизнес-backend в этом репозитории.
-- Любой межсервисный контракт сначала фиксировать в docs и Laravel contracts/value objects: JWT claims, gateway headers, signed context, error body, redirect/verification flow.
+- Доменные правила и security-sensitive logic держать в `app/Domain/*`; текущие bounded contexts: `Identity`, `Sites`, `Issuer`, `OidcClients`, `ApiResources`, `Audit`.
+- HTTP controllers, FormRequest-классы и routes остаются транспортным слоем: валидация, вызов Actions/Services, возврат response; бизнес-решения не распылять по controllers.
+- Внешние consumers (`apishka.ru`, gateway examples, callback adapters) не смешивать с core-продуктом `idshka.ru`; для них допустимы `examples/`, `infra/` и docs, а не отдельный бизнес-backend в этом репозитории.
+- Любой межсервисный контракт фиксировать в OpenSpec/specs, docs и Laravel contracts/value objects: JWT claims, gateway headers, signed context, error body, redirect/verification flow.
 
 ### Dependency Rules
 - Проект остаётся Laravel-first: не добавлять отдельный Node/Fastify/Next backend или параллельный auth stack без явного архитектурного решения.
 - Laravel Socialite использовать только для входа пользователя через внешних провайдеров; issuer, JWKS, authorization code, token, revoke и introspection остаются отдельными Laravel domains.
+- Междоменные связи проводить через Actions/Services, Contracts/DTO, события Laravel и policies; избегать прямого доступа к чужой внутренней логике домена, если есть публичный сервисный интерфейс.
 
 ## Error Handling
 
@@ -45,7 +47,7 @@
 - Если задача меняет внешний flow или контракт, в том же изменении обновлять релевантные docs в `docs/` и `.ai-factory/`.
 
 ### Documentation Standards
-- Пока проект остаётся spec-first, docs и AI Factory artifacts должны обновляться раньше или одновременно с кодом, если меняются сценарии, контракты или архитектурные границы.
+- Docs, OpenSpec specs и AI Factory artifacts должны обновляться раньше или одновременно с кодом, если меняются сценарии, контракты или архитектурные границы.
 - Имена файлов, классов, эндпоинтов, claims, scopes, permissions и headers сохранять на английском даже в русскоязычных артефактах.
 
 ## Testing Requirements
@@ -55,7 +57,7 @@
 - Любое изменение auth-flow, token issuance, site verification, gateway contract или security policy должно иметь test, smoke scenario, curl proof или другой явный evidence.
 
 ### Required Test Types
-- Feature/integration tests для login redirect/callback, token issuance, revoke, domain verification и owner/user HTTP flows.
+- Feature/integration tests на PHPUnit для login redirect/callback, token issuance, revoke, domain verification и owner/user HTTP flows.
 - Unit tests для доменных сервисов: claims building, PKCE, signing keys, header/context mapping, permission/policy evaluation.
 - Smoke tests или curl-проверки для gateway examples и межсервисных контрактов.
 

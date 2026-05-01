@@ -41,7 +41,7 @@ default:
 ## PHP-Specific GitLab Patterns
 
 ```yaml
-image: php:8.3-cli
+image: php:8.5-cli
 
 variables:
   COMPOSER_HOME: $CI_PROJECT_DIR/.composer

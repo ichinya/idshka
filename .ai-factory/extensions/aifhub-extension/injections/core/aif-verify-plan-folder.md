@@ -66,7 +66,7 @@ Runtime state and QA evidence boundaries:
 - Write verification findings, verdicts, command results, and review evidence only under `.ai-factory/qa/<change-id>/`.
 - Record OpenSpec validation/status evidence under `.ai-factory/qa/<change-id>/` before code verification.
 - Do not write QA evidence or runtime-only files into `openspec/changes/<change-id>/`.
-- Do not archive. `/aif-verify` does not archive; `/aif-done <change-id>` remains the post-verify finalizer, with full archive integration deferred to issue #33.
+- Do not archive. `/aif-verify` records verification evidence only; `/aif-done <change-id>` owns OpenSpec archive/finalization.
 - Do not create legacy plan-folder verification artifacts in OpenSpec-native mode.
 
 Normal verification responses should report:
@@ -79,6 +79,8 @@ Normal verification responses should report:
 - verdict and finding counts;
 - fix guidance `/aif-fix <change-id>` when verification fails;
 - optional finalization guidance `/aif-done <change-id>` when verification passes.
+
+End verification output and `.ai-factory/qa/<change-id>/verify.md` with exactly one final fenced `aif-gate-result` JSON block using `"gate": "verify"` and lowercase JSON `status`: `pass`, `warn`, or `fail`. Use `fail` for blocking OpenSpec validation, test, lint, build, review, security, or rules failures; use `warn` only for non-blocking notes after verification completes.
 
 Do not install OpenSpec skills or slash commands.
 Do not redirect the user to legacy finalize aliases.

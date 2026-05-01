@@ -1,27 +1,31 @@
 {
+  "$schema": "https://raw.githubusercontent.com/lee-to/ai-factory/2.x/schemas/extension.schema.json",
   "name": "aifhub-extension",
-  "version": "0.9.1",
-  "description": "Spec-driven workflow for AI Factory: analyze, plan, implement, verify, fix, and archive structured plan artifacts",
-  "compat": {
-    "ai-factory": ">=2.8.0 <3.0.0"
-  },
-  "sources": {
-    "ai-factory": {
-      "url": "https://github.com/lee-to/ai-factory",
-      "version": "2.9.1",
-      "baselineVersion": "2.0.0",
-      "lastSync": "2026-04-12",
-      "notes": "Reviewed against upstream 2.9.1; release 0.9.0 moves planning, execution orchestration, and finalization to built-in skills via injections"
-    },
-    "openspec": {
-      "url": "https://github.com/Fission-AI/OpenSpec",
-      "version": "v0.23.0",
-      "lastSync": "2026-03-26",
-      "notes": "init"
+  "version": "1.0.8",
+  "description": "Upstream-first extension for AI Factory 2.11+: bootstrap remains extension-owned; `aif-plan`, `aif-implement`, `aif-verify`, and `aif-fix` connect through injections; upstream `aif-rules-check` is augmented by the AIFHub OpenSpec generated-rules injection; `aif-done` and `aif-mode` remain extension-owned finalizers/orchestrators; Codex and Claude runtime files publish through top-level `agentFiles`.",
+  "commands": [
+    {
+      "name": "aifhub-mcp",
+      "description": "Run the AIFHub MCP server over stdio.",
+      "module": "./commands/aifhub-mcp.mjs"
     }
-  },
+  ],
   "skills": [
-    "skills/aif-analyze"
+    "skills/aif-analyze",
+    "skills/aif-done",
+    "skills/aif-mode"
+  ],
+  "mcpServers": [
+    {
+      "key": "aifhub",
+      "template": {
+        "command": "ai-factory",
+        "args": [
+          "aifhub-mcp"
+        ]
+      },
+      "instruction": "AIFHub MCP: exposes skill search, install, test, and improvement proposal tools. AI Factory renders this template into runtime-specific MCP settings: standard clients use mcpServers, OpenCode uses mcp with type: local, and GitHub Copilot uses servers with type: stdio."
+    }
   ],
   "agentFiles": [
     {
@@ -43,48 +47,113 @@
       "runtime": "codex",
       "source": "./agent-files/codex/aifhub-security-sidecar.toml",
       "target": "aifhub-security-sidecar.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-verifier.toml",
+      "target": "aifhub-verifier.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-fixer.toml",
+      "target": "aifhub-fixer.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-rules-sidecar.toml",
+      "target": "aifhub-rules-sidecar.toml"
+    },
+    {
+      "runtime": "codex",
+      "source": "./agent-files/codex/aifhub-done-finalizer.toml",
+      "target": "aifhub-done-finalizer.toml"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-plan-polisher.md",
+      "target": "aifhub-plan-polisher.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-implement-worker.md",
+      "target": "aifhub-implement-worker.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-verifier.md",
+      "target": "aifhub-verifier.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-fixer.md",
+      "target": "aifhub-fixer.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-review-sidecar.md",
+      "target": "aifhub-review-sidecar.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-security-sidecar.md",
+      "target": "aifhub-security-sidecar.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-rules-sidecar.md",
+      "target": "aifhub-rules-sidecar.md"
+    },
+    {
+      "runtime": "claude",
+      "source": "./agent-files/claude/aifhub-done-finalizer.md",
+      "target": "aifhub-done-finalizer.md"
     }
   ],
   "injections": [
     {
       "target": "aif-plan",
       "position": "prepend",
-      "file": "./injections/aif-plan-plan-folder.md"
+      "file": "./injections/core/aif-plan-plan-folder.md"
     },
     {
       "target": "aif-explore",
       "position": "prepend",
-      "file": "./injections/aif-explore-plan-folder.md"
+      "file": "./injections/core/aif-explore-plan-folder.md"
     },
     {
       "target": "aif-roadmap",
       "position": "prepend",
-      "file": "./injections/aif-roadmap-maturity-audit.md"
+      "file": "./injections/core/aif-roadmap-maturity-audit.md"
     },
     {
       "target": "aif-fix",
       "position": "prepend",
-      "file": "./injections/aif-fix-plan-folder.md"
+      "file": "./injections/core/aif-fix-plan-folder.md"
     },
     {
       "target": "aif-verify",
       "position": "prepend",
-      "file": "./injections/aif-verify-plan-folder.md"
+      "file": "./injections/core/aif-verify-plan-folder.md"
     },
     {
       "target": "aif-improve",
       "position": "prepend",
-      "file": "./injections/aif-improve-plan-folder.md"
+      "file": "./injections/core/aif-improve-plan-folder.md"
     },
     {
       "target": "aif-implement",
       "position": "prepend",
-      "file": "./injections/aif-implement-plan-folder.md"
+      "file": "./injections/core/aif-implement-plan-folder.md"
     },
     {
       "target": "aif-evolve",
       "position": "prepend",
-      "file": "./injections/aif-evolve-plan-evidence.md"
+      "file": "./injections/core/aif-evolve-plan-evidence.md"
+    },
+    {
+      "target": "aif-rules-check",
+      "position": "prepend",
+      "file": "./injections/core/aif-rules-check-openspec-generated-rules.md"
     }
   ]
 }
