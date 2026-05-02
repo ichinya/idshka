@@ -62,8 +62,8 @@ class SiteRegistryApiTest extends TestCase
         $response = $this
             ->actingAs($owner)
             ->postJson('/api/v1/sites', [
-                'domain' => 'localhost',
-                'display_name' => 'Localhost',
+                'domain' => 'not-a-domain',
+                'display_name' => 'Invalid domain',
             ]);
 
         $response
