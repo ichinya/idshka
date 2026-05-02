@@ -2,6 +2,7 @@
 set -eu
 
 GATEWAY_URL="${GATEWAY_URL:-http://127.0.0.1:8081}"
+JWKS_URL="${JWKS_URL:-http://127.0.0.1:8080/oauth/jwks.json}"
 APP_SERVICE="${APP_SERVICE:-app}"
 AUDIENCE="${AUDIENCE:-example.test}"
 COMPOSE="${1:-${COMPOSE:-docker compose}}"
@@ -42,6 +43,22 @@ assert_body_contains() {
   fi
 }
 
+wait_for_jwks() {
+  for attempt in $(seq 1 30); do
+    status="$(curl -sS -o "$tmp_dir/jwks" -w '%{http_code}' "$JWKS_URL" || true)"
+
+    if [ "$status" = "200" ]; then
+      return 0
+    fi
+
+    sleep 1
+  done
+
+  echo "FAIL [jwks readiness] expected HTTP 200 from $JWKS_URL, got $status" >&2
+  cat "$tmp_dir/jwks" >&2
+  exit 1
+}
+
 tamper_token_signature() {
   token="$1"
   header_and_payload="${token%.*}"
@@ -67,6 +84,9 @@ $COMPOSE exec -T "$APP_SERVICE" php artisan migrate --force >/dev/null
 
 echo "[gateway-smoke] issuing valid token" >&2
 valid_token="$($COMPOSE exec -T "$APP_SERVICE" php artisan idshka:gateway-smoke-token --audience="$AUDIENCE" --expires-offset=900 --not-before-offset=0)"
+
+echo "[gateway-smoke] waiting for JWKS readiness" >&2
+wait_for_jwks
 
 echo "[gateway-smoke] checking valid token reaches upstream with sanitized context" >&2
 request GET "$GATEWAY_URL/protected" \
