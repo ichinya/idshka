@@ -11,7 +11,9 @@ use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteMode;
 use App\Domain\Sites\Models\SiteVerification;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PortalManagementFlowTest extends TestCase
@@ -375,6 +377,44 @@ class PortalManagementFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Client secret')
             ->assertSee('https://localhost:8443/auth/idshka/callback');
+    }
+
+    public function test_portal_still_shows_one_time_client_secret_when_oidc_audit_recording_fails(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createVerifiedSite($owner);
+
+        Schema::drop('audit_events');
+        Schema::create('audit_events', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable();
+            $table->string('site_id', 40)->nullable();
+            $table->string('category', 80);
+            $table->string('action', 120);
+            $table->string('summary', 255);
+            $table->timestamp('occurred_at');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        $response = $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post('/portal/clients', [
+                'site_id' => $site->id,
+                'name' => 'Example Web',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('Client secret')
+            ->assertSee('https://example.test/auth/idshka/callback');
+
+        $this->assertDatabaseHas('oidc_clients', [
+            'site_id' => $site->id,
+            'owner_user_id' => $owner->id,
+            'name' => 'Example Web',
+        ]);
     }
 
     public function test_expired_site_verification_shows_fresh_retry_instructions(): void

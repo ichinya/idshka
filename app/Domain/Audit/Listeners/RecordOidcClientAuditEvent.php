@@ -17,7 +17,7 @@ final class RecordOidcClientAuditEvent
     public function handle(OidcClientCreated|OidcClientRevoked|OidcRedirectUriAdded $event): void
     {
         if ($event instanceof OidcClientCreated) {
-            $this->auditRecorder->record(
+            $this->auditRecorder->tryRecord(
                 category: 'oidc',
                 action: 'oidc.client_created',
                 userId: $event->client->owner_user_id,
@@ -40,7 +40,7 @@ final class RecordOidcClientAuditEvent
         }
 
         if ($event instanceof OidcRedirectUriAdded) {
-            $this->auditRecorder->record(
+            $this->auditRecorder->tryRecord(
                 category: 'oidc',
                 action: 'oidc.redirect_uri_added',
                 userId: $event->client->owner_user_id,
@@ -64,7 +64,7 @@ final class RecordOidcClientAuditEvent
             return;
         }
 
-        $this->auditRecorder->record(
+        $this->auditRecorder->tryRecord(
             category: 'oidc',
             action: 'oidc.client_revoked',
             userId: $event->client->owner_user_id,

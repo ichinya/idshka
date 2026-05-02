@@ -4,6 +4,7 @@ namespace App\Domain\Audit\Services;
 
 use App\Domain\Audit\Models\AuditEvent;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class AuditRecorder
 {
@@ -44,5 +45,33 @@ final class AuditRecorder
         ]);
 
         return $event;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function tryRecord(
+        string $category,
+        string $action,
+        ?int $userId,
+        ?string $siteId,
+        string $summary,
+        array $metadata = [],
+    ): ?AuditEvent {
+        try {
+            return $this->record($category, $action, $userId, $siteId, $summary, $metadata);
+        } catch (Throwable $exception) {
+            Log::warning('[audit.record] failed', [
+                'category' => $category,
+                'action' => $action,
+                'user_id' => $userId,
+                'site_id' => $siteId,
+                'metadata_keys' => array_keys($metadata),
+                'error_class' => $exception::class,
+                'error_message' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }
