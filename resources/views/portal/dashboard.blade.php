@@ -218,14 +218,23 @@
                 </div>
 
                 <div class="rounded-md border border-zinc-200 bg-white p-4">
+                    @php
+                        $defaultWebClientSite = $sites->first();
+                        $defaultRedirectUri = $defaultWebClientSite
+                            ? 'https://'.$defaultWebClientSite->normalized_domain.'/auth/idshka/callback'
+                            : '';
+                    @endphp
                     <h2 class="text-lg font-semibold">Web clients</h2>
                     <form class="mt-4 grid gap-3" method="POST" action="{{ route('portal.clients.store') }}">
                         @csrf
                         <label class="grid gap-1 text-sm">
                             <span class="font-medium">Site</span>
-                            <select class="rounded-md border border-zinc-300 px-3 py-2" name="site_id" required>
+                            <select class="rounded-md border border-zinc-300 px-3 py-2" name="site_id" required data-web-client-site-select>
                                 @foreach ($sites as $site)
-                                    <option value="{{ $site->id }}">{{ $site->normalized_domain }}</option>
+                                    @php
+                                        $siteDefaultRedirectUri = 'https://'.$site->normalized_domain.'/auth/idshka/callback';
+                                    @endphp
+                                    <option value="{{ $site->id }}" data-default-redirect-uri="{{ $siteDefaultRedirectUri }}">{{ $site->normalized_domain }}</option>
                                 @endforeach
                             </select>
                         </label>
@@ -235,12 +244,39 @@
                         </label>
                         <label class="grid gap-1 text-sm">
                             <span class="font-medium">Redirect URI</span>
-                            <input class="rounded-md border border-zinc-300 px-3 py-2" name="redirect_uri" value="https://example.test/auth/idshka/callback" required>
+                            <input class="rounded-md border border-zinc-300 px-3 py-2" name="redirect_uri" value="{{ $defaultRedirectUri }}" placeholder="{{ $defaultRedirectUri }}" required data-autofilled="1" data-web-client-redirect-uri>
                         </label>
                         <button class="rounded-md bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800" type="submit">
                             Create client
                         </button>
                     </form>
+                    <script>
+                        (() => {
+                            const select = document.querySelector('[data-web-client-site-select]');
+                            const input = document.querySelector('[data-web-client-redirect-uri]');
+
+                            if (!select || !input) {
+                                return;
+                            }
+
+                            const syncRedirectUri = () => {
+                                const uri = select.selectedOptions[0]?.dataset.defaultRedirectUri || '';
+
+                                input.placeholder = uri;
+
+                                if (input.dataset.autofilled === '1') {
+                                    input.value = uri;
+                                }
+                            };
+
+                            input.addEventListener('input', () => {
+                                input.dataset.autofilled = '0';
+                            });
+
+                            select.addEventListener('change', syncRedirectUri);
+                            syncRedirectUri();
+                        })();
+                    </script>
 
                     <div class="mt-5 divide-y divide-zinc-200">
                         @forelse ($clients as $client)
@@ -265,7 +301,7 @@
                                 </ul>
                                 <form class="mt-3 flex flex-col gap-2 md:flex-row" method="POST" action="{{ route('portal.clients.redirect-uris.store', $client) }}">
                                     @csrf
-                                    <input class="min-w-0 flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm" name="redirect_uri" placeholder="https://example.test/auth/idshka/callback">
+                                    <input class="min-w-0 flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm" name="redirect_uri" placeholder="{{ $client->site?->normalized_domain ? 'https://'.$client->site->normalized_domain.'/auth/idshka/callback' : '' }}">
                                     <button class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50" type="submit">
                                         Add redirect URI
                                     </button>

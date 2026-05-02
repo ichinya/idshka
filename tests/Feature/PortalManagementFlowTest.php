@@ -214,6 +214,20 @@ class PortalManagementFlowTest extends TestCase
         $this->assertNotNull($client->refresh()->revoked_at);
     }
 
+    public function test_portal_web_client_form_uses_owner_site_for_default_redirect_uri(): void
+    {
+        $owner = User::factory()->create();
+        $this->createVerifiedSite($owner, 'chat.ie0.ru', 'Chat');
+
+        $this
+            ->actingAs($owner)
+            ->get('/portal')
+            ->assertOk()
+            ->assertSee('value="https://chat.ie0.ru/auth/idshka/callback"', false)
+            ->assertSee('placeholder="https://chat.ie0.ru/auth/idshka/callback"', false)
+            ->assertDontSee('https://example.test/auth/idshka/callback');
+    }
+
     public function test_expired_site_verification_shows_fresh_retry_instructions(): void
     {
         $owner = User::factory()->create();
@@ -275,15 +289,15 @@ class PortalManagementFlowTest extends TestCase
         return $site;
     }
 
-    private function createVerifiedSite(User $owner): Site
+    private function createVerifiedSite(User $owner, string $domain = 'example.test', string $displayName = 'Example App'): Site
     {
         /** @var Site $site */
         $site = Site::query()->create([
             'id' => 'site_'.strtolower((string) str()->ulid()),
             'owner_user_id' => $owner->id,
-            'display_name' => 'Example App',
-            'domain' => 'example.test',
-            'normalized_domain' => 'example.test',
+            'display_name' => $displayName,
+            'domain' => $domain,
+            'normalized_domain' => $domain,
             'verification_status' => SiteVerificationStatus::Verified->value,
             'verified_at' => now(),
         ]);
