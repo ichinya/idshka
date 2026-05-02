@@ -37,7 +37,7 @@ class IssuerApiFlowTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('site_id', $site->id)
-            ->assertJsonPath('aud', 'apishka.ru')
+            ->assertJsonPath('aud', 'example.test')
             ->assertJsonPath('scope.0', 'orders.read')
             ->assertJsonPath('permissions.0', 'orders.read');
 
@@ -53,12 +53,12 @@ class IssuerApiFlowTest extends TestCase
 
         $audClaim = $token->claims()->get('aud');
         $audiences = is_array($audClaim) ? $audClaim : [$audClaim];
-        $this->assertContains('apishka.ru', $audiences);
+        $this->assertContains('example.test', $audiences);
 
         $this->assertDatabaseHas('api_tokens', [
             'user_id' => $owner->id,
             'site_id' => $site->id,
-            'audience' => 'apishka.ru',
+            'audience' => 'example.test',
             'jti' => $response->json('jti'),
             'token_hash' => hash('sha256', $rawToken),
         ]);
@@ -169,19 +169,19 @@ class IssuerApiFlowTest extends TestCase
             ownerId: $owner->id,
             verified: true,
             apiResourceMode: true,
-            domain: 'apishka.ru',
+            domain: 'example.test',
         );
         $unverifiedSite = $this->createSite(
             ownerId: $owner->id,
             verified: false,
             apiResourceMode: false,
-            domain: 'pending.apishka.ru',
+            domain: 'pending.example.test',
         );
         $verifiedWithoutMode = $this->createSite(
             ownerId: $owner->id,
             verified: true,
             apiResourceMode: false,
-            domain: 'mode-missing.apishka.ru',
+            domain: 'mode-missing.example.test',
         );
 
         $this->app->make(SigningKeyService::class)->createActiveKey();
@@ -242,12 +242,12 @@ class IssuerApiFlowTest extends TestCase
             ]);
     }
 
-    private function createSite(int $ownerId, bool $verified, bool $apiResourceMode, string $domain = 'apishka.ru'): Site
+    private function createSite(int $ownerId, bool $verified, bool $apiResourceMode, string $domain = 'example.test'): Site
     {
         $site = Site::query()->create([
             'id' => app(SiteIdFactory::class)->make(),
             'owner_user_id' => $ownerId,
-            'display_name' => 'Apishka',
+            'display_name' => 'Example App',
             'domain' => $domain,
             'normalized_domain' => $domain,
             'verification_status' => $verified

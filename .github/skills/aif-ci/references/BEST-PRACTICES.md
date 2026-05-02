@@ -73,7 +73,7 @@ Rules:
 strategy:
   fail-fast: false          # Don't cancel siblings on first failure
   matrix:
-    php-version: ['8.5']
+    php-version: ['8.2', '8.3', '8.4']
 ```
 
 Rules:
@@ -244,7 +244,7 @@ Use YAML anchors or `extends:` for shared configuration:
 
 ```yaml
 .php-setup:
-  image: php:8.5-cli
+  image: php:8.3-cli
   before_script:
     - apt-get update && apt-get install -y git unzip
     - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -288,7 +288,7 @@ phpstan:
 
 **PHP version matrix:**
 - Include all versions from `composer.json` `require.php` constraint
-- Example: `"php": "^8.5"` -> test on `['8.5']`
+- Example: `"php": ">=8.2"` -> test on `['8.2', '8.3', '8.4']`
 
 ### 3.2 Python
 

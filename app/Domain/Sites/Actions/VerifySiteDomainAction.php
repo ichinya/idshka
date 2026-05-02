@@ -13,6 +13,7 @@ use App\Domain\Sites\Services\WellKnownFileVerificationChecker;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 final class VerifySiteDomainAction
 {
@@ -45,10 +46,18 @@ final class VerifySiteDomainAction
         }
 
         if (CarbonImmutable::now()->greaterThan($verification->expires_at)) {
-            $verification->update([
-                'status' => SiteVerificationStatus::Expired->value,
-                'last_error' => 'verification_expired',
-            ]);
+            DB::transaction(function () use ($site): void {
+                SiteVerification::query()
+                    ->where('site_id', $site->id)
+                    ->whereNull('verified_at')
+                    ->where('expires_at', '<', CarbonImmutable::now())
+                    ->update([
+                        'status' => SiteVerificationStatus::Expired->value,
+                        'last_error' => 'verification_expired',
+                    ]);
+
+                $this->issueFreshChallenges($site);
+            });
 
             SiteVerificationCompleted::dispatch($site, $method, false, 'verification_expired');
 
@@ -121,5 +130,30 @@ final class VerifySiteDomainAction
             SiteVerificationMethod::DnsTxt => $this->dnsChecker->check($site, $token),
             SiteVerificationMethod::File => $this->fileChecker->check($site, $token),
         };
+    }
+
+    private function issueFreshChallenges(Site $site): void
+    {
+        $expiresAt = CarbonImmutable::now()->addMinutes(30);
+        $token = Str::random(48);
+        $verificationIds = [];
+
+        foreach (SiteVerificationMethod::cases() as $method) {
+            $verification = SiteVerification::query()->create([
+                'site_id' => $site->id,
+                'method' => $method->value,
+                'token' => $token,
+                'expires_at' => $expiresAt,
+                'status' => SiteVerificationStatus::Pending->value,
+            ]);
+
+            $verificationIds[] = $verification->id;
+        }
+
+        Log::info('[FIX:site-verification-refresh] issued fresh verification challenges after expiry', [
+            'site_id' => $site->id,
+            'verification_ids' => $verificationIds,
+            'expires_at' => $expiresAt->toISOString(),
+        ]);
     }
 }

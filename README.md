@@ -27,7 +27,13 @@ php artisan test --without-tty
 npm run build
 ```
 
-Приложение поднимается на `http://localhost:8080`, gateway reference — на `http://localhost:8081`. Публичный ingress не отдаёт `/ready`; readiness probe доступен только по внутреннему runtime path.
+Приложение поднимается на `http://localhost:8080`. Публичный ingress не отдаёт `/ready`; readiness probe доступен только по внутреннему runtime path.
+
+Demo API resource gateway поднимается отдельно через examples profile:
+
+```bash
+docker compose --profile examples up -d --build demo-resource-gateway
+```
 
 ## Что уже реализовано
 
@@ -35,7 +41,7 @@ npm run build
 - Site registry: `POST /v1/sites`, verification через `dns_txt` и `file`, явное включение `api_resource` и `web_client`.
 - Session auth + Socialite: `POST /register`, `POST /login`, `POST /logout`, `/auth/{provider}/redirect|callback|link`.
 - Защита owner flows: `auth:web`, policy check `can:manage,site`, throttle `site-registry`, fail-closed verification hardening.
-- Docker Compose с `nginx`, `php-fpm`, `PostgreSQL`, `Redis`, OpenResty gateway и internal `apishka-api` smoke upstream.
+- Docker Compose с core-сервисами `nginx`, `php-fpm`, `PostgreSQL`, `Redis`; OpenResty gateway и internal `demo-resource-api` вынесены в profile `examples`.
 - Issuer/JWKS: user API token issue/revoke, signing keys, public `/oauth/jwks.json`.
 - OpenResty gateway reference: JWKS validation, `X-Idshka-*` sanitization, trusted context proxying и smoke script.
 - GitHub Actions CI с `composer`, `npm`, тестами, smoke-проверкой compose runtime и `PHP 8.5`.

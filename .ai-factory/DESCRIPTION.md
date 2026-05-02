@@ -3,22 +3,22 @@
 ## Что строим
 `idshka.ru` — Laravel-first сервис идентификации, выпуска токенов и управления подключёнными сайтами.
 
-Пользователь подключает свой сайт, например `apishka.ru`, и выбирает один или оба режима:
+Пользователь подключает свой сайт, например `example.test`, и выбирает один или оба режима:
 
 1. **API-only / resource API**  
-   `apishka.ru` работает только как API. Для запроса нужен токен, выпущенный на `idshka.ru`. На входе в `apishka.ru` стоит Nginx/OpenResty gateway: он проверяет токен, удаляет поддельные auth-заголовки и добавляет в upstream подтверждённый контекст пользователя.
+   `example.test` работает только как API. Для запроса нужен токен, выпущенный на `idshka.ru`. На входе в `example.test` стоит Nginx/OpenResty gateway: он проверяет токен, удаляет поддельные auth-заголовки и добавляет в upstream подтверждённый контекст пользователя.
 
 2. **Web login / login через idshka.ru**  
-   `apishka.ru` имеет web-интерфейс и полноценный вход через `idshka.ru`: пользователь нажимает «Войти через idshka.ru», уходит на `idshka.ru`, после входа возвращается на callback `apishka.ru`, а сайт создаёт локальную web-сессию.
+   `example.test` имеет web-интерфейс и полноценный вход через `idshka.ru`: пользователь нажимает «Войти через idshka.ru», уходит на `idshka.ru`, после входа возвращается на callback `example.test`, а сайт создаёт локальную web-сессию.
 
-`idshka.ru` не является бизнес-API `apishka.ru`; он является identity provider, issuer и control plane.
+`idshka.ru` не является бизнес-API `example.test`; он является identity provider, issuer и control plane.
 
 ## Важное уточнение по Laravel + Socialite
 Проект делается на **Laravel + Socialite**, но роли разделены:
 
 - **Socialite внутри `idshka.ru`** используется для входа пользователей через внешние провайдеры: Google, VK, Yandex и другие OAuth-провайдеры.
-- **`idshka.ru` как issuer/provider для `apishka.ru`** реализуется отдельными Laravel-модулями: OAuth/OIDC-like authorize endpoint, token endpoint, JWKS, userinfo, revoke, подпись JWT.
-- **`apishka.ru` как Laravel web-сайт** может подключаться к `idshka.ru` через кастомный Socialite provider или через обычный OAuth/OIDC client flow.
+- **`idshka.ru` как issuer/provider для `example.test`** реализуется отдельными Laravel-модулями: OAuth/OIDC-like authorize endpoint, token endpoint, JWKS, userinfo, revoke, подпись JWT.
+- **`example.test` как Laravel web-сайт** может подключаться к `idshka.ru` через кастомный Socialite provider или через обычный OAuth/OIDC client flow.
 
 Socialite — это клиентская сторона OAuth-login. Поэтому выпуск токенов, JWKS и проверка `aud/iss/exp/jti` не прячутся в Socialite, а описываются отдельными сервисами Laravel-приложения.
 
@@ -26,7 +26,7 @@ Socialite — это клиентская сторона OAuth-login. Поэто
 
 ### Владелец сайта
 - Регистрируется на `idshka.ru`.
-- Подключает домен `apishka.ru`.
+- Подключает домен `example.test`.
 - Подтверждает владение доменом.
 - Создаёт настройки интеграции:
   - API audience, scopes, permissions;
@@ -36,11 +36,11 @@ Socialite — это клиентская сторона OAuth-login. Поэто
 ### Конечный пользователь
 - Заходит на `idshka.ru`.
 - Может войти через email/password или Socialite-провайдеров.
-- Создаёт токен для доступа к `apishka.ru` API, если сайт работает в API-only режиме.
-- Или входит на `apishka.ru` через `idshka.ru`, если сайт работает как web-client.
+- Создаёт токен для доступа к `example.test` API, если сайт работает в API-only режиме.
+- Или входит на `example.test` через `idshka.ru`, если сайт работает как web-client.
 - Видит свои токены, сессии, сайты, историю входов и может отзывать доступ.
 
-### Подключённый сайт `apishka.ru`
+### Подключённый сайт `example.test`
 - Принимает запросы только после проверки на edge-слое, если режим API-only.
 - Получает в upstream нормализованный контекст пользователя: user id, email/username, roles, scopes, permissions, site id, token id/session id.
 - В web-режиме создаёт собственную локальную сессию после callback от `idshka.ru`.
@@ -49,15 +49,15 @@ Socialite — это клиентская сторона OAuth-login. Поэто
 - Laravel-приложение `idshka.ru`.
 - Регистрация и вход пользователя на `idshka.ru`.
 - Laravel Socialite login через Google/VK/Yandex-провайдеры.
-- Подключение сайта с доменом `apishka.ru`.
+- Подключение сайта с доменом `example.test`.
 - Верификация домена через DNS TXT и файл в `/.well-known/`.
 - Два режима сайта: `api_resource` и `web_client`.
-- Выпуск user API token для `aud=apishka.ru` / `site_id=<apishka>`.
+- Выпуск user API token для `aud=example.test` / `site_id=<demo-resource>`.
 - JWKS endpoint для локальной проверки подписи gateway-слоем.
 - Optional introspection endpoint для online-проверки и hard revoke.
-- Nginx/OpenResty gateway example для `apishka.ru`.
+- Nginx/OpenResty gateway example для `example.test`.
 - Проброс `X-Idshka-*` headers и опционального подписанного `X-Idshka-Context`.
-- Authorization Code + PKCE flow для web-входа на `apishka.ru`.
+- Authorization Code + PKCE flow для web-входа на `example.test`.
 - Личный кабинет: сайты, клиенты, токены, revoke, audit.
 
 ## Не в MVP

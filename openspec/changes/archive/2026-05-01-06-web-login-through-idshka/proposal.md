@@ -2,7 +2,7 @@
 
 ## Why
 
-`apishka.ru` needs a web login flow where users authenticate through `idshka.ru`, return to the connected site, and open a local session without sharing internal Laravel classes or raw secrets between applications.
+`example.test` needs a web login flow where users authenticate through `idshka.ru`, return to the connected site, and open a local session without sharing internal Laravel classes or raw secrets between applications.
 
 ## What Changes
 
@@ -21,7 +21,7 @@
 - `POST /oauth/token` for `authorization_code` only.
 - `id_token` and short-lived web access token issuance.
 - `GET /oauth/userinfo` for the web access token.
-- Minimal `apishka-web-laravel` example that uses only HTTP endpoints, not internal PHP classes.
+- Minimal `laravel-web-client` example that uses only HTTP endpoints, not internal PHP classes.
 - Feature/unit tests and docs sync.
 
 ## Approach
@@ -43,7 +43,7 @@ Migrated from:
 # 06-web-login-through-idshka
 
 ## Цель
-Реализовать web login для подключенного сайта: `apishka.ru` уводит пользователя на `idshka.ru`, `idshka.ru` выдает Authorization Code после first-party login, callback `apishka.ru` обменивает code на tokens через Authorization Code + PKCE, а web-client создает локальную сессию.
+Реализовать web login для подключенного сайта: `example.test` уводит пользователя на `idshka.ru`, `idshka.ru` выдает Authorization Code после first-party login, callback `example.test` обменивает code на tokens через Authorization Code + PKCE, а web-client создает локальную сессию.
 
 ## Branch and Date
 - Branch: `feature/06-web-login-through-idshka`
@@ -68,7 +68,7 @@ Migrated from:
 - `app/Domain/OidcClients` is a skeleton and needs executable models/services.
 - `app/Domain/Issuer` already has signing keys, JWKS and user API token issuance.
 - `03-site-registry-and-modes` provides verified sites and `web_client` mode.
-- `examples/apishka-web-laravel` is currently a README placeholder.
+- `examples/laravel-web-client` is currently a README placeholder.
 
 ## Scope
 - OIDC client and redirect URI persistence for verified `web_client` sites.
@@ -77,7 +77,7 @@ Migrated from:
 - `POST /oauth/token` for `authorization_code` only.
 - `id_token` and short-lived web access token issuance.
 - `GET /oauth/userinfo` for the web access token.
-- Minimal `apishka-web-laravel` example that uses only HTTP endpoints, not internal PHP classes.
+- Minimal `laravel-web-client` example that uses only HTTP endpoints, not internal PHP classes.
 - Feature/unit tests and docs sync.
 
 ## Out of Scope
@@ -150,8 +150,8 @@ Migrated from:
   - Depends on: T7.
 
 ### Phase 3 - Example, Docs and Verification
-- [x] T9 - Minimal `apishka-web-laravel` example
-  - Files: `examples/apishka-web-laravel/README.md` and minimal example snippets/files if useful.
+- [x] T9 - Minimal `laravel-web-client` example
+  - Files: `examples/laravel-web-client/README.md` and minimal example snippets/files if useful.
   - Deliverable: document login redirect, callback, token exchange, id token validation, userinfo call and local session creation using only public HTTP/OAuth endpoints.
   - Logging: example must redact `client_secret`, code and tokens in any sample logs.
   - Depends on: T8.

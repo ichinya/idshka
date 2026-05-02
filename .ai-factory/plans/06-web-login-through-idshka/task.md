@@ -56,10 +56,10 @@
 - Logging: info/warn with jti, client id, user id and scope count only; never log the token.
 - Depends on: T7.
 
-## T9 - Minimal `apishka-web-laravel` example
+## T9 - Minimal `laravel-web-client` example
 - Status: completed
 - Deliverable: example docs/snippets for login redirect, callback, token exchange, id token validation, userinfo call and local session creation through public HTTP endpoints.
-- Files: `examples/apishka-web-laravel/README.md` and minimal example files if useful.
+- Files: `examples/laravel-web-client/README.md` and minimal example files if useful.
 - Logging: sample logs must redact `client_secret`, code and tokens.
 - Depends on: T8.
 

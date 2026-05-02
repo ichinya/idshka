@@ -1,12 +1,25 @@
 # Proposal: 08-security-hardening-and-ops
 
-## Intent
+## Why
 
-Migrated legacy plan. Review and refine this proposal before implementation.
+The identity issuer, gateway integration, and self-service portal handle credentials and signed authentication context. Before production use, the platform needs explicit hardening for rate limits, secret-safe observability, key rotation, backup/restore, operational runbooks, and CI security checks.
+
+## What Changes
+
+- Add rate limits for authentication, OAuth/OIDC, token, revoke, and portal credential endpoints.
+- Add request correlation and structured logs that never include raw secrets.
+- Add documented key rotation commands and operator flow for issuer signing keys.
+- Add backup/restore notes for identity, site registry, token, client, audit, and key material data.
+- Add security runbook steps for leaked keys, tokens, client secrets, and gateway header trust failures.
+- Add CI security checks for tests, build, and smoke validation.
+- Define gateway behavior for stale JWKS/signing keys.
 
 ## Scope
 
-- Review migrated legacy scope.
+- Laravel security and ops hardening.
+- Issuer and gateway operational policy.
+- CI checks and production runbooks.
+- Documentation for backup/restore and incident response.
 
 ## Approach
 

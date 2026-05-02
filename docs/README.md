@@ -21,7 +21,7 @@
 |-------|---------|--------|
 | [Laravel Modules](LARAVEL_MODULES.md) | Границы bounded contexts и текущая реализация | mixed |
 | [API Flows](API_FLOWS.md) | HTTP сценарии: site registry, issuer tokens/JWKS and OAuth web login | mixed |
-| [Gateway Contract](GATEWAY_CONTRACT.md) | Gateway/JWKS contract для `api.apishka.ru` | implemented reference |
+| [Gateway Contract](GATEWAY_CONTRACT.md) | Gateway/JWKS contract для `api.example.test` | implemented reference |
 | [Socialite](SOCIALITE.md) | Роль Socialite и граница между login и issuer | mixed |
 
 ## Что важно не перепутать
@@ -29,7 +29,7 @@
 - `routes/api.php` уже содержит рабочий site registry API.
 - `routes/web.php` уже содержит рабочие auth/social endpoints (register, login, logout, Socialite redirect/callback/link/unlink).
 - `routes/oauth.php` публикует OAuth provider endpoints: `GET /oauth/authorize`, `POST /oauth/token`, `GET /oauth/userinfo`, `GET /oauth/jwks.json`.
-- Gateway reference в `infra/openresty/apishka/` уже проверяет JWT через JWKS и прокидывает trusted context; signed context, edge revoke cache и online introspection остаются будущими hardening phases.
+- Gateway reference в `infra/openresty/demo-resource/` уже проверяет JWT через JWKS и прокидывает trusted context; signed context, edge revoke cache и online introspection остаются будущими hardening phases.
 
 ## See Also
 

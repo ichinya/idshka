@@ -26,9 +26,9 @@ class RevocationServiceTest extends TestCase
         $site = Site::query()->create([
             'id' => $this->siteId(),
             'owner_user_id' => $owner->id,
-            'display_name' => 'Apishka',
-            'domain' => 'apishka.ru',
-            'normalized_domain' => 'apishka.ru',
+            'display_name' => 'Example App',
+            'domain' => 'example.test',
+            'normalized_domain' => 'example.test',
             'verification_status' => SiteVerificationStatus::Verified->value,
             'verified_at' => now(),
         ]);
@@ -39,7 +39,7 @@ class RevocationServiceTest extends TestCase
             'user_id' => $owner->id,
             'site_id' => $site->id,
             'signing_key_id' => $activeKey->id,
-            'audience' => 'apishka.ru',
+            'audience' => 'example.test',
             'jti' => 'jti-'.Str::lower(Str::random(32)),
             'token_hash' => hash('sha256', Str::random(64)),
             'scopes' => ['orders.read'],
@@ -67,9 +67,9 @@ class RevocationServiceTest extends TestCase
         $site = Site::query()->create([
             'id' => $this->siteId(),
             'owner_user_id' => $owner->id,
-            'display_name' => 'Apishka',
-            'domain' => 'apishka.ru',
-            'normalized_domain' => 'apishka.ru',
+            'display_name' => 'Example App',
+            'domain' => 'example.test',
+            'normalized_domain' => 'example.test',
             'verification_status' => SiteVerificationStatus::Verified->value,
             'verified_at' => now(),
         ]);
@@ -80,7 +80,7 @@ class RevocationServiceTest extends TestCase
             'user_id' => $owner->id,
             'site_id' => $site->id,
             'signing_key_id' => $activeKey->id,
-            'audience' => 'apishka.ru',
+            'audience' => 'example.test',
             'jti' => 'jti-'.Str::lower(Str::random(32)),
             'token_hash' => hash('sha256', Str::random(64)),
             'scopes' => ['orders.read'],

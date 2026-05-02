@@ -28,28 +28,28 @@ class OidcClientResolverTest extends TestCase
             'owner_user_id' => $owner->id,
             'client_id' => 'client_01kq000000000000000000000000000001',
             'client_secret_hash' => Hash::make('secret-value'),
-            'name' => 'Apishka Web',
+            'name' => 'Example Web',
         ]);
         OidcRedirectUri::query()->create([
             'oidc_client_id' => $client->id,
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
-            'redirect_uri_hash' => hash('sha256', 'https://apishka.ru/auth/idshka/callback'),
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            'redirect_uri_hash' => hash('sha256', 'https://example.test/auth/idshka/callback'),
         ]);
 
         $resolved = app(OidcClientResolver::class)->resolveForAuthorize(
             clientId: 'client_01kq000000000000000000000000000001',
-            redirectUri: 'https://apishka.ru/auth/idshka/callback',
+            redirectUri: 'https://example.test/auth/idshka/callback',
         );
 
         $this->assertSame($client->id, $resolved->client->id);
         $this->assertSame($site->id, $resolved->site->id);
-        $this->assertSame('https://apishka.ru/auth/idshka/callback', $resolved->redirectUri->redirect_uri);
+        $this->assertSame('https://example.test/auth/idshka/callback', $resolved->redirectUri->redirect_uri);
 
         $this->expectExceptionMessage('redirect_uri_mismatch');
 
         app(OidcClientResolver::class)->resolveForAuthorize(
             clientId: 'client_01kq000000000000000000000000000001',
-            redirectUri: 'https://evil.apishka.ru/auth/idshka/callback',
+            redirectUri: 'https://evil.example.test/auth/idshka/callback',
         );
     }
 
@@ -62,14 +62,14 @@ class OidcClientResolverTest extends TestCase
             'owner_user_id' => $owner->id,
             'client_id' => 'client_01kq000000000000000000000000000002',
             'client_secret_hash' => Hash::make('secret-value'),
-            'name' => 'Apishka Web',
+            'name' => 'Example Web',
         ]);
 
         $this->expectExceptionMessage('web_client_mode_required');
 
         app(OidcClientResolver::class)->resolveForAuthorize(
             clientId: 'client_01kq000000000000000000000000000002',
-            redirectUri: 'https://apishka.ru/auth/idshka/callback',
+            redirectUri: 'https://example.test/auth/idshka/callback',
         );
     }
 
@@ -82,14 +82,14 @@ class OidcClientResolverTest extends TestCase
             'owner_user_id' => $owner->id,
             'client_id' => 'client_01kq000000000000000000000000000003',
             'client_secret_hash' => Hash::make('secret-value'),
-            'name' => 'Apishka Web',
+            'name' => 'Example Web',
         ]);
 
         $this->expectExceptionMessage('unverified_site');
 
         app(OidcClientResolver::class)->resolveForAuthorize(
             clientId: 'client_01kq000000000000000000000000000003',
-            redirectUri: 'https://apishka.ru/auth/idshka/callback',
+            redirectUri: 'https://example.test/auth/idshka/callback',
         );
     }
 
@@ -102,7 +102,7 @@ class OidcClientResolverTest extends TestCase
             'owner_user_id' => $owner->id,
             'client_id' => 'client_01kq000000000000000000000000000004',
             'client_secret_hash' => Hash::make('secret-value'),
-            'name' => 'Apishka Web',
+            'name' => 'Example Web',
             'revoked_at' => now(),
         ]);
 
@@ -110,7 +110,7 @@ class OidcClientResolverTest extends TestCase
 
         app(OidcClientResolver::class)->resolveForAuthorize(
             clientId: 'client_01kq000000000000000000000000000004',
-            redirectUri: 'https://apishka.ru/auth/idshka/callback',
+            redirectUri: 'https://example.test/auth/idshka/callback',
         );
     }
 
@@ -123,7 +123,7 @@ class OidcClientResolverTest extends TestCase
             'owner_user_id' => $owner->id,
             'client_id' => 'client_01kq000000000000000000000000000005',
             'client_secret_hash' => Hash::make('secret-value'),
-            'name' => 'Apishka Web',
+            'name' => 'Example Web',
         ]);
 
         $resolver = app(OidcClientResolver::class);
@@ -137,9 +137,9 @@ class OidcClientResolverTest extends TestCase
         $site = Site::query()->create([
             'id' => app(SiteIdFactory::class)->make(),
             'owner_user_id' => $ownerId,
-            'display_name' => 'Apishka',
-            'domain' => 'apishka.ru',
-            'normalized_domain' => 'apishka.ru',
+            'display_name' => 'Example App',
+            'domain' => 'example.test',
+            'normalized_domain' => 'example.test',
             'verification_status' => $verified
                 ? SiteVerificationStatus::Verified->value
                 : SiteVerificationStatus::Pending->value,

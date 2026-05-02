@@ -16,7 +16,7 @@
 - [x] `GET /oauth/userinfo` validates Bearer token and returns only claims allowed by requested scopes.
 - [x] Raw authorization code, client secret, PKCE verifier, id token, access token and private keys are not logged or persisted in raw form.
 - [x] OAuth endpoints have deterministic `401`/`403`/`422`/`429` behavior with `request_id` in JSON errors where applicable.
-- [x] `examples/apishka-web-laravel` documents login redirect, callback exchange, id token validation, userinfo call and local session creation using public endpoints only.
+- [x] `examples/laravel-web-client` documents login redirect, callback exchange, id token validation, userinfo call and local session creation using public endpoints only.
 - [x] `docs/API_FLOWS.md`, `docs/LARAVEL_MODULES.md`, `docs/SOCIALITE.md` and `docs/README.md` match implemented behavior.
 - [x] Feature tests cover happy path, redirect mismatch, missing PKCE, code replay, invalid verifier, invalid client secret, nonce/id token, userinfo and log-safety cases.
 - [x] Unit tests cover PKCE S256 verification, code hash/consume behavior, client secret verification and token claim construction.

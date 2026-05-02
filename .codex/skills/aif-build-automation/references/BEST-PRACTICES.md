@@ -545,7 +545,7 @@ routes      → php bin/console debug:router
 
 - **Never run `composer install` without `--no-interaction`** in CI — it hangs on prompts
 - **Never use `php artisan migrate:fresh` without a confirmation guard** — it drops all tables
-- **Never hardcode `php` path** — use a variable (`PHP ?= php`) for flexibility (e.g., `php8.5`)
+- **Never hardcode `php` path** — use a variable (`PHP ?= php`) for flexibility (e.g., `php8.2`)
 - **Never skip `--optimize-autoloader`** in production installs — significant performance impact
 - **Never cache config in development** — `config:cache` breaks `.env` loading with `env()` calls
 

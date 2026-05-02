@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 final class LogoutController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request): JsonResponse|RedirectResponse
     {
         Log::info('[auth.logout] started', [
             'user_id' => $request->user()?->getAuthIdentifier(),
@@ -21,6 +22,10 @@ final class LogoutController extends Controller
         $request->session()->regenerateToken();
 
         Log::info('[auth.logout] completed');
+
+        if (! $request->expectsJson()) {
+            return redirect('/');
+        }
 
         return response()->json([
             'status' => 'logged_out',

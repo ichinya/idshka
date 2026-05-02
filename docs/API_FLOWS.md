@@ -38,8 +38,8 @@ X-CSRF-TOKEN: <csrf-token>
 Content-Type: application/json
 
 {
-  "domain": "apishka.ru",
-  "display_name": "Apishka"
+  "domain": "example.test",
+  "display_name": "Example App"
 }
 ```
 
@@ -48,12 +48,12 @@ Content-Type: application/json
 ```json
 {
   "site_id": "site_01kpv62acyvkq3cav4dzhmhdr7",
-  "domain": "apishka.ru",
+  "domain": "example.test",
   "verified": false,
   "verification": {
-    "dns_txt_name": "_idshka.apishka.ru",
+    "dns_txt_name": "_idshka.example.test",
     "dns_txt_value": "idshka-site-verification=<token>",
-    "file_url": "https://apishka.ru/.well-known/idshka-site-verification.txt",
+    "file_url": "https://example.test/.well-known/idshka-site-verification.txt",
     "file_body": "<token>",
     "expires_at": "2026-04-22T22:30:00Z"
   }
@@ -122,6 +122,22 @@ Content-Type: application/json
 | `422` | невалидный payload, unknown `method` или unsupported `mode` |
 | `429` | сработал limiter `site-registry` |
 
+## Portal self-service UI
+
+Владельцы сайтов управляют теми же доменными flows через browser portal:
+
+- `GET /portal` — Blade/Tailwind кабинет владельца с сайтами, инструкциями верификации, API token metadata, web client metadata, redirect URI и audit events.
+- `POST /portal/sites` — создать сайт и показать DNS TXT / `/.well-known/` инструкции.
+- `POST /portal/sites/{site}/verify` — проверить `dns_txt` или `file` challenge.
+- `POST /portal/sites/{site}/modes/{mode}` — включить `api_resource` или `web_client` для verified owned site.
+- `POST /portal/api-tokens` — выпустить user API token; raw Bearer token показывается только в flash после создания.
+- `POST /portal/api-tokens/{apiToken}/revoke` — revoke token; требуется `confirm=revoke`.
+- `POST /portal/clients` — создать OIDC web client; raw `client_secret` показывается только в flash после создания.
+- `POST /portal/clients/{client}/redirect-uris` — добавить exact HTTPS redirect URI без wildcard.
+- `POST /portal/clients/{client}/revoke` — revoke web client; требуется `confirm=revoke`.
+
+Portal lists не показывают raw JWT или raw `client_secret`; в списках остаются только ids, `jti`, expiry, revoke state, client id и redirect URI. Durable audit events пишутся в `audit_events` и отображаются владельцу в audit table.
+
 ## Issuer API token flow
 
 ### Выпуск user API token для `api_resource`
@@ -151,11 +167,11 @@ POST https://idshka.ru/api/v1/user/api-tokens/{id}/revoke
 
 ### Gateway validation через JWKS
 
-Реализованный OpenResty reference в `infra/openresty/apishka/`:
+Реализованный OpenResty reference в `infra/openresty/demo-resource/`:
 - проверяет Bearer JWT по public JWKS через internal Docker URL `http://nginx/oauth/jwks.json`;
-- валидирует `alg=RS256`, `kid`, подпись, `iss`, `aud=apishka.ru`, `exp`, `nbf`, `sub`, `site_id`, `token_type=user_api`, `scope`, `permissions`, `jti`;
+- валидирует `alg=RS256`, `kid`, подпись, `iss`, `aud=example.test`, `exp`, `nbf`, `sub`, `site_id`, `token_type=user_api`, `scope`, `permissions`, `jti`;
 - удаляет входящие `X-Idshka-*` и `Authorization`;
-- выставляет trusted context в upstream `apishka-api`;
+- выставляет trusted context в upstream `demo-resource-api`;
 - возвращает deterministic JSON errors с `error`, `message`, `request_id`.
 
 JWKS опубликован в Laravel:
@@ -169,8 +185,8 @@ Endpoint работает через stateless `api` middleware, не долже
 Gateway smoke:
 
 ```bash
-docker compose up -d --build
-bash infra/openresty/apishka/smoke.sh
+docker compose --profile examples up -d --build demo-resource-gateway
+bash infra/openresty/demo-resource/smoke.sh
 ```
 
 Smoke покрывает valid token, missing token, invalid signature, wrong audience, expired/not-before token и header sanitization.
@@ -208,7 +224,7 @@ GET  https://idshka.ru/oauth/jwks.json
 Authorize request:
 
 ```http
-GET https://idshka.ru/oauth/authorize?response_type=code&client_id=client_...&redirect_uri=https%3A%2F%2Fapishka.ru%2Fauth%2Fidshka%2Fcallback&scope=openid+profile+email&state=<state>&nonce=<nonce>&code_challenge=<s256>&code_challenge_method=S256
+GET https://idshka.ru/oauth/authorize?response_type=code&client_id=client_...&redirect_uri=https%3A%2F%2Fexample.test%2Fauth%2Fidshka%2Fcallback&scope=openid+profile+email&state=<state>&nonce=<nonce>&code_challenge=<s256>&code_challenge_method=S256
 Cookie: laravel_session=<idshka-session>
 ```
 
@@ -233,7 +249,7 @@ Content-Type: application/json
   "client_id": "client_...",
   "client_secret": "<secret>",
   "code": "<authorization-code>",
-  "redirect_uri": "https://apishka.ru/auth/idshka/callback",
+  "redirect_uri": "https://example.test/auth/idshka/callback",
   "code_verifier": "<pkce-verifier>"
 }
 ```

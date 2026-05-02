@@ -26,6 +26,7 @@
         "aif-review",
         "aif-roadmap",
         "aif-rules",
+        "aif-rules-check",
         "aif-security-checklist",
         "aif-skill-generator",
         "aif-verify"
@@ -114,6 +115,10 @@
         "aif-rules": {
           "sourceHash": "fd5ba45156b4b9aca5410dc83c63af1bacffd81d67a19da7ce08703f28a4c59e",
           "installedHash": "f95f2274cea247034b56a7a7d6200b77a745bed13f73048bc6525fbe6eaec158"
+        },
+        "aif-rules-check": {
+          "sourceHash": "b793810b56d956d54439beafa3aed72b1704631545dc2432f527f11a61b6748c",
+          "installedHash": "92daffd7b5f803200b6dd33b20932e9834ad9f37868f73360fd743b767639a03"
         },
         "aif-security-checklist": {
           "sourceHash": "c716a3b600c8441782d2a4c4efdac310ee6b525ad8eb777f9cd82fda4fa5f16c",
@@ -248,6 +253,7 @@
         "aif-review",
         "aif-roadmap",
         "aif-rules",
+        "aif-rules-check",
         "aif-security-checklist",
         "aif-skill-generator",
         "aif-verify"
@@ -337,6 +343,10 @@
           "sourceHash": "fd5ba45156b4b9aca5410dc83c63af1bacffd81d67a19da7ce08703f28a4c59e",
           "installedHash": "b068ce38f96c29a4d0a3306bd4c531b3cea4a69ca9c6c463f3ca48df7cdcefef"
         },
+        "aif-rules-check": {
+          "sourceHash": "b793810b56d956d54439beafa3aed72b1704631545dc2432f527f11a61b6748c",
+          "installedHash": "3e088b9f189e9ed559c9306cf8e2b0cfd10969659c848cccfa33347d2dac045d"
+        },
         "aif-security-checklist": {
           "sourceHash": "c716a3b600c8441782d2a4c4efdac310ee6b525ad8eb777f9cd82fda4fa5f16c",
           "installedHash": "c4e39380d72e399fd26970aaf818ac713c02f13e963e34fc4db4d178cecb498a"
@@ -355,8 +365,8 @@
       "managedAgentFiles": {},
       "mcp": {
         "github": true,
-        "filesystem": true,
-        "postgres": false,
+        "filesystem": false,
+        "postgres": true,
         "chromeDevtools": true,
         "playwright": true
       }
@@ -365,7 +375,7 @@
   "extensions": [
     {
       "name": "aifhub-extension",
-      "source": "https://github.com/ichinya/aifhub-extension.git",
+      "source": "https://github.com/ichinya/aifhub-extension",
       "version": "1.0.8"
     }
   ]

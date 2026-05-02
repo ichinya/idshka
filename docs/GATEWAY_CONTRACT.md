@@ -2,17 +2,17 @@
 
 # GATEWAY_CONTRACT
 
-> Статус: gateway contract + implemented reference runtime. В репозитории есть OpenResty gateway, который проверяет user API JWT по Laravel JWKS, затирает входящие `X-Idshka-*` и прокидывает trusted context в минимальный `apishka-api` upstream.
+> Статус: gateway contract + implemented reference runtime. В репозитории есть OpenResty gateway, который проверяет user API JWT по Laravel JWKS, затирает входящие `X-Idshka-*` и прокидывает trusted context в минимальный `demo-resource-api` upstream.
 
 ## Назначение
-Документ фиксирует контракт между gateway `api.apishka.ru` и upstream API.
+Документ фиксирует контракт между gateway `api.example.test` и upstream API.
 
 ## Текущий статус в репозитории
 
-- Есть OpenResty gateway reference в `infra/openresty/apishka/`.
+- Есть OpenResty gateway reference в `infra/openresty/demo-resource/`.
 - `routes/oauth.php` публикует public `GET /oauth/jwks.json`.
-- `examples/apishka-api/nginx.conf` предоставляет минимальный upstream для smoke-проверки trusted headers.
-- Gateway validation покрыт `infra/openresty/apishka/smoke.sh`.
+- `examples/demo-resource-api/nginx.conf` предоставляет минимальный upstream для smoke-проверки trusted headers.
+- Gateway validation покрыт `infra/openresty/demo-resource/smoke.sh`.
 - Edge revoke cache, online introspection и signed context hardening остаются будущими phases.
 
 ## Вход от клиента
@@ -29,7 +29,7 @@ Authorization: Bearer <idshka_jwt>
 2. JWT header содержит допустимый `alg` и известный `kid`.
 3. Подпись валидна по JWKS; в Docker gateway читает `http://nginx/oauth/jwks.json`, публичный URL остается `https://idshka.ru/oauth/jwks.json`.
 4. `iss` = configured issuer; в локальном Docker default `http://localhost:8080`.
-5. `aud` соответствует подключённому API resource; для reference smoke это `apishka.ru`.
+5. `aud` соответствует подключённому API resource; для reference smoke это `example.test`.
 6. `exp` не истёк, `nbf` наступил.
 7. Будущий edge revoke cache / online introspection дополнительно проверит denylist по `jti`; текущий reference gateway только требует наличие `jti` claim и прокидывает его upstream.
 8. Token type подходит: `token_type=user_api`.
@@ -71,7 +71,7 @@ Signature input:
 v1.<timestamp>.<context_base64url>
 ```
 
-HMAC key хранится на `apishka.ru` gateway и upstream стороне, не на клиенте.
+HMAC key хранится на `example.test` gateway и upstream стороне, не на клиенте.
 
 ## Ошибки
 - `401 missing_token`
@@ -98,8 +98,8 @@ Raw JWT не прокидывается upstream: gateway очищает `Author
 ## Local smoke
 
 ```bash
-docker compose up -d --build
-bash infra/openresty/apishka/smoke.sh
+docker compose --profile examples up -d --build demo-resource-gateway
+bash infra/openresty/demo-resource/smoke.sh
 ```
 
 Smoke подготавливает миграции, выпускает local-only JWT через `php artisan idshka:gateway-smoke-token`, проверяет valid token, missing token, invalid signature, wrong `aud`, expired/not-before token и замену spoofed `X-Idshka-*`.

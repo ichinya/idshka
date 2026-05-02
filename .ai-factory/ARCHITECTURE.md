@@ -68,7 +68,7 @@ tests/
 - Не делать циклические доменные зависимости: если двум доменам нужен общий язык, использовать contract, DTO, event или явный service boundary.
 - Не использовать Laravel Socialite как token issuer или JWKS/authorization server. Socialite отвечает только за login/linking через внешних провайдеров.
 - Не добавлять отдельный Node/Fastify/Next backend для core auth/control-plane без отдельного архитектурного решения.
-- Не смешивать внешний consumer `apishka.ru` с core-продуктом `idshka.ru`; consumer-код живет в `examples/`, `infra/` или docs.
+- Не смешивать внешний consumer `example.test` с core-продуктом `idshka.ru`; consumer-код живет в `examples/`, `infra/` или docs.
 
 ## Взаимодействие модулей и слоев
 - **HTTP entrypoint:** route -> middleware/policy -> FormRequest -> controller -> доменный Action/Service -> response.

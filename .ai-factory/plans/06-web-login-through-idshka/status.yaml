@@ -34,7 +34,7 @@ outputs:
   - signed id_token issue
   - short-lived web access token issue
   - GET /oauth/userinfo
-  - example apishka-web-laravel callback/custom Socialite provider docs
+  - example laravel-web-client callback/custom Socialite provider docs
   - feature/unit tests and docs sync
 acceptance:
   - "GET /oauth/authorize validates client_id, exact redirect_uri, response_type=code, scope, state, nonce, code_challenge and code_challenge_method=S256"
@@ -45,7 +45,7 @@ acceptance:
   - "id_token contains iss, aud/client_id, sub, site_id, nonce, iat, nbf, exp, jti, kid and typ=JWT"
   - "GET /oauth/userinfo returns claims only for a valid web access token and requested scopes"
   - "Raw authorization code, client_secret, id_token, access_token and private keys are never logged"
-  - "example apishka-web-laravel creates a local session using only public HTTP/OAuth endpoints"
+  - "example laravel-web-client creates a local session using only public HTTP/OAuth endpoints"
 tasks:
   - id: T1
     status: completed
@@ -90,7 +90,7 @@ tasks:
       - T7
   - id: T9
     status: completed
-    title: "Minimal apishka-web-laravel example"
+    title: "Minimal laravel-web-client example"
     depends_on:
       - T8
   - id: T10
@@ -115,7 +115,7 @@ history:
     note: "Completed OAuth/OIDC config and token-type contracts, OIDC client/redirect URI persistence, PKCE service, and client resolver with exact redirect URI and web_client mode checks."
   - date: "2026-04-26"
     event: implemented_t4_t9
-    note: "Completed authorize/token/userinfo endpoints, one-time authorization code exchange with S256 PKCE, signed id_token and web access token issuance, and apishka-web Laravel HTTP-only example docs."
+    note: "Completed authorize/token/userinfo endpoints, one-time authorization code exchange with S256 PKCE, signed id_token and web access token issuance, and laravel-web-client Laravel HTTP-only example docs."
   - date: "2026-04-26"
     event: verification_passed
     note: "Completed plan 06 verification: composer validate, OAuth route list, targeted OAuth/PKCE/resolver/JWT tests, full php artisan test, Pint, npm build, docker compose config and git diff --check."

@@ -11,7 +11,7 @@ class JwtClaimsTest extends TestCase
     {
         $claims = new JwtClaims(
             issuer: 'https://idshka.ru',
-            audience: 'apishka.ru',
+            audience: 'example.test',
             subject: '42',
             siteId: 'site_01kq000000000000000000000000000001',
             tokenType: JwtClaims::TOKEN_TYPE_USER_API,
@@ -25,7 +25,7 @@ class JwtClaimsTest extends TestCase
 
         $this->assertSame([
             'iss' => 'https://idshka.ru',
-            'aud' => 'apishka.ru',
+            'aud' => 'example.test',
             'sub' => '42',
             'site_id' => 'site_01kq000000000000000000000000000001',
             'token_type' => 'user_api',

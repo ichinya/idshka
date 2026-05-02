@@ -6,13 +6,14 @@ use App\Domain\Identity\Events\PasswordLoginSucceeded;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 final class LoginController extends Controller
 {
-    public function __invoke(LoginRequest $request): JsonResponse
+    public function __invoke(LoginRequest $request): JsonResponse|RedirectResponse
     {
         $email = mb_strtolower((string) $request->string('email'));
         $emailHash = hash('sha256', $email);
@@ -30,6 +31,12 @@ final class LoginController extends Controller
             Log::warning('[auth.login] credentials rejected', [
                 'email_hash' => $emailHash,
             ]);
+
+            if (! $request->expectsJson()) {
+                return back()
+                    ->withErrors(['email' => 'Provided credentials are invalid.'])
+                    ->onlyInput('email');
+            }
 
             return $this->errorResponse($request, 422, 'invalid_credentials', 'Provided credentials are invalid.');
         }
@@ -52,6 +59,10 @@ final class LoginController extends Controller
             'user_id' => $user->getAuthIdentifier(),
             'email_hash' => $emailHash,
         ]);
+
+        if (! $request->expectsJson()) {
+            return redirect()->intended(route('portal.dashboard'));
+        }
 
         return response()->json([
             'user_id' => $user->getAuthIdentifier(),

@@ -114,7 +114,7 @@ Migrated from:
   - Зависит от: `T3`, `T4`, `T5`, `T6`, `T7`, `T8`.
 
 ## Acceptance criteria
-- [x] можно создать site `apishka.ru` и получить verification instructions (dns/file)
+- [x] можно создать site `example.test` и получить verification instructions (dns/file)
 - [x] DNS/file verification меняет status на `verified`
 - [x] можно включить `api_resource` и `web_client` только после верификации
 - [x] неверифицированный домен не получает production credentials

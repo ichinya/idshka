@@ -16,7 +16,7 @@ source_plan: "06-web-login-through-idshka"
 
 ## Summary
 
-Implemented the web-client login slice for connected sites: `apishka.ru` can redirect users to `idshka.ru`, receive an Authorization Code after first-party login, exchange it through Authorization Code + S256 PKCE, validate a signed `id_token`, call `userinfo` with a short-lived web access token, and create a local web session using only public HTTP/OAuth endpoints.
+Implemented the web-client login slice for connected sites: `example.test` can redirect users to `idshka.ru`, receive an Authorization Code after first-party login, exchange it through Authorization Code + S256 PKCE, validate a signed `id_token`, call `userinfo` with a short-lived web access token, and create a local web session using only public HTTP/OAuth endpoints.
 
 ## Status
 
@@ -39,7 +39,7 @@ Implemented the web-client login slice for connected sites: `apishka.ru` can red
 - [x] `POST /oauth/token` for `authorization_code` only, including client secret, redirect URI, code lifetime/consumption, and S256 PKCE checks.
 - [x] Signed `id_token` plus short-lived web access token issuance with distinct token type and `typ=JWT`.
 - [x] `GET /oauth/userinfo` with Bearer web access token validation and scope-limited claims.
-- [x] HTTP-only `examples/apishka-web-laravel` documentation for redirect, callback, token exchange, ID token validation, userinfo, and local session creation.
+- [x] HTTP-only `examples/laravel-web-client` documentation for redirect, callback, token exchange, ID token validation, userinfo, and local session creation.
 - [x] Feature/unit coverage for happy path, fail-closed cases, one-time code handling, scope behavior, and raw-secret log safety.
 
 ### Key Changes
@@ -62,7 +62,7 @@ Implemented the web-client login slice for connected sites: `apishka.ru` can red
 | `tests/Unit/Issuer/PkceServiceTest.php` | created | Covers S256 PKCE and plain-method rejection. |
 | `tests/Unit/OidcClients/OidcClientResolverTest.php` | created | Covers exact redirect URI, mode, verified site, revoked client, and secret checks. |
 | `docs/API_FLOWS.md`, `docs/LARAVEL_MODULES.md`, `docs/SOCIALITE.md`, `docs/README.md` | modified | Synced docs with implemented web-client OAuth/OIDC behavior. |
-| `examples/apishka-web-laravel/README.md` | modified | Added HTTP-only Laravel client example guidance. |
+| `examples/laravel-web-client/README.md` | modified | Added HTTP-only Laravel client example guidance. |
 
 ### Dependencies Added
 

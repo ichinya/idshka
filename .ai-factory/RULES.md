@@ -4,7 +4,7 @@
 1. **Laravel-first.** Основной продукт `idshka.ru` — Laravel-приложение. Не добавлять отдельный Node/Fastify/Next backend без явного решения.
 2. **Socialite — для внешнего входа.** Laravel Socialite используется для входа пользователей на `idshka.ru` через Google/VK/Yandex и другие провайдеры. Socialite не считается issuer/token server.
 3. **Issuer — отдельный Laravel domain.** JWT, JWKS, authorization code, token endpoint, revoke и introspection реализуются отдельными сервисами и контроллерами Laravel.
-4. **Подключённый сайт — внешний consumer.** `apishka.ru` не является частью `idshka.ru`, в репозитории допустимы только examples/adapters.
+4. **Подключённый сайт — внешний consumer.** `example.test` не является частью `idshka.ru`, в репозитории допустимы только examples/adapters.
 5. **Site mode явный:** `api_resource`, `web_client` или оба.
 6. **API-only запросы проходят через edge.** Upstream не доверяет публичному JWT напрямую.
 7. **Web login использует Authorization Code + PKCE:** strict redirect URI, state, nonce.

@@ -44,7 +44,7 @@ source_plan: "01-laravel-platform-foundation"
 | `composer.json`, `bootstrap/app.php` | created | Сгенерирован Laravel 13 skeleton и зарегистрирован routing `web/api/oauth` с глобальным middleware `AssignRequestId`. |
 | `routes/web.php`, `routes/api.php`, `routes/oauth.php` | created | Добавлена foundation route surface и operational endpoints. |
 | `app/Http/Controllers/Api/*`, `app/Http/Middleware/AssignRequestId.php` | created | Реализованы health/readiness checks и structured request lifecycle logging. |
-| `compose.yml`, `infra/docker/*`, `infra/openresty/apishka/*` | created | Добавлена локальная инфраструктура для Laravel runtime и gateway reference. |
+| `compose.yml`, `infra/docker/*`, `infra/openresty/demo-resource/*` | created | Добавлена локальная инфраструктура для Laravel runtime и gateway reference. |
 | `tests/Feature/FoundationSmokeTest.php`, `.github/workflows/ci.yml`, `README.md` | created | Добавлены smoke tests, CI baseline и developer onboarding. |
 
 ### Dependencies Added
