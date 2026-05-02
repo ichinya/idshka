@@ -1,12 +1,12 @@
 ---
 name: aif-rules-check
-description: Compatibility fallback for the upstream read-only rules compliance gate. Use when ai-factory 2.10.0 installs do not yet include bundled aif-rules-check.
+description: Run a standalone read-only rules compliance gate against changed files or a git ref. Use when you need a dedicated project-rules check without a full review or verify pass.
 argument-hint: "[git ref | empty]"
 allowed-tools: Read Glob Grep Bash(git *) AskUserQuestion
 disable-model-invocation: false
 metadata:
-  author: AIFHub Extension
-  version: "1.3"
+  author: AI Factory
+  version: "1.0"
   category: quality
 ---
 
@@ -67,11 +67,9 @@ The final response must still follow the upstream rules-check output contract an
 When OpenSpec-native mode is not active, do not add OpenSpec generated-rule requirements. Follow the upstream `/aif-rules-check` behavior for `.ai-factory/RULES.md`, `rules.base`, named `rules.<area>`, optional plan context, changed files, and the final `aif-gate-result` block.
 <!-- aif-ext:aifhub-extension:aif-rules-check:prepend:end -->
 
-# Rules Compliance Gate Compatibility Fallback
+# Rules Compliance Gate
 
-Run a standalone read-only rules gate for project rules. This fallback exists only while `aifhub-extension.json -> compat.ai-factory` includes `2.10.0` installs that may predate upstream AI Factory PR #90. When the compatibility minimum moves to an upstream semver release that bundles `$aif-rules-check`, remove this fallback and keep only the AIFHub injection.
-
-This command checks rule compliance only; it does not replace `$aif-review` or `$aif-verify`.
+Run a standalone read-only rules gate for project rules. This command checks rule compliance only; it does not replace `$aif-review` or `$aif-verify`.
 
 ## Step 0: Load Contract
 
@@ -81,8 +79,7 @@ This command checks rule compliance only; it does not replace `$aif-review` or `
 
 ## Step 1: Load Config
 
-Read `.ai-factory/config.yaml` if it exists to resolve:
-
+**FIRST:** Read `.ai-factory/config.yaml` if it exists to resolve:
 - `paths.rules_file`
 - `paths.rules`
 - `paths.plan`
@@ -94,7 +91,6 @@ Read `.ai-factory/config.yaml` if it exists to resolve:
 - named `rules.<area>` entries
 
 If config is missing or partial, use defaults:
-
 - `paths.rules_file`: `.ai-factory/RULES.md`
 - `paths.rules`: `.ai-factory/rules/`
 - `paths.plan`: `.ai-factory/PLAN.md`
@@ -103,81 +99,128 @@ If config is missing or partial, use defaults:
 - `git.base_branch`: detect the repo default branch from git metadata; fall back to `main` only when detection is unavailable
 - `rules.base`: `.ai-factory/rules/base.md`
 
-If `paths.rules_file` is missing from config, default to `.ai-factory/RULES.md`. If `git.base_branch` is missing, resolve the repository default branch from git metadata when possible and use `main` only as the final fallback.
+If `paths.rules_file` is missing from config, default to `.ai-factory/RULES.md` instead of treating config as incomplete.
+If `git.base_branch` is missing from config, resolve the repository default branch from git metadata when possible; use `main` only as the final fallback.
 
-## OpenSpec-native mode
+### Step 1.1: Load Skill Context
 
-When `.ai-factory/config.yaml` contains `aifhub.artifactProtocol: openspec` or the explicit scope is under `openspec/changes/<change-id>/`, use OpenSpec-native mode.
+**Read `.ai-factory/skill-context/aif-rules-check/SKILL.md`** - MANDATORY if the file exists.
 
-Read canonical OpenSpec artifacts only as context:
+This file contains project-specific rules accumulated by `$aif-evolve` from patches,
+codebase conventions, and tech-stack analysis. These rules are tailored to the current project.
 
-- `openspec/specs/**`
-- `openspec/changes/<change-id>/proposal.md`
-- `openspec/changes/<change-id>/design.md`
-- `openspec/changes/<change-id>/tasks.md`
-- `openspec/changes/<change-id>/specs/**/spec.md`
+**How to apply skill-context rules:**
+- Treat them as project-level overrides for this skill's general instructions.
+- When a skill-context rule conflicts with a general rule in this file, the skill-context rule wins.
+- When there is no conflict, apply both.
+- Skill-context rules apply to all outputs of this skill, including verdict wording and report structure.
 
-Load rules in this priority order:
+**Enforcement:** Before presenting the final report, verify it against all skill-context rules and fix any drift.
 
-1. `.ai-factory/rules/generated/openspec-merged-<change-id>.md`
-2. `.ai-factory/rules/generated/openspec-change-<change-id>.md`
-3. `.ai-factory/rules/generated/openspec-base.md`
-4. The resolved `paths.rules_file`, default `.ai-factory/RULES.md`
-5. The resolved `rules.base`, default `.ai-factory/rules/base.md`
-6. Relevant named `rules.<area>` files from config, only when they clearly match the checked scope
+## Step 2: Resolve Inputs
 
-OpenSpec-native mode does not require plan-local `rules.md`. Ignore plan-local `rules.md` unless the run is explicitly in Legacy AI Factory-only mode.
+Resolve two inputs before checking any rule:
 
-If generated rules are missing or stale, return `WARN`, report which generated rules are present, missing, or stale, and ask the caller to regenerate rules through the compiler-owning workflow such as `$aif-mode sync`. This gate must not regenerate or edit generated rules.
+1. **Changed scope** - the diff and file list you are evaluating
+2. **Resolved rule sources** - the rule artifacts that may apply to that scope
 
-Do not write runtime state, QA evidence, generated rules, rule artifacts, source files, or canonical OpenSpec artifacts. Runtime state `.ai-factory/state/<change-id>/` and QA evidence `.ai-factory/qa/<change-id>/` are external context only.
+### Step 2.1: Resolve Changed Scope
 
-## Legacy AI Factory-only mode
+**If the user provided a git ref:**
 
-When OpenSpec-native mode is not active, load rule sources in this order:
+1. Validate it first:
+   ```bash
+   git rev-parse --verify <argument>
+   ```
+2. If valid, use:
+   ```bash
+   git diff --name-only <argument>...HEAD
+   git diff <argument>...HEAD
+   ```
+3. If invalid, ask:
+
+   ```
+   AskUserQuestion: `<argument>` is not a valid git ref. What should I check instead?
+
+   Options:
+   1. Check staged / working-tree changes
+   2. Cancel
+   ```
+
+**Without arguments:**
+
+1. Prefer staged work:
+   ```bash
+   git diff --cached --name-only
+   git diff --cached
+   ```
+2. If nothing is staged, fall back to working tree:
+   ```bash
+   git diff --name-only
+   git diff
+   ```
+3. If there is still no local diff and `git.enabled = true`, fall back to branch diff:
+   ```bash
+   git diff --name-only <resolved-base-branch>...HEAD
+   git diff <resolved-base-branch>...HEAD
+   ```
+
+If there are still no changed files, return `WARN` rather than a hard failure.
+
+### Step 2.2: Resolve Rule Sources
+
+Load rule sources in this order:
 
 1. The resolved `paths.rules_file` artifact
 2. The resolved `rules.base` file
 3. Any named `rules.<area>` files from config that clearly match the changed scope
 
-Area rules are optional and scoped. Use changed file paths, folder names, and optional plan context to judge relevance. If relevance is ambiguous, mention the rule source as uncertain and keep the outcome at `WARN`, not `FAIL`.
+Area rules are optional and scoped:
+- Use changed file paths, folder names, and optional plan context to judge relevance.
+- If relevance is ambiguous, mention the rule source as uncertain and keep the outcome at `WARN`, not `FAIL`.
 
-Optional plan context may be used only when it helps interpret scope or area relevance. Absence of a plan is never a failure.
+If no rules sources resolve, return `WARN` rather than a hard failure.
 
-## Changed Scope
+### Step 2.3: Optional Plan Context
 
-If the user provided a git ref:
+Optional plan context: use the active plan file only when it helps interpret scope or area relevance; absence of a plan is never a failure.
 
-1. Validate it with `git rev-parse --verify <argument>`.
-2. If valid, inspect `git diff --name-only <argument>...HEAD` and `git diff <argument>...HEAD`.
-3. If invalid, ask whether to check staged or working-tree changes instead.
+Plan resolution order:
+1. Branch-based `paths.plans/<current-branch>.md`
+2. A single named full plan in `paths.plans`
+3. The fast plan at `paths.plan`
 
-Without arguments:
+Do not fail the rules check because a plan file is missing or ambiguous.
 
-1. Prefer staged work with `git diff --cached --name-only` and `git diff --cached`.
-2. If nothing is staged, fall back to `git diff --name-only` and `git diff`.
-3. If there is still no local diff and `git.enabled = true`, fall back to `<resolved-base-branch>...HEAD`.
+## Step 3: Evaluate Rules
 
-If there are still no changed files, return `WARN` rather than a hard failure.
+Read the changed files from the resolved scope and compare them against the resolved rules.
 
-## Evaluate Rules
+Classification rules:
+- `PASS` when at least one applicable rule was checked and no clear violations were found.
+- `WARN` when no applicable rules were resolved, the evidence is ambiguous, or there are no changed files to evaluate.
+- `FAIL` when an explicit hard rule is clearly violated by the inspected diff or changed files.
 
-- `PASS`: at least one applicable rule was checked and no clear violations were found.
-- `WARN`: no applicable rules were resolved, evidence is ambiguous, generated rules are missing or stale, or there are no changed files to evaluate.
-- `FAIL`: an explicit hard rule is clearly violated by the inspected diff or changed files.
+Only return `FAIL` when an explicit hard rule is clearly violated by the inspected diff or changed files.
 
-Tie every blocking violation to specific rule text and at least one concrete file/path or diff hunk. If a rule is vague or cannot be verified confidently from the diff, do not escalate it past `WARN`.
+Evidence rules:
+- Tie every blocking violation to specific rule text and at least one concrete file/path or diff hunk.
+- If a rule sounds like a preference, is too vague, or cannot be verified confidently from the diff, do not escalate it past `WARN`.
+- Missing optional files or partially configured rules hierarchy are `WARN`, not `FAIL`.
 
-## Read-Only Boundary
+## Step 4: Read-Only Boundary
 
-Never edit rule artifacts, generated rules, plan files, source files, runtime state, or QA evidence. If rules are missing, stale, or need refinement, suggest `$aif-rules`; if OpenSpec generated rules are missing or stale, suggest `$aif-mode sync`.
+This command is read-only: do not edit `RULES.md`, `rules/base.md`, `rules.<area>`, plan files, or source code.
 
-## Output
+If rules are missing, stale, or need refinement:
+- Suggest `$aif-rules <rule text>` for axioms
+- Suggest `$aif-rules area:<name>` for area-specific rules
+
+## Step 5: Output
 
 Use the exact verdict semantics and section order from `references/RULES-CHECK-CONTRACT.md`.
 
 Required content:
-
 - overall verdict
 - files checked
 - gate results
@@ -186,16 +229,20 @@ Required content:
 - suggested rule updates
 - final machine-readable `aif-gate-result` fenced JSON block
 
-Machine-readable gate result:
+When useful, suggest the next best workflow:
+- `$aif-review` for broader code review
+- `$aif-verify` for full plan-completeness verification
+- `$aif-rules` when the underlying rules need to be captured or corrected
 
+Machine-readable gate result:
 - Append one final fenced `aif-gate-result` JSON block after the human-readable rules report.
 - Use `"gate": "rules"`.
-- Use lowercase JSON `status`: `pass`, `warn`, or `fail`.
 - Map the human rules verdict exactly: `PASS` -> `pass`, `WARN` -> `warn`, and `FAIL` -> `fail`.
 - Use `"blocking": true|false`; set it to `true` only for explicit hard-rule violations that produce a human `FAIL`.
-- Include only hard-rule violations in `"blockers": []`.
-- Include changed or inspected paths in `"affected_files": []`.
-- Set `"suggested_next"` to `$aif-rules` when rules should be added or clarified, `$aif-fix` when code must change, or `null` when no allowed next command fits.
+- Include only hard-rule violations in `"blockers": [`.
+- Include changed or inspected paths in `"affected_files": [`.
+- Set `"suggested_next": {` to `$aif-rules` when rules should be added or clarified, `$aif-fix` when code must change, or `null` when no allowed next command fits.
+- Do not use `$aif-review` in the JSON `suggested_next.command`; it may appear only in human-readable workflow suggestions.
 
 ```aif-gate-result
 {
@@ -211,3 +258,5 @@ Machine-readable gate result:
   }
 }
 ```
+
+Schema reminder: `"status": "pass|warn|fail"`, `"blocking": true|false`, `"blockers": [`, `"affected_files": [`, `"suggested_next": {`.

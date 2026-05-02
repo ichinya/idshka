@@ -8,6 +8,7 @@ use App\Domain\Issuer\Exceptions\SigningKeyStateException;
 use App\Domain\Sites\Exceptions\UnverifiedSiteException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\IssueUserApiTokenRequest;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -26,12 +27,18 @@ final class IssueUserApiTokenController extends Controller
         $siteId = (string) $request->string('site_id');
         $scopes = $this->normalizeValues($request->input('scopes', []));
         $permissions = $this->normalizeValues($request->input('permissions', []));
+        $doesNotExpire = $request->boolean('does_not_expire');
+        $expiresAt = $doesNotExpire || ! $request->filled('expires_at')
+            ? null
+            : CarbonImmutable::parse((string) $request->input('expires_at'))->setTimezone('UTC');
 
         Log::info('[api.issuer.issue_user_api_token] started', [
             'user_id' => $user->getAuthIdentifier(),
             'site_id' => $siteId,
             'scopes_count' => count($scopes),
             'permissions_count' => count($permissions),
+            'custom_expires_at' => $expiresAt?->toISOString(),
+            'does_not_expire' => $doesNotExpire,
         ]);
 
         try {
@@ -40,6 +47,8 @@ final class IssueUserApiTokenController extends Controller
                 siteId: $siteId,
                 requestedScopes: $scopes,
                 requestedPermissions: $permissions,
+                expiresAt: $expiresAt,
+                doesNotExpire: $doesNotExpire,
             );
         } catch (ApiResourceEligibilityException $exception) {
             return $this->errorResponse(
@@ -89,7 +98,7 @@ final class IssueUserApiTokenController extends Controller
             'permissions' => $issuedToken->permissions,
             'jti' => $issuedToken->jti,
             'kid' => $issuedToken->kid,
-            'expires_at' => $issuedToken->expiresAt->toISOString(),
+            'expires_at' => $issuedToken->expiresAt?->toISOString(),
         ], 201);
     }
 

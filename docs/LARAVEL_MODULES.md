@@ -137,4 +137,4 @@ Plan `06-web-login-through-idshka` adds the public web-client login surface:
 - Issuer services: `AuthorizationCodeService`, `PkceService`, `WebAccessTokenValidator`
 - Tokens: signed `id_token` and short-lived `web_access` token with no refresh-token MVP
 
-The web-client example lives in `examples/apishka-web-laravel` and uses only public HTTP endpoints.
+The web-client example lives in `examples/laravel-web-client` and uses only public HTTP endpoints.

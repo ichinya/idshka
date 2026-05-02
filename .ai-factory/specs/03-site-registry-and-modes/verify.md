@@ -1,6 +1,6 @@
 # Verify
 
-- [x] Creating `apishka.ru` returns `201` with DNS + file verification instructions.
+- [x] Creating `example.test` returns `201` with DNS + file verification instructions.
 - [x] Re-registering a verified domain by another owner is rejected (fail closed).
 - [x] `POST /api/v1/sites/{site}/verify` with `dns_txt` sets status to `verified` when record matches.
 - [x] `POST /api/v1/sites/{site}/verify` with `file` sets status to `verified` when file body matches.

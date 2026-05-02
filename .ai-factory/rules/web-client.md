@@ -5,4 +5,4 @@
 - `nonce` обязателен для id_token.
 - Authorization code должен быть одноразовым.
 - `client_secret` показывать владельцу один раз и хранить хэш/зашифрованную версию по выбранной модели.
-- Laravel `apishka-web` example может использовать custom Socialite provider для `idshka.ru`.
+- Laravel `laravel-web-client` example может использовать custom Socialite provider для `idshka.ru`.

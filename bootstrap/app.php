@@ -42,7 +42,12 @@ return Application::configure(basePath: dirname(__DIR__))
             Log::warning('[oauth.authorize.authentication] required', [
                 'request_id' => $request->attributes->get('request_id'),
                 'path' => $request->path(),
+                'expects_json' => $request->expectsJson(),
             ]);
+
+            if (! $request->expectsJson()) {
+                return redirect()->guest(route('login'));
+            }
 
             return response()->json([
                 'error' => 'authentication_required',

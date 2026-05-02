@@ -25,6 +25,8 @@ final class IssueUserApiTokenRequest extends FormRequest
             'scopes.*' => ['string', 'max:100'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'max:100'],
+            'expires_at' => ['exclude_if:does_not_expire,true', 'nullable', 'date', 'after:now'],
+            'does_not_expire' => ['sometimes', 'boolean'],
         ];
     }
 

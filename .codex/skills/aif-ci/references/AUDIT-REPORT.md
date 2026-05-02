@@ -20,7 +20,7 @@
 | Caching | ⚠️ | Missing composer cache |
 | Concurrency | ❌ | No concurrency group |
 | Permissions | ❌ | No explicit permissions |
-| Matrix builds | ✅ | PHP 8.5 |
+| Matrix builds | ⚠️ | Only PHP 8.3, missing 8.2 |
 
 ### Recommendations
 1. CRITICAL: Add PHPStan job — phpstan.neon exists
@@ -28,7 +28,7 @@
 3. HIGH: Add concurrency group to cancel redundant runs
 4. HIGH: Add composer cache for faster installs
 5. MEDIUM: Add security audit job (composer audit)
-6. LOW: Verify PHP 8.5-only matrix matches `composer.json`
+6. LOW: Add PHP 8.2 to test matrix
 ```
 
 ## Fix Options
@@ -61,13 +61,13 @@ GitHub Actions
 | File | Purpose |
 |------|---------|
 | .github/workflows/lint.yml | code-style, static-analysis, rector |
-| .github/workflows/tests.yml | phpunit (PHP 8.5) |
+| .github/workflows/tests.yml | phpunit (PHP 8.2, 8.3, 8.4) |
 | .github/workflows/security.yml | composer audit |
 
 ### Features
 - Composer caching via shivammathur/setup-php
 - Concurrency groups (cancel redundant runs)
-- Matrix builds for PHP 8.5
+- Matrix builds for PHP 8.2, 8.3, 8.4
 - Coverage upload as artifact
 
 ### Quick Start

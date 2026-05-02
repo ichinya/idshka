@@ -4,10 +4,10 @@
 
 # Task
 
-- Blade/Tailwind pages
-- my sites UI
-- verification instructions UI
-- api token create/list/revoke UI
-- web client credentials UI
-- redirect URI management UI
-- audit log UI
+- [x] Blade/Tailwind pages
+- [x] my sites UI
+- [x] verification instructions UI
+- [x] api token create/list/revoke UI
+- [x] web client credentials UI
+- [x] redirect URI management UI
+- [x] audit log UI

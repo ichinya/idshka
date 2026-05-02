@@ -10,6 +10,7 @@ use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteMode;
 use App\Domain\Sites\Services\SiteIdFactory;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Lcobucci\JWT\Encoding\JoseEncoder;
 use Lcobucci\JWT\Token\Parser;
@@ -37,7 +38,7 @@ class IssuerApiFlowTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('site_id', $site->id)
-            ->assertJsonPath('aud', 'apishka.ru')
+            ->assertJsonPath('aud', 'example.test')
             ->assertJsonPath('scope.0', 'orders.read')
             ->assertJsonPath('permissions.0', 'orders.read');
 
@@ -53,12 +54,12 @@ class IssuerApiFlowTest extends TestCase
 
         $audClaim = $token->claims()->get('aud');
         $audiences = is_array($audClaim) ? $audClaim : [$audClaim];
-        $this->assertContains('apishka.ru', $audiences);
+        $this->assertContains('example.test', $audiences);
 
         $this->assertDatabaseHas('api_tokens', [
             'user_id' => $owner->id,
             'site_id' => $site->id,
-            'audience' => 'apishka.ru',
+            'audience' => 'example.test',
             'jti' => $response->json('jti'),
             'token_hash' => hash('sha256', $rawToken),
         ]);
@@ -66,6 +67,64 @@ class IssuerApiFlowTest extends TestCase
         /** @var ApiToken $apiToken */
         $apiToken = ApiToken::query()->where('jti', (string) $response->json('jti'))->firstOrFail();
         $this->assertSame($apiToken->id, $response->json('token_id'));
+    }
+
+    public function test_owner_can_issue_user_api_token_with_custom_expiration(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createSite(ownerId: $owner->id, verified: true, apiResourceMode: true);
+        $this->app->make(SigningKeyService::class)->createActiveKey();
+
+        $expiresAt = CarbonImmutable::now()->addDay()->seconds(0);
+
+        $response = $this
+            ->actingAs($owner)
+            ->postJson('/api/v1/user/api-tokens', [
+                'site_id' => $site->id,
+                'scopes' => ['orders.read'],
+                'permissions' => ['orders.read'],
+                'expires_at' => $expiresAt->toISOString(),
+            ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('expires_at', $expiresAt->toISOString());
+
+        $token = (new Parser(new JoseEncoder))->parse((string) $response->json('token'));
+
+        $this->assertSame($expiresAt->getTimestamp(), $token->claims()->get('exp')->getTimestamp());
+        $this->assertDatabaseHas('api_tokens', [
+            'jti' => $response->json('jti'),
+            'expires_at' => $expiresAt->toDateTimeString(),
+        ]);
+    }
+
+    public function test_owner_can_issue_non_expiring_user_api_token(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createSite(ownerId: $owner->id, verified: true, apiResourceMode: true);
+        $this->app->make(SigningKeyService::class)->createActiveKey();
+
+        $response = $this
+            ->actingAs($owner)
+            ->postJson('/api/v1/user/api-tokens', [
+                'site_id' => $site->id,
+                'scopes' => ['orders.read'],
+                'permissions' => ['orders.read'],
+                'does_not_expire' => true,
+            ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('expires_at', null);
+
+        $token = (new Parser(new JoseEncoder))->parse((string) $response->json('token'));
+
+        $this->assertFalse($token->claims()->has('exp'));
+        $this->assertDatabaseHas('api_tokens', [
+            'jti' => $response->json('jti'),
+            'expires_at' => null,
+        ]);
     }
 
     public function test_jwks_endpoint_returns_public_keys_and_no_cookies(): void
@@ -169,19 +228,19 @@ class IssuerApiFlowTest extends TestCase
             ownerId: $owner->id,
             verified: true,
             apiResourceMode: true,
-            domain: 'apishka.ru',
+            domain: 'example.test',
         );
         $unverifiedSite = $this->createSite(
             ownerId: $owner->id,
             verified: false,
             apiResourceMode: false,
-            domain: 'pending.apishka.ru',
+            domain: 'pending.example.test',
         );
         $verifiedWithoutMode = $this->createSite(
             ownerId: $owner->id,
             verified: true,
             apiResourceMode: false,
-            domain: 'mode-missing.apishka.ru',
+            domain: 'mode-missing.example.test',
         );
 
         $this->app->make(SigningKeyService::class)->createActiveKey();
@@ -242,12 +301,12 @@ class IssuerApiFlowTest extends TestCase
             ]);
     }
 
-    private function createSite(int $ownerId, bool $verified, bool $apiResourceMode, string $domain = 'apishka.ru'): Site
+    private function createSite(int $ownerId, bool $verified, bool $apiResourceMode, string $domain = 'example.test'): Site
     {
         $site = Site::query()->create([
             'id' => app(SiteIdFactory::class)->make(),
             'owner_user_id' => $ownerId,
-            'display_name' => 'Apishka',
+            'display_name' => 'Example App',
             'domain' => $domain,
             'normalized_domain' => $domain,
             'verification_status' => $verified

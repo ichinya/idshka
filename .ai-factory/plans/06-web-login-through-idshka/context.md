@@ -4,7 +4,7 @@ Plan: `06-web-login-through-idshka`
 
 Project: `idshka.ru` Laravel + Socialite identity/control plane.
 
-Goal: Реализовать web login: apishka.ru входит через idshka.ru по Authorization Code + PKCE.
+Goal: Реализовать web login: example.test входит через idshka.ru по Authorization Code + PKCE.
 
 Refined on: `2026-04-26`
 
@@ -15,7 +15,7 @@ Current repo state:
 - `app/Domain/OidcClients` is still a skeleton.
 - `app/Domain/Issuer` already has signing keys, JWKS, user API token issue/revoke and audit hooks.
 - `app/Domain/Sites` already has verified sites and explicit `web_client` mode.
-- `examples/apishka-web-laravel` is a README placeholder.
+- `examples/laravel-web-client` is a README placeholder.
 - Plan 04 finalization has unrelated dirty working-tree artifacts; do not modify them while implementing plan 06 unless explicitly requested.
 
 Relevant docs:
@@ -30,9 +30,9 @@ Relevant docs:
 Relevant implemented specs:
 - `.ai-factory/specs/03-site-registry-and-modes/`
 - `.ai-factory/specs/04-token-issuer-and-jwks/`
-- `.ai-factory/specs/05-api-resource-gateway-for-apishka/`
+- `.ai-factory/specs/05-api-resource-gateway-for-demo-resource/`
 
 Integration boundary:
 - `idshka.ru` owns OAuth/OIDC-like provider endpoints and signing.
-- `apishka-web-laravel` is an external consumer example and must use HTTP endpoints only.
+- `laravel-web-client` is an external consumer example and must use HTTP endpoints only.
 - Socialite remains only for external login into `idshka.ru`; do not place issuer/provider logic in Socialite callbacks.

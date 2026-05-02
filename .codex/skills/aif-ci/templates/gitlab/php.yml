@@ -1,6 +1,6 @@
 # GitLab CI — PHP
 # Template variables:
-#   PHP_VERSION: e.g., '8.5'
+#   PHP_VERSION: e.g., '8.3'
 #   HAS_PHPSTAN: boolean
 #   HAS_PSALM: boolean
 #   HAS_RECTOR: boolean

@@ -12,7 +12,7 @@ The current repository has legacy AI Factory archive summaries for these plans a
 - Add base OpenSpec requirements for first-party identity auth and Socialite login.
 - Add base OpenSpec requirements for site registry, verification, and site modes.
 - Add base OpenSpec requirements for user API token issuer and JWKS.
-- Add base OpenSpec requirements for the Apishka API resource gateway.
+- Add base OpenSpec requirements for the demo resource API gateway.
 
 ## Out of Scope
 
@@ -29,7 +29,7 @@ Requirements are derived from:
 - `.ai-factory/specs/02-user-auth-socialite/spec.md`
 - `.ai-factory/specs/03-site-registry-and-modes/spec.md`
 - `.ai-factory/specs/04-token-issuer-and-jwks/spec.md`
-- `.ai-factory/specs/05-api-resource-gateway-for-apishka/spec.md`
+- `.ai-factory/specs/05-api-resource-gateway-for-demo-resource/spec.md`
 
 ## Expected Result
 

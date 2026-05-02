@@ -37,6 +37,17 @@
         "--no-usage-statistics"
       ]
     },
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "${env:DATABASE_URL}"
+      }
+    },
     "aifhub": {
       "type": "stdio",
       "command": "ai-factory",

@@ -11,7 +11,7 @@ class JwtClaimsTest extends TestCase
     {
         $claims = new JwtClaims(
             issuer: 'https://idshka.ru',
-            audience: 'apishka.ru',
+            audience: 'example.test',
             subject: '42',
             siteId: 'site_01kq000000000000000000000000000001',
             tokenType: JwtClaims::TOKEN_TYPE_USER_API,
@@ -25,7 +25,7 @@ class JwtClaimsTest extends TestCase
 
         $this->assertSame([
             'iss' => 'https://idshka.ru',
-            'aud' => 'apishka.ru',
+            'aud' => 'example.test',
             'sub' => '42',
             'site_id' => 'site_01kq000000000000000000000000000001',
             'token_type' => 'user_api',
@@ -61,5 +61,24 @@ class JwtClaimsTest extends TestCase
         $this->assertSame('nonce-123', $payload['nonce']);
         $this->assertSame('openid profile email', $payload['scope']);
         $this->assertArrayNotHasKey('permissions', $payload);
+    }
+
+    public function test_claims_payload_can_omit_expiration_for_non_expiring_user_api_token(): void
+    {
+        $claims = new JwtClaims(
+            issuer: 'https://idshka.ru',
+            audience: 'example.test',
+            subject: '42',
+            siteId: 'site_01kq000000000000000000000000000001',
+            tokenType: JwtClaims::TOKEN_TYPE_USER_API,
+            scopes: ['orders.read'],
+            permissions: ['orders.read'],
+            jti: 'jti-123',
+            issuedAt: 1_700_000_000,
+            notBefore: 1_700_000_000,
+            expiresAt: null,
+        );
+
+        $this->assertArrayNotHasKey('exp', $claims->toArray());
     }
 }

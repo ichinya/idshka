@@ -4,7 +4,7 @@
 TBD - created by archiving change backfill-plans-01-05-specs. Update Purpose after archive.
 ## Requirements
 ### Requirement: Gateway Runtime and Routing
-The API resource gateway SHALL provide an OpenResty reference runtime for `api.apishka.ru` with public health and protected proxy routing.
+The API resource gateway SHALL provide an OpenResty reference runtime for `api.example.test` with public health and protected proxy routing.
 
 #### Scenario: Gateway health is requested
 - **WHEN** a client requests `/healthz`

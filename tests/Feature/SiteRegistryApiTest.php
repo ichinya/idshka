@@ -19,8 +19,8 @@ class SiteRegistryApiTest extends TestCase
     public function test_requires_authentication_to_create_site(): void
     {
         $response = $this->postJson('/api/v1/sites', [
-            'domain' => 'apishka.ru',
-            'display_name' => 'Apishka',
+            'domain' => 'example.test',
+            'display_name' => 'Example App',
         ]);
 
         $response
@@ -35,13 +35,13 @@ class SiteRegistryApiTest extends TestCase
         $response = $this
             ->actingAs($owner)
             ->postJson('/api/v1/sites', [
-                'domain' => 'https://Apishka.ru/path?query=1',
-                'display_name' => 'Apishka',
+                'domain' => 'https://Example.test/path?query=1',
+                'display_name' => 'Example App',
             ]);
 
         $response
             ->assertCreated()
-            ->assertJsonPath('domain', 'apishka.ru')
+            ->assertJsonPath('domain', 'example.test')
             ->assertJsonPath('verified', false)
             ->assertJsonStructure([
                 'site_id',
@@ -62,8 +62,8 @@ class SiteRegistryApiTest extends TestCase
         $response = $this
             ->actingAs($owner)
             ->postJson('/api/v1/sites', [
-                'domain' => 'localhost',
-                'display_name' => 'Localhost',
+                'domain' => 'not-a-domain',
+                'display_name' => 'Invalid domain',
             ]);
 
         $response
@@ -81,7 +81,7 @@ class SiteRegistryApiTest extends TestCase
         $createResponse = $this
             ->actingAs($firstOwner)
             ->postJson('/api/v1/sites', [
-                'domain' => 'apishka.ru',
+                'domain' => 'example.test',
             ]);
 
         $siteId = (string) $createResponse->json('site_id');
@@ -94,7 +94,7 @@ class SiteRegistryApiTest extends TestCase
         $conflictResponse = $this
             ->actingAs($secondOwner)
             ->postJson('/api/v1/sites', [
-                'domain' => 'apishka.ru',
+                'domain' => 'example.test',
             ]);
 
         $conflictResponse
@@ -148,7 +148,7 @@ class SiteRegistryApiTest extends TestCase
         $token = $this->verificationToken($site->id, 'file');
 
         Http::fake([
-            'https://apishka.ru/.well-known/idshka-site-verification.txt' => Http::response($token, 200),
+            'https://example.test/.well-known/idshka-site-verification.txt' => Http::response($token, 200),
         ]);
 
         $response = $this
@@ -182,6 +182,45 @@ class SiteRegistryApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'expired')
             ->assertJsonPath('error_code', 'verification_expired');
+    }
+
+    public function test_expired_challenge_creates_fresh_retry_challenges(): void
+    {
+        [$owner, $site] = $this->createSiteViaApi();
+        $oldToken = $this->verificationToken($site->id, 'file');
+
+        SiteVerification::query()
+            ->where('site_id', $site->id)
+            ->update(['expires_at' => now()->subMinute()]);
+
+        $this
+            ->actingAs($owner)
+            ->postJson("/api/v1/sites/{$site->id}/verify", [
+                'method' => 'file',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'expired')
+            ->assertJsonPath('verified', false);
+
+        /** @var SiteVerification $freshDns */
+        $freshDns = SiteVerification::query()
+            ->where('site_id', $site->id)
+            ->where('method', 'dns_txt')
+            ->latest('id')
+            ->firstOrFail();
+
+        /** @var SiteVerification $freshFile */
+        $freshFile = SiteVerification::query()
+            ->where('site_id', $site->id)
+            ->where('method', 'file')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('pending', $freshDns->status);
+        $this->assertSame('pending', $freshFile->status);
+        $this->assertSame($freshDns->token, $freshFile->token);
+        $this->assertNotSame($oldToken, $freshFile->token);
+        $this->assertTrue($freshFile->expires_at->isFuture());
     }
 
     public function test_unverified_site_cannot_enable_modes(): void
@@ -282,8 +321,8 @@ class SiteRegistryApiTest extends TestCase
         $response = $this
             ->actingAs($owner)
             ->postJson('/api/v1/sites', [
-                'domain' => 'apishka.ru',
-                'display_name' => 'Apishka',
+                'domain' => 'example.test',
+                'display_name' => 'Example App',
             ]);
 
         $response->assertCreated();

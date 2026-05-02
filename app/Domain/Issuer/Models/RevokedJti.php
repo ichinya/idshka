@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property string $site_id
  * @property string $audience
- * @property Carbon $expires_at
+ * @property Carbon|null $expires_at
  * @property Carbon $revoked_at
  */
 final class RevokedJti extends Model

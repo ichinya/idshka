@@ -22,7 +22,7 @@ return new class extends Migration
             $table->json('scopes');
             $table->json('permissions');
             $table->timestamp('issued_at');
-            $table->timestamp('expires_at');
+            $table->timestamp('expires_at')->nullable();
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
 

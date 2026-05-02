@@ -73,8 +73,8 @@ specs:
       - jwks
     issue: null
     pr: null
-  - id: 05-api-resource-gateway-for-apishka
-    title: API resource gateway for Apishka
+  - id: 05-api-resource-gateway-for-demo-resource
+    title: API resource gateway for Example App
     completed: 2026-04-26
     verdict: pass-with-notes
     files_changed: 22

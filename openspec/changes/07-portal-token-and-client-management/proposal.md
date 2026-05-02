@@ -1,12 +1,24 @@
 # Proposal: 07-portal-token-and-client-management
 
-## Intent
+## Why
 
-Migrated legacy plan. Review and refine this proposal before implementation.
+Site owners need a self-service portal to manage connected sites, verification instructions, API tokens, OIDC web clients, redirect URIs, revocation, and audit history without operator access to raw secrets.
+
+## What Changes
+
+- Add Blade/Tailwind portal surfaces for owned sites and verification guidance.
+- Add portal flows for API token creation, listing, and revoke with one-time raw token display.
+- Add portal flows for OIDC web client credentials and redirect URI management with one-time raw secret display.
+- Add owner-visible audit history for site, token, client, redirect URI, and revoke lifecycle events.
+- Require explicit confirmation for dangerous revoke actions.
 
 ## Scope
 
-- Review migrated legacy scope.
+- Authenticated owner portal pages.
+- Site creation and verification instruction UI.
+- API token and OIDC client lifecycle UI.
+- Redirect URI management UI.
+- Owner-visible audit log UI.
 
 ## Approach
 

@@ -84,7 +84,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid profile email',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -111,7 +111,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ]);
 
@@ -152,7 +152,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_grant');
@@ -171,7 +171,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->getJson('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://evil.apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://evil.example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -195,7 +195,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->getJson('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -207,13 +207,49 @@ class OAuthWebLoginFlowTest extends TestCase
             ->assertJsonStructure(['error', 'message', 'request_id']);
     }
 
+    public function test_authorize_guest_browser_request_redirects_to_login_and_preserves_intended_url(): void
+    {
+        $siteOwner = User::factory()->create();
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [, $challenge] = $this->pkcePair();
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id' => $client->client_id,
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            'scope' => 'openid',
+            'state' => 'state-123',
+            'nonce' => 'nonce-123',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]);
+
+        $response = $this
+            ->get('/oauth/authorize?'.$query)
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended');
+
+        $intendedUrl = (string) $response->baseResponse->getSession()->get('url.intended');
+        $this->assertSame(url('/oauth/authorize'), strtok($intendedUrl, '?'));
+
+        $intendedQuery = [];
+        parse_str((string) parse_url($intendedUrl, PHP_URL_QUERY), $intendedQuery);
+
+        $expectedQuery = [];
+        parse_str($query, $expectedQuery);
+        ksort($expectedQuery);
+        ksort($intendedQuery);
+
+        $this->assertSame($expectedQuery, $intendedQuery);
+    }
+
     public function test_authorize_preserves_registered_redirect_uri_query_parameters(): void
     {
         $siteOwner = User::factory()->create();
         $user = User::factory()->create();
         $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
         $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
-        $redirectUri = 'https://apishka.ru/auth/idshka/callback?tenant=alpha';
+        $redirectUri = 'https://example.test/auth/idshka/callback?tenant=alpha';
         $this->addRedirectUri($client, $redirectUri);
         [, $challenge] = $this->pkcePair();
 
@@ -253,7 +289,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -269,7 +305,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => 'wrong-horse-battery-staple-verifier-43-character-minimum',
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_grant');
@@ -288,7 +324,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->getJson('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -312,7 +348,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->getJson('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -337,7 +373,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->getJson('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'profile email',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -363,7 +399,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'user_id' => $user->id,
             'site_id' => $site->id,
             'code_hash' => hash('sha256', $rawCode),
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'scopes' => ['openid'],
             'nonce' => 'nonce-123',
             'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', $weakVerifier, true)), '+/', '-_'), '='),
@@ -377,7 +413,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $rawCode,
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $weakVerifier,
         ])->assertStatus(422)
             ->assertJsonPath('error', 'validation_failed')
@@ -400,7 +436,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -417,7 +453,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'wrong-secret',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_client');
@@ -440,7 +476,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'wrong-secret',
             'code' => 'arbitrary-code',
-            'redirect_uri' => 'https://evil.apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://evil.example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_client');
@@ -460,7 +496,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -481,7 +517,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_grant');
@@ -507,7 +543,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -523,7 +559,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $otherClient->client_id,
             'client_secret' => 'other-client-secret',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_grant');
@@ -535,7 +571,7 @@ class OAuthWebLoginFlowTest extends TestCase
         $user = User::factory()->create();
         $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
         $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
-        $this->addRedirectUri($client, 'https://apishka.ru/auth/idshka/alternate-callback');
+        $this->addRedirectUri($client, 'https://example.test/auth/idshka/alternate-callback');
         $this->app->make(SigningKeyService::class)->createActiveKey();
         [$verifier, $challenge] = $this->pkcePair();
 
@@ -544,7 +580,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -560,7 +596,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/alternate-callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/alternate-callback',
             'code_verifier' => $verifier,
         ])->assertStatus(401)
             ->assertJsonPath('error', 'invalid_grant');
@@ -576,7 +612,7 @@ class OAuthWebLoginFlowTest extends TestCase
         $issuedToken = $this->app->make(TokenIssuer::class)->issueUserApiToken(
             userId: $user->id,
             siteId: $site->id,
-            audience: 'apishka.ru',
+            audience: 'example.test',
             scopes: ['openid'],
             permissions: [],
         );
@@ -604,7 +640,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -620,7 +656,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ]);
 
@@ -653,7 +689,7 @@ class OAuthWebLoginFlowTest extends TestCase
             ->get('/oauth/authorize?'.http_build_query([
                 'response_type' => 'code',
                 'client_id' => $client->client_id,
-                'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+                'redirect_uri' => 'https://example.test/auth/idshka/callback',
                 'scope' => 'openid profile email',
                 'state' => 'state-123',
                 'nonce' => 'nonce-123',
@@ -669,7 +705,7 @@ class OAuthWebLoginFlowTest extends TestCase
             'client_id' => $client->client_id,
             'client_secret' => 'client-secret-value',
             'code' => $redirectQuery['code'],
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
             'code_verifier' => $verifier,
         ]);
 
@@ -700,13 +736,13 @@ class OAuthWebLoginFlowTest extends TestCase
             'owner_user_id' => $owner->id,
             'client_id' => 'client_'.strtolower((string) str()->ulid()),
             'client_secret_hash' => Hash::make($clientSecret),
-            'name' => 'Apishka Web',
+            'name' => 'Example Web',
         ]);
 
         OidcRedirectUri::query()->create([
             'oidc_client_id' => $client->id,
-            'redirect_uri' => 'https://apishka.ru/auth/idshka/callback',
-            'redirect_uri_hash' => hash('sha256', 'https://apishka.ru/auth/idshka/callback'),
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            'redirect_uri_hash' => hash('sha256', 'https://example.test/auth/idshka/callback'),
         ]);
 
         return $client;
@@ -726,9 +762,9 @@ class OAuthWebLoginFlowTest extends TestCase
         $site = Site::query()->create([
             'id' => app(SiteIdFactory::class)->make(),
             'owner_user_id' => $ownerId,
-            'display_name' => 'Apishka',
-            'domain' => 'apishka.ru',
-            'normalized_domain' => 'apishka.ru',
+            'display_name' => 'Example App',
+            'domain' => 'example.test',
+            'normalized_domain' => 'example.test',
             'verification_status' => $verified
                 ? SiteVerificationStatus::Verified->value
                 : SiteVerificationStatus::Pending->value,

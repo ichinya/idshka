@@ -32,6 +32,8 @@ final class TokenIssuer
         string $audience,
         array $scopes,
         array $permissions,
+        ?CarbonImmutable $expiresAt = null,
+        bool $doesNotExpire = false,
     ): IssuedUserApiToken {
         Log::info('[issuer.token.issue] started', [
             'user_id' => $userId,
@@ -55,7 +57,9 @@ final class TokenIssuer
 
         $issuedAt = CarbonImmutable::now();
         $notBefore = $issuedAt;
-        $expiresAt = $issuedAt->addSeconds(max(1, (int) config('issuer.user_api_token_ttl_seconds', 900)));
+        $resolvedExpiresAt = $doesNotExpire
+            ? null
+            : ($expiresAt?->setTimezone('UTC') ?? $issuedAt->addSeconds(max(1, (int) config('issuer.user_api_token_ttl_seconds', 900))));
         $jti = (string) Str::uuid();
         $subject = (string) $userId;
 
@@ -70,7 +74,7 @@ final class TokenIssuer
             jti: $jti,
             issuedAt: $issuedAt->getTimestamp(),
             notBefore: $notBefore->getTimestamp(),
-            expiresAt: $expiresAt->getTimestamp(),
+            expiresAt: $resolvedExpiresAt?->getTimestamp(),
         );
 
         $privatePem = $this->signingKeyService->decryptPrivateKey($signingKey);
@@ -81,22 +85,26 @@ final class TokenIssuer
             InMemory::plainText($signingKey->public_key_pem),
         );
 
-        $token = $configuration->builder()
+        $builder = $configuration->builder()
             ->issuedBy($claims->issuer)
             ->permittedFor($claims->audience)
             ->relatedTo($claims->subject)
             ->identifiedBy($claims->jti)
             ->issuedAt($issuedAt->toDateTimeImmutable())
             ->canOnlyBeUsedAfter($notBefore->toDateTimeImmutable())
-            ->expiresAt($expiresAt->toDateTimeImmutable())
             ->withHeader(JwtHeaders::ALG, $signingKey->algorithm)
             ->withHeader(JwtHeaders::KID, $signingKey->kid)
             ->withHeader(JwtHeaders::TYP, JwtHeaders::TYP_VALUE)
             ->withClaim('site_id', $claims->siteId)
             ->withClaim('token_type', $claims->tokenType)
             ->withClaim('scope', implode(' ', $claims->scopes))
-            ->withClaim('permissions', $claims->permissions)
-            ->getToken($configuration->signer(), $configuration->signingKey());
+            ->withClaim('permissions', $claims->permissions);
+
+        if ($resolvedExpiresAt !== null) {
+            $builder = $builder->expiresAt($resolvedExpiresAt->toDateTimeImmutable());
+        }
+
+        $token = $builder->getToken($configuration->signer(), $configuration->signingKey());
 
         Log::info('[issuer.token.issue] completed', [
             'user_id' => $userId,
@@ -104,7 +112,7 @@ final class TokenIssuer
             'audience' => $audience,
             'jti' => $jti,
             'kid' => $signingKey->kid,
-            'expires_at' => $expiresAt->toISOString(),
+            'expires_at' => $resolvedExpiresAt?->toISOString(),
         ]);
 
         return new IssuedUserApiToken(
@@ -116,7 +124,7 @@ final class TokenIssuer
             permissions: $permissions,
             issuedAt: $issuedAt,
             notBefore: $notBefore,
-            expiresAt: $expiresAt,
+            expiresAt: $resolvedExpiresAt,
             signingKeyId: $signingKey->id,
         );
     }

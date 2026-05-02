@@ -40,6 +40,12 @@ final class DomainNormalizer
             throw new InvalidArgumentException('Unable to normalize domain.');
         }
 
+        if ($this->isAllowedLoopbackDomain($normalized)) {
+            Log::debug('[site.domain.normalize] completed', ['normalized_domain' => $normalized]);
+
+            return $normalized;
+        }
+
         if (! preg_match('/^(?=.{1,255}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$/', $normalized)) {
             throw new InvalidArgumentException('Invalid domain format.');
         }
@@ -47,5 +53,22 @@ final class DomainNormalizer
         Log::debug('[site.domain.normalize] completed', ['normalized_domain' => $normalized]);
 
         return $normalized;
+    }
+
+    private function isAllowedLoopbackDomain(string $domain): bool
+    {
+        if (! (bool) config('sites.allow_loopback_domains', false)) {
+            return false;
+        }
+
+        if ($domain === 'localhost') {
+            return true;
+        }
+
+        if (filter_var($domain, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+            return str_starts_with($domain, '127.');
+        }
+
+        return $domain === '::1';
     }
 }

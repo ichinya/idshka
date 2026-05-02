@@ -75,29 +75,76 @@ services:
     networks:
       - idshka
 
-  gateway:
+  demo-resource-gateway:
+    profiles: ["examples"]
     build:
       context: .
-      dockerfile: infra/openresty/apishka/Dockerfile
+      dockerfile: infra/openresty/demo-resource/Dockerfile
     environment:
       GATEWAY_LOG_LEVEL: ${GATEWAY_LOG_LEVEL:-warn}
     depends_on:
       nginx:
         condition: service_started
-      apishka-api:
+      demo-resource-api:
         condition: service_started
     ports:
       - "127.0.0.1:8081:8081"
     volumes:
-      - ./infra/openresty/apishka/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
-      - ./infra/openresty/apishka/lua:/etc/openresty/lua:ro
+      - ./infra/openresty/demo-resource/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+      - ./infra/openresty/demo-resource/lua:/etc/openresty/lua:ro
     networks:
       - idshka
 
-  apishka-api:
+  demo-resource-api:
+    profiles: ["examples"]
     image: nginx:1.29-alpine
     volumes:
-      - ./examples/apishka-api/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./examples/demo-resource-api/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - idshka
+
+  idshka-web-client:
+    profiles: ["examples"]
+    build:
+      context: .
+      dockerfile: examples/idshka-web-client/Dockerfile
+    environment:
+      PORT: 8443
+      IDSHKA_PUBLIC_URL: ${IDSHKA_PUBLIC_URL:-http://localhost:8080}
+      IDSHKA_INTERNAL_URL: ${IDSHKA_INTERNAL_URL:-http://nginx}
+      IDSHKA_CLIENT_ID: ${IDSHKA_CLIENT_ID:-}
+      IDSHKA_CLIENT_SECRET: ${IDSHKA_CLIENT_SECRET:-}
+      IDSHKA_REDIRECT_URI: ${IDSHKA_REDIRECT_URI:-https://localhost:8443/auth/idshka/callback}
+      IDSHKA_SESSION_SECRET: ${IDSHKA_SESSION_SECRET:-idshka-web-client-local-session-secret}
+    depends_on:
+      nginx:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8443:8443"
+    volumes:
+      - idshka-web-client-certs:/certs
+    networks:
+      - idshka
+
+  idshka-api-token-inspector:
+    profiles: ["examples"]
+    build:
+      context: .
+      dockerfile: examples/idshka-api-token-inspector/Dockerfile
+    environment:
+      PORT: 8444
+      IDSHKA_ISSUER: ${IDSHKA_PUBLIC_URL:-http://localhost:8080}
+      IDSHKA_JWKS_URL: ${IDSHKA_JWKS_URL:-http://nginx/oauth/jwks.json}
+      IDSHKA_JWKS_TIMEOUT_MS: ${IDSHKA_JWKS_TIMEOUT_MS:-15000}
+      IDSHKA_JWKS_RETRY_COUNT: ${IDSHKA_JWKS_RETRY_COUNT:-1}
+      IDSHKA_CLOCK_TOLERANCE_SECONDS: ${IDSHKA_CLOCK_TOLERANCE_SECONDS:-5}
+    depends_on:
+      nginx:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8444:8444"
+    volumes:
+      - idshka-web-client-certs:/certs
     networks:
       - idshka
 
@@ -108,3 +155,4 @@ networks:
 volumes:
   idshka-pgsql:
   idshka-redis:
+  idshka-web-client-certs:

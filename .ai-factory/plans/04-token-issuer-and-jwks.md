@@ -90,7 +90,7 @@
 - [x] **T10. Feature/unit verification**
   - Unit tests для claims building, signing key selection, JWKS shape и revoke idempotency.
   - Feature tests для:
-    - successful issue для `aud=apishka.ru`;
+    - successful issue для `aud=example.test`;
     - JWKS active public key by `kid`;
     - one-time raw token response and no raw token persistence;
     - revoke writes DB denylist;
@@ -100,7 +100,7 @@
   - Зависит от: `T1`-`T9`.
 
 ## Acceptance criteria
-- [ ] Можно выпустить user API token для verified owned site с mode `api_resource` и `aud=apishka.ru`.
+- [ ] Можно выпустить user API token для verified owned site с mode `api_resource` и `aud=example.test`.
 - [ ] JWT содержит claims `iss`, `aud`, `sub`, `site_id`, `token_type=user_api`, `scope`, `permissions`, `jti`, `iat`, `nbf`, `exp`.
 - [ ] JWT header содержит `kid`, допустимый `alg` и `typ=JWT`.
 - [ ] JWKS содержит active public key по `kid` и не содержит private key material.

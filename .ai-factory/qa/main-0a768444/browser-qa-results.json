@@ -1,0 +1,138 @@
+{
+  "baseUrl": "http://127.0.0.1:8090",
+  "dbPath": "C:\\projects\\idshka\\storage\\framework\\testing\\browser-qa.sqlite",
+  "summary": {
+    "total": 18,
+    "pass": 18,
+    "fail": 0,
+    "partial": 0
+  },
+  "artifacts": [
+    ".ai-factory/qa/main-0a768444/browser-qa-portal-desktop.png",
+    ".ai-factory/qa/main-0a768444/browser-qa-portal-mobile.png"
+  ],
+  "results": [
+    {
+      "id": "TC-002",
+      "name": "Гость не может открыть портал",
+      "status": "PASS",
+      "evidence": "Guest /portal returned opaqueredirect/0 without showing the dashboard."
+    },
+    {
+      "id": "TC-001",
+      "name": "Владелец открывает портал",
+      "status": "PASS",
+      "evidence": "Authenticated owner sees portal sections."
+    },
+    {
+      "id": "TC-003",
+      "name": "Владелец создает сайт и видит инструкции верификации",
+      "status": "PASS",
+      "evidence": "Created site_01kqkgas6p9jpkbkw0dx3g0wqs and saw DNS/file instructions."
+    },
+    {
+      "id": "TC-004",
+      "name": "Неверифицированный сайт не получает production modes",
+      "status": "PASS",
+      "evidence": "Both mode enable attempts left the pending site without production modes."
+    },
+    {
+      "id": "TC-005",
+      "name": "Верифицированный владелец включает оба режима сайта",
+      "status": "PASS",
+      "evidence": "Both api_resource and web_client modes appear on dashboard."
+    },
+    {
+      "id": "TC-006",
+      "name": "Владелец выпускает API token и видит raw token один раз",
+      "status": "PASS",
+      "evidence": "Raw token appeared once for token id 1 and disappeared after reload."
+    },
+    {
+      "id": "TC-007",
+      "name": "Выпуск API token отклоняется для неeligible site",
+      "status": "PASS",
+      "evidence": "Pending and web-only sites did not receive raw API tokens."
+    },
+    {
+      "id": "TC-009",
+      "name": "Владелец создает OIDC web client и видит secret один раз",
+      "status": "PASS",
+      "evidence": "Client client_01kqkgawehs03xwhkr8h20qx3x secret appeared once and disappeared after reload."
+    },
+    {
+      "id": "TC-010",
+      "name": "Создание OIDC client отклоняется для неeligible site",
+      "status": "PASS",
+      "evidence": "Pending and api-only sites did not receive client secrets."
+    },
+    {
+      "id": "TC-011",
+      "name": "Redirect URI принимает exact HTTPS и отклоняет unsafe values",
+      "status": "PASS",
+      "evidence": "Valid HTTPS redirect accepted; http, wildcard and malformed values rejected."
+    },
+    {
+      "id": "TC-012",
+      "name": "Duplicate redirect URI не создает duplicate visible entries",
+      "status": "PASS",
+      "evidence": "Duplicate redirect did not add a row or audit event."
+    },
+    {
+      "id": "TC-017",
+      "name": "Existing OIDC web login работает с portal-created client",
+      "status": "PASS",
+      "evidence": "Authorize, token exchange and userinfo succeeded for portal-created client."
+    },
+    {
+      "id": "TC-008",
+      "name": "Revoke API token требует явного подтверждения",
+      "status": "PASS",
+      "evidence": "Empty/yes confirmations did not mutate state; exact revoke revoked the token."
+    },
+    {
+      "id": "TC-013",
+      "name": "Revoke OIDC client требует явного подтверждения",
+      "status": "PASS",
+      "evidence": "Empty/delete confirmations did not mutate state; exact revoke revoked the client."
+    },
+    {
+      "id": "TC-016",
+      "name": "Revoked OIDC client не принимает новый redirect URI",
+      "status": "PASS",
+      "evidence": "Revoked client rejected a new redirect URI."
+    },
+    {
+      "id": "TC-015",
+      "name": "Audit table записывает lifecycle events без secrets",
+      "status": "PASS",
+      "evidence": "Portal showed lifecycle audit events and audit metadata did not contain raw token/client secret."
+    },
+    {
+      "id": "TC-014",
+      "name": "Чужой владелец не может управлять ресурсами другого владельца",
+      "status": "PASS",
+      "evidence": "Owner B dashboard hid Owner A data and direct mutation attempts returned 404."
+    },
+    {
+      "id": "TC-018",
+      "name": "Dashboard остается usable с длинными значениями",
+      "status": "PASS",
+      "evidence": "Desktop/mobile screenshots captured; page has no body horizontal overflow, controls stay inside viewport, and Audit is horizontally scrollable.",
+      "screenshots": [
+        "browser-qa-portal-desktop.png",
+        "browser-qa-portal-mobile.png"
+      ],
+      "layout": {
+        "viewportWidth": 390,
+        "documentScrollWidth": 390,
+        "clippedControls": [],
+        "audit": {
+          "overflowX": "auto",
+          "clientWidth": 356,
+          "scrollWidth": 820
+        }
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Audit\Listeners\RecordIdentityAuditEvent;
 use App\Domain\Audit\Listeners\RecordIssuerAuditEvent;
+use App\Domain\Audit\Listeners\RecordOidcClientAuditEvent;
 use App\Domain\Audit\Listeners\RecordSiteAuditEvent;
 use App\Domain\Identity\Events\PasswordLoginSucceeded;
 use App\Domain\Identity\Events\SocialAccountLinked;
@@ -11,6 +12,9 @@ use App\Domain\Identity\Events\SocialAccountUnlinked;
 use App\Domain\Identity\Events\SocialLoginSucceeded;
 use App\Domain\Issuer\Events\UserApiTokenIssued;
 use App\Domain\Issuer\Events\UserApiTokenRevoked;
+use App\Domain\OidcClients\Events\OidcClientCreated;
+use App\Domain\OidcClients\Events\OidcClientRevoked;
+use App\Domain\OidcClients\Events\OidcRedirectUriAdded;
 use App\Domain\Sites\Events\SiteConnected;
 use App\Domain\Sites\Events\SiteModeEnabled;
 use App\Domain\Sites\Events\SiteVerificationCompleted;
@@ -53,6 +57,15 @@ class EventServiceProvider extends ServiceProvider
         ],
         UserApiTokenRevoked::class => [
             RecordIssuerAuditEvent::class,
+        ],
+        OidcClientCreated::class => [
+            RecordOidcClientAuditEvent::class,
+        ],
+        OidcRedirectUriAdded::class => [
+            RecordOidcClientAuditEvent::class,
+        ],
+        OidcClientRevoked::class => [
+            RecordOidcClientAuditEvent::class,
         ],
     ];
 }

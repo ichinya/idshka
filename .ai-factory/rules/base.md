@@ -20,7 +20,7 @@
 ### Module Boundaries
 - Доменные правила и security-sensitive logic держать в `app/Domain/*`; текущие bounded contexts: `Identity`, `Sites`, `Issuer`, `OidcClients`, `ApiResources`, `Audit`.
 - HTTP controllers, FormRequest-классы и routes остаются транспортным слоем: валидация, вызов Actions/Services, возврат response; бизнес-решения не распылять по controllers.
-- Внешние consumers (`apishka.ru`, gateway examples, callback adapters) не смешивать с core-продуктом `idshka.ru`; для них допустимы `examples/`, `infra/` и docs, а не отдельный бизнес-backend в этом репозитории.
+- Внешние consumers (`example.test`, gateway examples, callback adapters) не смешивать с core-продуктом `idshka.ru`; для них допустимы `examples/`, `infra/` и docs, а не отдельный бизнес-backend в этом репозитории.
 - Любой межсервисный контракт фиксировать в OpenSpec/specs, docs и Laravel contracts/value objects: JWT claims, gateway headers, signed context, error body, redirect/verification flow.
 
 ### Dependency Rules

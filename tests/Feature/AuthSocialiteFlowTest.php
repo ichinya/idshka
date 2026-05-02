@@ -20,6 +20,80 @@ class AuthSocialiteFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_portal_redirects_to_browser_login_page(): void
+    {
+        $this->get('/portal')->assertRedirect('/login');
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('IDShka sign in');
+    }
+
+    public function test_browser_login_form_redirects_to_portal_dashboard(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'owner@example.com',
+        ]);
+
+        $this
+            ->from('/login')
+            ->post('/login', [
+                'email' => 'owner@example.com',
+                'password' => 'password',
+            ])
+            ->assertRedirect('/portal');
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_browser_login_form_returns_to_login_with_errors_for_invalid_credentials(): void
+    {
+        User::factory()->create([
+            'email' => 'owner@example.com',
+        ]);
+
+        $this
+            ->from('/login')
+            ->post('/login', [
+                'email' => 'owner@example.com',
+                'password' => 'wrong-password',
+            ])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest('web');
+    }
+
+    public function test_browser_registration_form_redirects_to_portal_dashboard(): void
+    {
+        $this
+            ->from('/login')
+            ->post('/register', [
+                'name' => 'Alice Owner',
+                'email' => 'alice@example.com',
+                'password' => 'correct-password',
+                'password_confirmation' => 'correct-password',
+            ])
+            ->assertRedirect('/portal');
+
+        $this->assertAuthenticated('web');
+        $this->assertDatabaseHas('users', [
+            'email' => 'alice@example.com',
+        ]);
+    }
+
+    public function test_browser_logout_redirects_home(): void
+    {
+        $user = User::factory()->create();
+
+        $this
+            ->actingAs($user)
+            ->post('/logout')
+            ->assertRedirect('/');
+
+        $this->assertGuest('web');
+    }
+
     public function test_user_can_register_login_and_logout_with_session_auth(): void
     {
         Event::fake([PasswordLoginSucceeded::class]);

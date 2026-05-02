@@ -17,8 +17,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('idshka:gateway-smoke-token
-    {--audience=apishka.ru : JWT aud claim; comma-separated values create an array audience}
-    {--site-id=site_smoke_apishka : JWT site_id claim}
+    {--audience=example.test : JWT aud claim; comma-separated values create an array audience}
+    {--site-id=site_smoke_demo_resource : JWT site_id claim}
     {--user-id=1 : JWT sub claim}
     {--expires-offset=900 : Seconds from now for exp; negative values produce expired tokens}
     {--not-before-offset=0 : Seconds from now for nbf}', function () {
@@ -46,7 +46,7 @@ Artisan::command('idshka:gateway-smoke-token
     )));
 
     if ($audiences === []) {
-        $audiences = ['apishka.ru'];
+        $audiences = ['example.test'];
     }
 
     $privatePem = $signingKeyService->decryptPrivateKey($signingKey);
