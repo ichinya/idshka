@@ -103,6 +103,29 @@ services:
     networks:
       - idshka
 
+  idshka-web-client:
+    profiles: ["examples"]
+    build:
+      context: .
+      dockerfile: examples/idshka-web-client/Dockerfile
+    environment:
+      PORT: 8443
+      IDSHKA_PUBLIC_URL: ${IDSHKA_PUBLIC_URL:-http://localhost:8080}
+      IDSHKA_INTERNAL_URL: ${IDSHKA_INTERNAL_URL:-http://nginx}
+      IDSHKA_CLIENT_ID: ${IDSHKA_CLIENT_ID:-}
+      IDSHKA_CLIENT_SECRET: ${IDSHKA_CLIENT_SECRET:-}
+      IDSHKA_REDIRECT_URI: ${IDSHKA_REDIRECT_URI:-https://localhost:8443/auth/idshka/callback}
+      IDSHKA_SESSION_SECRET: ${IDSHKA_SESSION_SECRET:-idshka-web-client-local-session-secret}
+    depends_on:
+      nginx:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8443:8443"
+    volumes:
+      - idshka-web-client-certs:/certs
+    networks:
+      - idshka
+
 networks:
   idshka:
     driver: bridge
@@ -110,3 +133,4 @@ networks:
 volumes:
   idshka-pgsql:
   idshka-redis:
+  idshka-web-client-certs:

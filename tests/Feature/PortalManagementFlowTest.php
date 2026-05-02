@@ -228,6 +228,60 @@ class PortalManagementFlowTest extends TestCase
             ->assertDontSee('https://example.test/auth/idshka/callback');
     }
 
+    public function test_portal_can_register_loopback_web_client_when_local_loopback_sites_are_enabled(): void
+    {
+        config(['sites.allow_loopback_domains' => true]);
+
+        $owner = User::factory()->create();
+
+        $createSite = $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post('/portal/sites', [
+                'domain' => 'https://localhost:8443',
+                'display_name' => 'Local HTTPS Client',
+            ]);
+
+        /** @var Site $site */
+        $site = Site::query()->where('owner_user_id', $owner->id)->firstOrFail();
+
+        $createSite
+            ->assertOk()
+            ->assertSee('localhost');
+
+        $this->assertSame('localhost', $site->normalized_domain);
+
+        $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post("/portal/sites/{$site->id}/verify", [
+                'method' => 'file',
+            ])
+            ->assertOk()
+            ->assertSee('Verification checked: verified');
+
+        $this->assertSame(SiteVerificationStatus::Verified->value, $site->refresh()->verification_status);
+
+        $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post("/portal/sites/{$site->id}/modes/".SiteModeType::WebClient->value)
+            ->assertOk()
+            ->assertSee('Web client enabled');
+
+        $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post('/portal/clients', [
+                'site_id' => $site->id,
+                'name' => 'Local Demo Client',
+                'redirect_uri' => 'https://localhost:8443/auth/idshka/callback',
+            ])
+            ->assertOk()
+            ->assertSee('Client secret')
+            ->assertSee('https://localhost:8443/auth/idshka/callback');
+    }
+
     public function test_expired_site_verification_shows_fresh_retry_instructions(): void
     {
         $owner = User::factory()->create();

@@ -207,6 +207,42 @@ class OAuthWebLoginFlowTest extends TestCase
             ->assertJsonStructure(['error', 'message', 'request_id']);
     }
 
+    public function test_authorize_guest_browser_request_redirects_to_login_and_preserves_intended_url(): void
+    {
+        $siteOwner = User::factory()->create();
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [, $challenge] = $this->pkcePair();
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id' => $client->client_id,
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            'scope' => 'openid',
+            'state' => 'state-123',
+            'nonce' => 'nonce-123',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]);
+
+        $response = $this
+            ->get('/oauth/authorize?'.$query)
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended');
+
+        $intendedUrl = (string) $response->baseResponse->getSession()->get('url.intended');
+        $this->assertSame(url('/oauth/authorize'), strtok($intendedUrl, '?'));
+
+        $intendedQuery = [];
+        parse_str((string) parse_url($intendedUrl, PHP_URL_QUERY), $intendedQuery);
+
+        $expectedQuery = [];
+        parse_str($query, $expectedQuery);
+        ksort($expectedQuery);
+        ksort($intendedQuery);
+
+        $this->assertSame($expectedQuery, $intendedQuery);
+    }
+
     public function test_authorize_preserves_registered_redirect_uri_query_parameters(): void
     {
         $siteOwner = User::factory()->create();

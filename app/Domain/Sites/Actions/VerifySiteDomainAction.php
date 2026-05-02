@@ -126,10 +126,37 @@ final class VerifySiteDomainAction
 
     private function runChecker(SiteVerificationMethod $method, Site $site, string $token): VerificationCheckResult
     {
+        if ($this->isAllowedLoopbackDomain($site->normalized_domain)) {
+            Log::info('[site.verify] local_loopback_domain_verified', [
+                'site_id' => $site->id,
+                'normalized_domain' => $site->normalized_domain,
+                'method' => $method->value,
+            ]);
+
+            return VerificationCheckResult::passed();
+        }
+
         return match ($method) {
             SiteVerificationMethod::DnsTxt => $this->dnsChecker->check($site, $token),
             SiteVerificationMethod::File => $this->fileChecker->check($site, $token),
         };
+    }
+
+    private function isAllowedLoopbackDomain(string $domain): bool
+    {
+        if (! (bool) config('sites.allow_loopback_domains', false)) {
+            return false;
+        }
+
+        if ($domain === 'localhost') {
+            return true;
+        }
+
+        if (filter_var($domain, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+            return str_starts_with($domain, '127.');
+        }
+
+        return $domain === '::1';
     }
 
     private function issueFreshChallenges(Site $site): void
