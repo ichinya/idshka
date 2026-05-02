@@ -77,7 +77,7 @@ function _M.apply(claims, request_id)
     ngx.req.set_header("X-Idshka-Scopes", tostring(claims.scope))
     ngx.req.set_header("X-Idshka-Permissions", permissions_to_header(claims.permissions))
     ngx.req.set_header("X-Idshka-JTI", tostring(claims.jti))
-    ngx.req.set_header("X-Idshka-Token-Exp", tostring(math.floor(tonumber(claims.exp) or 0)))
+    ngx.req.set_header("X-Idshka-Token-Exp", claims.exp == nil and "" or tostring(math.floor(tonumber(claims.exp) or 0)))
     ngx.req.set_header("X-Request-Id", tostring(request_id or ""))
 
     log_debug("applied", {

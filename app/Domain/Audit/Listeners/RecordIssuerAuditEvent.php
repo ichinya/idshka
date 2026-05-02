@@ -26,7 +26,7 @@ final class RecordIssuerAuditEvent
                     'aud' => $event->audience,
                     'jti' => $event->jti,
                     'kid' => $event->kid,
-                    'expires_at' => $event->expiresAt->toISOString(),
+                    'expires_at' => $event->expiresAt?->toISOString(),
                 ],
             );
 
@@ -36,7 +36,7 @@ final class RecordIssuerAuditEvent
                 'aud' => $event->audience,
                 'jti' => $event->jti,
                 'kid' => $event->kid,
-                'expires_at' => $event->expiresAt->toISOString(),
+                'expires_at' => $event->expiresAt?->toISOString(),
             ]);
 
             return;
@@ -53,7 +53,7 @@ final class RecordIssuerAuditEvent
                 'aud' => $event->audience,
                 'jti' => $event->jti,
                 'revoked_at' => $event->revokedAt->toISOString(),
-                'expires_at' => $event->expiresAt->toISOString(),
+                'expires_at' => $event->expiresAt?->toISOString(),
             ],
         );
 
@@ -64,7 +64,7 @@ final class RecordIssuerAuditEvent
             'aud' => $event->audience,
             'jti' => $event->jti,
             'revoked_at' => $event->revokedAt->toISOString(),
-            'expires_at' => $event->expiresAt->toISOString(),
+            'expires_at' => $event->expiresAt?->toISOString(),
         ]);
     }
 }

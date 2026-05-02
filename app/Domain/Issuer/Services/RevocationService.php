@@ -61,7 +61,7 @@ final class RevocationService
                     'user_id' => $apiToken->user_id,
                     'site_id' => $apiToken->site_id,
                     'audience' => $apiToken->audience,
-                    'expires_at' => $apiToken->expires_at->toDateTimeString(),
+                    'expires_at' => $apiToken->expires_at?->toDateTimeString(),
                     'revoked_at' => $revokedAt->toDateTimeString(),
                 ],
             );
@@ -76,7 +76,7 @@ final class RevocationService
             audience: $apiToken->audience,
             jti: $apiToken->jti,
             revokedAt: $revokedAt,
-            expiresAt: CarbonImmutable::instance($apiToken->expires_at),
+            expiresAt: $apiToken->expires_at === null ? null : CarbonImmutable::instance($apiToken->expires_at),
         );
 
         $freshToken = $apiToken->refresh();
@@ -101,26 +101,37 @@ final class RevocationService
             return;
         }
 
-        $ttlSeconds = (int) CarbonImmutable::now()->diffInSeconds(
-            CarbonImmutable::instance($apiToken->expires_at),
-            false,
-        );
-
-        if ($ttlSeconds <= 0) {
-            return;
-        }
-
         $cachePrefix = (string) config('issuer.revocation.cache_prefix', 'issuer:denylist:jti:');
         $cacheKey = $cachePrefix.$apiToken->jti;
 
         try {
+            if ($apiToken->expires_at === null) {
+                Cache::forever($cacheKey, true);
+
+                Log::debug('[issuer.revoke.cache_denylist] updated', [
+                    'cache_key' => $cacheKey,
+                    'ttl_seconds' => null,
+                ]);
+
+                return;
+            }
+
+            $ttlSeconds = (int) CarbonImmutable::now()->diffInSeconds(
+                CarbonImmutable::instance($apiToken->expires_at),
+                false,
+            );
+
+            if ($ttlSeconds <= 0) {
+                return;
+            }
+
             Cache::put($cacheKey, true, max(1, $ttlSeconds));
         } catch (Throwable $exception) {
             Log::warning('[FIX:issuer-revoke-denylist-best-effort] cache write failed after DB revoke', [
                 'api_token_id' => $apiToken->id,
                 'jti' => $apiToken->jti,
                 'cache_key' => $cacheKey,
-                'ttl_seconds' => $ttlSeconds,
+                'ttl_seconds' => $ttlSeconds ?? null,
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
             ]);

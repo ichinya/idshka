@@ -19,7 +19,7 @@ final readonly class IssuedUserApiToken
         public array $permissions,
         public CarbonImmutable $issuedAt,
         public CarbonImmutable $notBefore,
-        public CarbonImmutable $expiresAt,
+        public ?CarbonImmutable $expiresAt,
         public int $signingKeyId,
         public ?int $tokenId = null,
     ) {}

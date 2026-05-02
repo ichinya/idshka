@@ -213,7 +213,11 @@ local function require_claims(payload)
         return false
     end
 
-    if type(payload.iat) ~= "number" or type(payload.nbf) ~= "number" or type(payload.exp) ~= "number" then
+    if type(payload.iat) ~= "number" or type(payload.nbf) ~= "number" then
+        return false
+    end
+
+    if payload.exp ~= nil and type(payload.exp) ~= "number" then
         return false
     end
 
@@ -326,7 +330,7 @@ function _M.validate(options)
     local now = ngx.time()
     local skew = tonumber(options.clock_skew_seconds) or 0
 
-    if payload.exp <= now - skew then
+    if payload.exp ~= nil and payload.exp <= now - skew then
         log_warn("token_expired", { request_id = request_id, kid = header.kid, jti = payload.jti })
 
         return nil, gateway_error(401, "expired_token", "JWT is expired.")

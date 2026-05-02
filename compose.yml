@@ -126,6 +126,28 @@ services:
     networks:
       - idshka
 
+  idshka-api-token-inspector:
+    profiles: ["examples"]
+    build:
+      context: .
+      dockerfile: examples/idshka-api-token-inspector/Dockerfile
+    environment:
+      PORT: 8444
+      IDSHKA_ISSUER: ${IDSHKA_PUBLIC_URL:-http://localhost:8080}
+      IDSHKA_JWKS_URL: ${IDSHKA_JWKS_URL:-http://nginx/oauth/jwks.json}
+      IDSHKA_JWKS_TIMEOUT_MS: ${IDSHKA_JWKS_TIMEOUT_MS:-15000}
+      IDSHKA_JWKS_RETRY_COUNT: ${IDSHKA_JWKS_RETRY_COUNT:-1}
+      IDSHKA_CLOCK_TOLERANCE_SECONDS: ${IDSHKA_CLOCK_TOLERANCE_SECONDS:-5}
+    depends_on:
+      nginx:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8444:8444"
+    volumes:
+      - idshka-web-client-certs:/certs
+    networks:
+      - idshka
+
 networks:
   idshka:
     driver: bridge

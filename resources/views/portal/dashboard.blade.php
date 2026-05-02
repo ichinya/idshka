@@ -172,28 +172,54 @@
                     <div class="flex items-center justify-between gap-3">
                         <h2 class="text-lg font-semibold">API tokens</h2>
                     </div>
-                    <form class="mt-4 grid gap-3 md:grid-cols-2" method="POST" action="{{ route('portal.api-tokens.store') }}">
-                        @csrf
-                        <label class="grid gap-1 text-sm md:col-span-2">
-                            <span class="font-medium">Site</span>
-                            <select class="rounded-md border border-zinc-300 px-3 py-2" name="site_id" required>
-                                @foreach ($sites as $site)
-                                    <option value="{{ $site->id }}">{{ $site->normalized_domain }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label class="grid gap-1 text-sm">
-                            <span class="font-medium">Scopes</span>
-                            <input class="rounded-md border border-zinc-300 px-3 py-2" name="scopes" value="orders.read">
-                        </label>
-                        <label class="grid gap-1 text-sm">
-                            <span class="font-medium">Permissions</span>
-                            <input class="rounded-md border border-zinc-300 px-3 py-2" name="permissions" value="orders.read">
-                        </label>
-                        <button class="rounded-md bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800 md:col-span-2" type="submit">
-                            Issue token
-                        </button>
-                    </form>
+                    @if ($apiResourceSites->isNotEmpty())
+                        @php
+                            $apiTokenSelectedSiteId = old('site_id');
+                            $apiResourceSiteIds = $apiResourceSites->pluck('id')->all();
+
+                            if (! in_array($apiTokenSelectedSiteId, $apiResourceSiteIds, true)) {
+                                $apiTokenSelectedSiteId = $apiResourceSites->first()?->id;
+                            }
+                        @endphp
+                        <form class="mt-4 grid gap-3 md:grid-cols-2" method="POST" action="{{ route('portal.api-tokens.store') }}">
+                            @csrf
+                            <label class="grid gap-1 text-sm md:col-span-2">
+                                <span class="font-medium">Site</span>
+                                <select class="rounded-md border border-zinc-300 px-3 py-2" name="site_id" required>
+                                    @foreach ($apiResourceSites as $site)
+                                        <option value="{{ $site->id }}" @selected($site->id === $apiTokenSelectedSiteId)>{{ $site->normalized_domain }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label class="grid gap-1 text-sm">
+                                <span class="font-medium">Scopes</span>
+                                <input class="rounded-md border border-zinc-300 px-3 py-2" name="scopes" value="{{ old('scopes', 'orders.read') }}">
+                            </label>
+                            <label class="grid gap-1 text-sm">
+                                <span class="font-medium">Permissions</span>
+                                <input class="rounded-md border border-zinc-300 px-3 py-2" name="permissions" value="{{ old('permissions', 'orders.read') }}">
+                            </label>
+                            <label class="grid gap-1 text-sm">
+                                <span class="font-medium">Expiration</span>
+                                <select class="rounded-md border border-zinc-300 px-3 py-2" name="expires_mode">
+                                    <option value="default" @selected(old('expires_mode', 'default') === 'default')>Default TTL</option>
+                                    <option value="at" @selected(old('expires_mode') === 'at')>At date/time</option>
+                                    <option value="never" @selected(old('expires_mode') === 'never')>No expiration</option>
+                                </select>
+                            </label>
+                            <label class="grid gap-1 text-sm">
+                                <span class="font-medium">Expires at</span>
+                                <input class="rounded-md border border-zinc-300 px-3 py-2" type="datetime-local" name="expires_at" value="{{ old('expires_at') }}">
+                            </label>
+                            <button class="rounded-md bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800 md:col-span-2" type="submit">
+                                Issue token
+                            </button>
+                        </form>
+                    @else
+                        <p class="mt-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                            Enable API resource mode on a verified site before issuing tokens.
+                        </p>
+                    @endif
 
                     <div class="mt-5 divide-y divide-zinc-200">
                         @forelse ($apiTokens as $token)
@@ -201,7 +227,7 @@
                                 <div>
                                     <p class="font-medium">{{ $token->site?->normalized_domain }} · {{ $token->audience }}</p>
                                     <p class="font-mono text-xs text-zinc-600">{{ $token->jti }}</p>
-                                    <p class="text-xs text-zinc-600">Expires {{ $token->expires_at?->toISOString() }} · {{ $token->revoked_at ? 'revoked' : 'active' }}</p>
+                                    <p class="text-xs text-zinc-600">Expires {{ $token->expires_at?->toISOString() ?? 'Never' }} · {{ $token->revoked_at ? 'revoked' : 'active' }}</p>
                                 </div>
                                 <form class="flex gap-2" method="POST" action="{{ route('portal.api-tokens.revoke', $token) }}">
                                     @csrf

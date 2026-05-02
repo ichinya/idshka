@@ -7,6 +7,7 @@ use App\Domain\Issuer\DTO\IssuedUserApiToken;
 use App\Domain\Issuer\Events\UserApiTokenIssued;
 use App\Domain\Issuer\Models\ApiToken;
 use App\Domain\Issuer\Services\TokenIssuer;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 
 final class IssueUserApiTokenAction
@@ -25,12 +26,16 @@ final class IssueUserApiTokenAction
         string $siteId,
         array $requestedScopes,
         array $requestedPermissions,
+        ?CarbonImmutable $expiresAt = null,
+        bool $doesNotExpire = false,
     ): IssuedUserApiToken {
         Log::info('[issuer.issue_user_api_token] started', [
             'user_id' => $userId,
             'site_id' => $siteId,
             'requested_scopes_count' => count($requestedScopes),
             'requested_permissions_count' => count($requestedPermissions),
+            'custom_expires_at' => $expiresAt?->toISOString(),
+            'does_not_expire' => $doesNotExpire,
         ]);
 
         $access = $this->apiResourceAccessResolver->resolveForUser(
@@ -46,6 +51,8 @@ final class IssueUserApiTokenAction
             audience: $access->audience,
             scopes: $access->scopes,
             permissions: $access->permissions,
+            expiresAt: $expiresAt,
+            doesNotExpire: $doesNotExpire,
         );
 
         /** @var ApiToken $apiToken */
@@ -59,7 +66,7 @@ final class IssueUserApiTokenAction
             'scopes' => $issuedToken->scopes,
             'permissions' => $issuedToken->permissions,
             'issued_at' => $issuedToken->issuedAt->toDateTimeString(),
-            'expires_at' => $issuedToken->expiresAt->toDateTimeString(),
+            'expires_at' => $issuedToken->expiresAt?->toDateTimeString(),
             'revoked_at' => null,
         ]);
 

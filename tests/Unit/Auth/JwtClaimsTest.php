@@ -62,4 +62,23 @@ class JwtClaimsTest extends TestCase
         $this->assertSame('openid profile email', $payload['scope']);
         $this->assertArrayNotHasKey('permissions', $payload);
     }
+
+    public function test_claims_payload_can_omit_expiration_for_non_expiring_user_api_token(): void
+    {
+        $claims = new JwtClaims(
+            issuer: 'https://idshka.ru',
+            audience: 'example.test',
+            subject: '42',
+            siteId: 'site_01kq000000000000000000000000000001',
+            tokenType: JwtClaims::TOKEN_TYPE_USER_API,
+            scopes: ['orders.read'],
+            permissions: ['orders.read'],
+            jti: 'jti-123',
+            issuedAt: 1_700_000_000,
+            notBefore: 1_700_000_000,
+            expiresAt: null,
+        );
+
+        $this->assertArrayNotHasKey('exp', $claims->toArray());
+    }
 }

@@ -18,6 +18,6 @@ final class UserApiTokenRevoked
         public readonly string $audience,
         public readonly string $jti,
         public readonly CarbonImmutable $revokedAt,
-        public readonly CarbonImmutable $expiresAt,
+        public readonly ?CarbonImmutable $expiresAt,
     ) {}
 }

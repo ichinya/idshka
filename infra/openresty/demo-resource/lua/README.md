@@ -5,7 +5,7 @@
 ## Modules
 
 - `jwks_cache.lua` — читает public JWKS через internal Nginx subrequest и кеширует keys по `kid` в `lua_shared_dict`.
-- `jwt_validate.lua` — парсит Bearer JWT, проверяет `alg`, `kid`, подпись RS256 через explicit `openssl` runtime dependency, `iss`, `aud`, `exp`, `nbf`, `token_type`, `scope`, `permissions`, `jti`.
+- `jwt_validate.lua` — парсит Bearer JWT, проверяет `alg`, `kid`, подпись RS256 через explicit `openssl` runtime dependency, `iss`, `aud`, optional `exp`, `nbf`, `token_type`, `scope`, `permissions`, `jti`.
 - `context_headers.lua` — удаляет входящие `X-Idshka-*` и `Authorization`, затем выставляет trusted `X-Idshka-*` headers для upstream.
 
 ## Deferred

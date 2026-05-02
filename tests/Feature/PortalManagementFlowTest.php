@@ -228,6 +228,101 @@ class PortalManagementFlowTest extends TestCase
             ->assertDontSee('https://example.test/auth/idshka/callback');
     }
 
+    public function test_portal_api_token_form_lists_only_api_resource_sites(): void
+    {
+        $owner = User::factory()->create();
+        $apiResourceSite = $this->createVerifiedSiteWithModes(
+            owner: $owner,
+            domain: 'chat.ie0.ru',
+            displayName: 'APIshka',
+            modes: [SiteModeType::ApiResource],
+        );
+        $webClientOnlySite = $this->createVerifiedSiteWithModes(
+            owner: $owner,
+            domain: 'localhost',
+            displayName: 'Local Web',
+            modes: [SiteModeType::WebClient],
+        );
+
+        $response = $this
+            ->actingAs($owner)
+            ->get('/portal');
+
+        $response
+            ->assertOk()
+            ->assertSee('API tokens');
+
+        $html = $response->getContent();
+        $this->assertIsString($html);
+
+        $apiTokenHeading = strpos($html, 'API tokens');
+        $webClientHeading = strpos($html, 'Web clients');
+
+        $this->assertIsInt($apiTokenHeading);
+        $this->assertIsInt($webClientHeading);
+
+        $apiTokenSection = substr($html, $apiTokenHeading, $webClientHeading - $apiTokenHeading);
+
+        $this->assertStringContainsString('value="'.$apiResourceSite->id.'"', $apiTokenSection);
+        $this->assertStringContainsString('chat.ie0.ru', $apiTokenSection);
+        $this->assertStringNotContainsString('value="'.$webClientOnlySite->id.'"', $apiTokenSection);
+    }
+
+    public function test_portal_can_issue_api_token_with_custom_or_no_expiration(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createVerifiedSiteWithModes(
+            owner: $owner,
+            domain: 'chat.ie0.ru',
+            displayName: 'APIshka',
+            modes: [SiteModeType::ApiResource],
+        );
+        $this->app->make(SigningKeyService::class)->createActiveKey();
+
+        $customExpiration = now()->addDay()->setSecond(0)->setMicrosecond(0);
+
+        $customResponse = $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post('/portal/api-tokens', [
+                'site_id' => $site->id,
+                'scopes' => 'orders.read',
+                'permissions' => 'orders.read',
+                'expires_mode' => 'at',
+                'expires_at' => $customExpiration->format('Y-m-d\TH:i'),
+            ]);
+
+        $customResponse
+            ->assertOk()
+            ->assertSee('Токен создан')
+            ->assertSee($customExpiration->toISOString());
+
+        $this->assertDatabaseHas('api_tokens', [
+            'site_id' => $site->id,
+            'expires_at' => $customExpiration->toDateTimeString(),
+        ]);
+
+        $neverResponse = $this
+            ->actingAs($owner)
+            ->followingRedirects()
+            ->post('/portal/api-tokens', [
+                'site_id' => $site->id,
+                'scopes' => 'orders.read',
+                'permissions' => 'orders.read',
+                'expires_mode' => 'never',
+            ]);
+
+        $neverResponse
+            ->assertOk()
+            ->assertSee('Токен создан')
+            ->assertSee('Never');
+
+        $this->assertDatabaseHas('api_tokens', [
+            'site_id' => $site->id,
+            'expires_at' => null,
+        ]);
+    }
+
     public function test_portal_can_register_loopback_web_client_when_local_loopback_sites_are_enabled(): void
     {
         config(['sites.allow_loopback_domains' => true]);
@@ -345,6 +440,21 @@ class PortalManagementFlowTest extends TestCase
 
     private function createVerifiedSite(User $owner, string $domain = 'example.test', string $displayName = 'Example App'): Site
     {
+        return $this->createVerifiedSiteWithModes($owner, $domain, $displayName, [
+            SiteModeType::ApiResource,
+            SiteModeType::WebClient,
+        ]);
+    }
+
+    /**
+     * @param  list<SiteModeType>  $modes
+     */
+    private function createVerifiedSiteWithModes(
+        User $owner,
+        string $domain = 'example.test',
+        string $displayName = 'Example App',
+        array $modes = [],
+    ): Site {
         /** @var Site $site */
         $site = Site::query()->create([
             'id' => 'site_'.strtolower((string) str()->ulid()),
@@ -356,17 +466,13 @@ class PortalManagementFlowTest extends TestCase
             'verified_at' => now(),
         ]);
 
-        SiteMode::query()->create([
-            'site_id' => $site->id,
-            'mode' => SiteModeType::ApiResource->value,
-            'enabled_at' => now(),
-        ]);
-
-        SiteMode::query()->create([
-            'site_id' => $site->id,
-            'mode' => SiteModeType::WebClient->value,
-            'enabled_at' => now(),
-        ]);
+        foreach ($modes as $mode) {
+            SiteMode::query()->create([
+                'site_id' => $site->id,
+                'mode' => $mode->value,
+                'enabled_at' => now(),
+            ]);
+        }
 
         return $site;
     }

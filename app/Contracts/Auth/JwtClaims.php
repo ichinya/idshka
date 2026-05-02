@@ -27,7 +27,7 @@ final readonly class JwtClaims
         public string $jti,
         public int $issuedAt,
         public int $notBefore,
-        public int $expiresAt,
+        public ?int $expiresAt,
         public ?string $nonce = null,
     ) {
         if (! in_array($this->tokenType, self::supportedTokenTypes(), true)) {
@@ -76,7 +76,9 @@ final readonly class JwtClaims
         $payload['jti'] = $this->jti;
         $payload['iat'] = $this->issuedAt;
         $payload['nbf'] = $this->notBefore;
-        $payload['exp'] = $this->expiresAt;
+        if ($this->expiresAt !== null) {
+            $payload['exp'] = $this->expiresAt;
+        }
 
         return $payload;
     }

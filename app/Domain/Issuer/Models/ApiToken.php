@@ -19,7 +19,7 @@ use Illuminate\Support\Carbon;
  * @property list<string> $scopes
  * @property list<string> $permissions
  * @property Carbon $issued_at
- * @property Carbon $expires_at
+ * @property Carbon|null $expires_at
  * @property Carbon|null $revoked_at
  */
 final class ApiToken extends Model

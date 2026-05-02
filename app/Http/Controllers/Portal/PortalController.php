@@ -22,6 +22,7 @@ use App\Domain\Sites\Exceptions\SiteDomainConflictException;
 use App\Domain\Sites\Exceptions\UnverifiedSiteException;
 use App\Domain\Sites\Models\Site;
 use App\Http\Controllers\Controller;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -50,6 +51,10 @@ final class PortalController extends Controller
             ->latest()
             ->get();
 
+        $apiResourceSites = $sites
+            ->filter(fn (Site $site): bool => $site->modes->contains('mode', SiteModeType::ApiResource->value))
+            ->values();
+
         $apiTokens = ApiToken::query()
             ->with('site')
             ->where('user_id', $userId)
@@ -71,6 +76,7 @@ final class PortalController extends Controller
         Log::info('[portal.dashboard] completed', [
             'user_id' => $userId,
             'sites_count' => $sites->count(),
+            'api_resource_sites_count' => $apiResourceSites->count(),
             'api_tokens_count' => $apiTokens->count(),
             'clients_count' => $clients->count(),
             'audit_events_count' => $auditEvents->count(),
@@ -78,6 +84,7 @@ final class PortalController extends Controller
 
         return view('portal.dashboard', [
             'sites' => $sites,
+            'apiResourceSites' => $apiResourceSites,
             'apiTokens' => $apiTokens,
             'clients' => $clients,
             'auditEvents' => $auditEvents,
@@ -183,10 +190,17 @@ final class PortalController extends Controller
             'site_id' => ['required', 'string', 'exists:sites,id'],
             'scopes' => ['nullable', 'string', 'max:500'],
             'permissions' => ['nullable', 'string', 'max:500'],
+            'expires_mode' => ['nullable', Rule::in(['default', 'at', 'never'])],
+            'expires_at' => ['exclude_unless:expires_mode,at', 'required', 'date', 'after:now'],
         ]);
 
         $scopes = $this->splitCsvWords($validated['scopes'] ?? '');
         $permissions = $this->splitCsvWords($validated['permissions'] ?? '');
+        $expiresMode = (string) ($validated['expires_mode'] ?? 'default');
+        $doesNotExpire = $expiresMode === 'never';
+        $expiresAt = $expiresMode === 'at'
+            ? CarbonImmutable::parse((string) $validated['expires_at'])->setTimezone('UTC')
+            : null;
 
         try {
             $issued = $action->handle(
@@ -194,6 +208,8 @@ final class PortalController extends Controller
                 siteId: (string) $validated['site_id'],
                 requestedScopes: $scopes,
                 requestedPermissions: $permissions,
+                expiresAt: $expiresAt,
+                doesNotExpire: $doesNotExpire,
             );
         } catch (ApiResourceEligibilityException|SigningKeyStateException|UnverifiedSiteException $exception) {
             return back()->withErrors(['api_token' => $exception->getMessage()])->withInput();
@@ -215,7 +231,7 @@ final class PortalController extends Controller
                 'token' => $issued->rawToken,
                 'token_id' => $issued->tokenId,
                 'jti' => $issued->jti,
-                'expires_at' => $issued->expiresAt->toISOString(),
+                'expires_at' => $issued->expiresAt?->toISOString() ?? 'Never',
             ]);
     }
 

@@ -1,0 +1,13 @@
+{
+  "name": "idshka-api-token-inspector",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test src/*.test.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "jose": "^6.1.0"
+  }
+}

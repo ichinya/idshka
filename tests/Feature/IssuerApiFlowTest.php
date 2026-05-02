@@ -10,6 +10,7 @@ use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteMode;
 use App\Domain\Sites\Services\SiteIdFactory;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Lcobucci\JWT\Encoding\JoseEncoder;
 use Lcobucci\JWT\Token\Parser;
@@ -66,6 +67,64 @@ class IssuerApiFlowTest extends TestCase
         /** @var ApiToken $apiToken */
         $apiToken = ApiToken::query()->where('jti', (string) $response->json('jti'))->firstOrFail();
         $this->assertSame($apiToken->id, $response->json('token_id'));
+    }
+
+    public function test_owner_can_issue_user_api_token_with_custom_expiration(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createSite(ownerId: $owner->id, verified: true, apiResourceMode: true);
+        $this->app->make(SigningKeyService::class)->createActiveKey();
+
+        $expiresAt = CarbonImmutable::now()->addDay()->seconds(0);
+
+        $response = $this
+            ->actingAs($owner)
+            ->postJson('/api/v1/user/api-tokens', [
+                'site_id' => $site->id,
+                'scopes' => ['orders.read'],
+                'permissions' => ['orders.read'],
+                'expires_at' => $expiresAt->toISOString(),
+            ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('expires_at', $expiresAt->toISOString());
+
+        $token = (new Parser(new JoseEncoder))->parse((string) $response->json('token'));
+
+        $this->assertSame($expiresAt->getTimestamp(), $token->claims()->get('exp')->getTimestamp());
+        $this->assertDatabaseHas('api_tokens', [
+            'jti' => $response->json('jti'),
+            'expires_at' => $expiresAt->toDateTimeString(),
+        ]);
+    }
+
+    public function test_owner_can_issue_non_expiring_user_api_token(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createSite(ownerId: $owner->id, verified: true, apiResourceMode: true);
+        $this->app->make(SigningKeyService::class)->createActiveKey();
+
+        $response = $this
+            ->actingAs($owner)
+            ->postJson('/api/v1/user/api-tokens', [
+                'site_id' => $site->id,
+                'scopes' => ['orders.read'],
+                'permissions' => ['orders.read'],
+                'does_not_expire' => true,
+            ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('expires_at', null);
+
+        $token = (new Parser(new JoseEncoder))->parse((string) $response->json('token'));
+
+        $this->assertFalse($token->claims()->has('exp'));
+        $this->assertDatabaseHas('api_tokens', [
+            'jti' => $response->json('jti'),
+            'expires_at' => null,
+        ]);
     }
 
     public function test_jwks_endpoint_returns_public_keys_and_no_cookies(): void

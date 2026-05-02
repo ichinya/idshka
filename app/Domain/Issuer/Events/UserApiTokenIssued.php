@@ -17,6 +17,6 @@ final class UserApiTokenIssued
         public readonly string $audience,
         public readonly string $jti,
         public readonly string $kid,
-        public readonly CarbonImmutable $expiresAt,
+        public readonly ?CarbonImmutable $expiresAt,
     ) {}
 }
