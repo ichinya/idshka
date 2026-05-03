@@ -188,16 +188,16 @@
       },
       "managedAgentFiles": {
         "aifhub-done-finalizer.toml": {
-          "sourceHash": "cfdd7d0ccbf5f1359dc4bb61717c009ad3c62da352ac54a9f8175f7edaa11640",
-          "installedHash": "cfdd7d0ccbf5f1359dc4bb61717c009ad3c62da352ac54a9f8175f7edaa11640"
+          "sourceHash": "e547d8785532664850018a327a15a8722c9a7dec2f5bb67ff596c0fb4b12a4da",
+          "installedHash": "e547d8785532664850018a327a15a8722c9a7dec2f5bb67ff596c0fb4b12a4da"
         },
         "aifhub-fixer.toml": {
           "sourceHash": "e3b4789c83a3e9ffc98cf8b464bb271380060932349e4cb3231c5e2c952d5f1d",
           "installedHash": "e3b4789c83a3e9ffc98cf8b464bb271380060932349e4cb3231c5e2c952d5f1d"
         },
         "aifhub-implement-worker.toml": {
-          "sourceHash": "65e1470e00710f3e1a3a4cf526343eaaf358e1377d50dfeabc17ab9933172d67",
-          "installedHash": "65e1470e00710f3e1a3a4cf526343eaaf358e1377d50dfeabc17ab9933172d67"
+          "sourceHash": "98d098aa439756d440df289878b005953a9e1987133573a6fc652116a260b21d",
+          "installedHash": "98d098aa439756d440df289878b005953a9e1987133573a6fc652116a260b21d"
         },
         "aifhub-plan-polisher.toml": {
           "sourceHash": "6ac0f89435ae28d88bad4b30aefb9031d09bcacc2fc827ec9372329904626315",
@@ -216,8 +216,8 @@
           "installedHash": "6e9fff71899e4b4b49006b9e22e2084692ccb9106610ae4b5d3ffe4e99c24124"
         },
         "aifhub-verifier.toml": {
-          "sourceHash": "d4b79a9bb4031dbe3306129093249e266f2685a1800852e894742362cdd1d89e",
-          "installedHash": "d4b79a9bb4031dbe3306129093249e266f2685a1800852e894742362cdd1d89e"
+          "sourceHash": "d29465301303a700f025d5512791b8cac13b31210059dacaba6c0483d71a8faf",
+          "installedHash": "d29465301303a700f025d5512791b8cac13b31210059dacaba6c0483d71a8faf"
         }
       },
       "mcp": {
@@ -376,7 +376,7 @@
     {
       "name": "aifhub-extension",
       "source": "https://github.com/ichinya/aifhub-extension",
-      "version": "1.0.8"
+      "version": "1.0.9"
     }
   ]
 }

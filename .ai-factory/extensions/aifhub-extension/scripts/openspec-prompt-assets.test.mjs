@@ -10,7 +10,9 @@ const REPO_ROOT = resolve(__dirname, '..');
 
 const EXPLICIT_REFERENCE_ASSETS = [
   'skills/aif-analyze/references/config-template.yaml',
-  'skills/aif-done/references/finalization-contract.md'
+  'skills/aif-done/references/finalization-contract.md',
+  'injections/references/aif-roadmap/roadmap-template.md',
+  'injections/references/aif-roadmap/slice-checklist.md'
 ];
 
 const MODE_GATED_PROMPTS = [
@@ -27,6 +29,12 @@ const VERIFY_PROMPT_ASSETS = [
   'agent-files/claude/aifhub-verifier.md'
 ];
 
+const IMPLEMENT_PROMPT_ASSETS = [
+  'injections/core/aif-implement-plan-folder.md',
+  'agent-files/codex/aifhub-implement-worker.toml',
+  'agent-files/claude/aifhub-implement-worker.md'
+];
+
 const PLAN_POLISHER_PROMPT_ASSETS = [
   'agent-files/codex/aifhub-plan-polisher.toml',
   'agent-files/claude/aifhub-plan-polisher.md'
@@ -37,6 +45,22 @@ const DONE_PROMPT_ASSETS = [
   'skills/aif-done/references/finalization-contract.md',
   'agent-files/codex/aifhub-done-finalizer.toml',
   'agent-files/claude/aifhub-done-finalizer.md'
+];
+
+const SIDECAR_PROMPT_ASSETS = [
+  ['agent-files/codex/aifhub-rules-sidecar.toml', 'rules'],
+  ['agent-files/claude/aifhub-rules-sidecar.md', 'rules'],
+  ['agent-files/codex/aifhub-review-sidecar.toml', 'review'],
+  ['agent-files/claude/aifhub-review-sidecar.md', 'review'],
+  ['agent-files/codex/aifhub-security-sidecar.toml', 'security'],
+  ['agent-files/claude/aifhub-security-sidecar.md', 'security']
+];
+
+const ROADMAP_PROMPT_ASSET = 'injections/core/aif-roadmap-maturity-audit.md';
+
+const ROADMAP_REFERENCE_ASSETS = [
+  'injections/references/aif-roadmap/roadmap-template.md',
+  'injections/references/aif-roadmap/slice-checklist.md'
 ];
 
 const CANONICAL_CHANGE_FILES = [
@@ -182,6 +206,8 @@ describe('OpenSpec-native prompt asset contract', () => {
       'skills/aif-analyze/SKILL.md',
       'skills/aif-done/SKILL.md',
       'injections/core/aif-rules-check-openspec-generated-rules.md',
+      ROADMAP_PROMPT_ASSET,
+      ...ROADMAP_REFERENCE_ASSETS,
       'injections/core/aif-implement-plan-folder.md',
       'agent-files/codex/aifhub-verifier.toml',
       'agent-files/claude/aifhub-verifier.md'
@@ -434,6 +460,113 @@ describe('OpenSpec-native prompt asset contract', () => {
         /archive integration (?:is )?deferred to issue #33|deferred archive status/i,
         `${relativePath} should no longer describe OpenSpec archive integration as deferred`
       );
+    }
+  });
+
+  it('requires done prompts to hand off to sync, commit, and optional evolve without replacing commit', async () => {
+    for (const relativePath of DONE_PROMPT_ASSETS) {
+      const asset = stripFencedBlocks(await readRepoFile(relativePath));
+
+      for (const expected of [
+        '/aif-mode sync',
+        '/aif-commit',
+        '/aif-evolve'
+      ]) {
+        assertIncludes(asset, expected, relativePath);
+      }
+
+      assert.match(
+        asset,
+        /do not (?:create|make) commits|does not create commits|never create commits/i,
+        `${relativePath} should forbid commit creation from done finalization`
+      );
+      assert.match(
+        asset,
+        /do not (?:create|open) PRs|does not create PRs|never auto-create PRs/i,
+        `${relativePath} should forbid PR creation from done finalization`
+      );
+      assert.match(
+        asset,
+        /does not replace `?\/aif-commit`?|do not present `?\/aif-done`?.*replac(?:e|ing) `?\/aif-commit`?/i,
+        `${relativePath} should state that /aif-done does not replace /aif-commit`
+      );
+    }
+  });
+
+  it('mentions optional read-only gates in implement and verifier prompts while preserving authoritative verify', async () => {
+    for (const relativePath of [...IMPLEMENT_PROMPT_ASSETS, ...VERIFY_PROMPT_ASSETS]) {
+      const asset = stripFencedBlocks(await readRepoFile(relativePath));
+
+      for (const expected of [
+        '/aif-rules-check',
+        '/aif-review',
+        '/aif-security-checklist'
+      ]) {
+        assertIncludes(asset, expected, relativePath);
+      }
+
+      assert.match(
+        asset,
+        /authoritative final verification remains `?\/aif-verify <change-id>`?|\/aif-verify <change-id>.*authoritative final verification/i,
+        `${relativePath} should keep /aif-verify as authoritative final verification`
+      );
+    }
+  });
+
+  it('keeps sidecar prompt assets on explicit rules, review, and security gate values', async () => {
+    for (const [relativePath, gate] of SIDECAR_PROMPT_ASSETS) {
+      const asset = await readRepoFile(relativePath);
+      assertIncludes(asset, `"gate": "${gate}"`, relativePath);
+    }
+  });
+
+  it('defines GitHub-aware roadmap evidence as supporting and non-blocking', async () => {
+    const asset = stripFencedBlocks(await readRepoFile(ROADMAP_PROMPT_ASSET));
+
+    for (const expected of [
+      'GitHub-aware evidence',
+      'milestones',
+      'open and closed issues',
+      'open, merged, and closed PRs',
+      'labels',
+      'linked branches',
+      'current git tree',
+      'supporting evidence only',
+      'must never be the sole reason to mark a slice or roadmap item `done`',
+      'GitHub evidence was used, unavailable, or partially available'
+    ]) {
+      assertIncludes(asset, expected, ROADMAP_PROMPT_ASSET);
+    }
+  });
+
+  it('keeps GitHub-aware roadmap output owner-bounded and credential-safe', async () => {
+    const asset = stripFencedBlocks(await readRepoFile(ROADMAP_PROMPT_ASSET));
+
+    for (const expected of [
+      'must not mutate GitHub issues, milestones, PRs, labels, or linked branches',
+      'must not write tokens',
+      'authorization headers',
+      'raw credential helper output',
+      'private authentication diagnostics',
+      'GitHub says done, but local evidence is missing',
+      'local implementation exists, but GitHub is stale',
+      'OpenSpec change exists, but no linked roadmap/milestone/issue is visible'
+    ]) {
+      assertIncludes(asset, expected, ROADMAP_PROMPT_ASSET);
+    }
+  });
+
+  it('keeps roadmap references ready for optional GitHub links without requiring them everywhere', async () => {
+    for (const relativePath of ROADMAP_REFERENCE_ASSETS) {
+      const asset = stripFencedBlocks(await readRepoFile(relativePath));
+
+      for (const expected of [
+        'GitHub evidence',
+        'GitHub links are optional',
+        'local artifact evidence remains required'
+      ]) {
+        assertIncludes(asset, expected, relativePath);
+      }
     }
   });
 
