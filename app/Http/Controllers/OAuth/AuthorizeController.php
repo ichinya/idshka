@@ -8,6 +8,7 @@ use App\Domain\OidcClients\Services\OidcClientResolver;
 use App\Http\Controllers\Concerns\ReturnsOAuthErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OAuth\AuthorizeRequest;
+use App\Support\SafeLogContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
@@ -27,11 +28,11 @@ final class AuthorizeController extends Controller
             return $this->oauthError($request, 401, 'authentication_required', 'Authentication required.');
         }
 
-        Log::info('[oauth.authorize] started', [
+        Log::info('[oauth.authorize] started', SafeLogContext::from([
             'request_id' => $request->attributes->get('request_id'),
             'user_id' => $user->getAuthIdentifier(),
             'client_id' => $request->string('client_id')->toString(),
-        ]);
+        ]));
 
         try {
             $resolvedClient = $clientResolver->resolveForAuthorize(
@@ -50,13 +51,13 @@ final class AuthorizeController extends Controller
             return $this->oauthError($request, $exception->httpStatus(), $exception->errorCode(), $exception->getMessage());
         }
 
-        Log::info('[oauth.authorize] completed', [
+        Log::info('[oauth.authorize] completed', SafeLogContext::from([
             'request_id' => $request->attributes->get('request_id'),
             'user_id' => $user->getAuthIdentifier(),
             'client_id' => $resolvedClient->client->client_id,
             'site_id' => $resolvedClient->site->id,
             'authorization_code_id' => $issuedCode->record->id,
-        ]);
+        ]));
 
         return redirect()->away($this->withAuthorizationResponseParameters($resolvedClient->redirectUri->redirect_uri, [
             'code' => $issuedCode->rawCode,

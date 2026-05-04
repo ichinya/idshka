@@ -8,6 +8,7 @@ use App\Domain\ApiResources\Exceptions\ApiResourceEligibilityException;
 use App\Domain\Sites\Contracts\VerifiedSiteLookup;
 use App\Domain\Sites\Enums\SiteModeType;
 use App\Domain\Sites\Models\SiteMode;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 
 final class SiteApiResourceAccessResolver implements ApiResourceAccessResolver
@@ -22,21 +23,21 @@ final class SiteApiResourceAccessResolver implements ApiResourceAccessResolver
         array $requestedScopes,
         array $requestedPermissions,
     ): ResolvedApiResourceAccess {
-        Log::debug('[api_resource.resolve_access] started', [
+        Log::debug('[api_resource.resolve_access] started', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $siteId,
             'requested_scopes_count' => count($requestedScopes),
             'requested_permissions_count' => count($requestedPermissions),
-        ]);
+        ]));
 
         $site = $this->verifiedSiteLookup->requireVerified($siteId);
 
         if ($site->owner_user_id !== $userId) {
-            Log::warning('[api_resource.resolve_access] owner_mismatch', [
+            Log::warning('[api_resource.resolve_access] owner_mismatch', SafeLogContext::from([
                 'user_id' => $userId,
                 'site_id' => $site->id,
                 'site_owner_user_id' => $site->owner_user_id,
-            ]);
+            ]));
 
             throw ApiResourceEligibilityException::forbidden(
                 'site_owner_mismatch',
@@ -50,10 +51,10 @@ final class SiteApiResourceAccessResolver implements ApiResourceAccessResolver
             ->exists();
 
         if (! $hasApiMode) {
-            Log::warning('[api_resource.resolve_access] api_mode_missing', [
+            Log::warning('[api_resource.resolve_access] api_mode_missing', SafeLogContext::from([
                 'user_id' => $userId,
                 'site_id' => $site->id,
-            ]);
+            ]));
 
             throw ApiResourceEligibilityException::forbidden(
                 'api_resource_mode_required',
@@ -70,11 +71,11 @@ final class SiteApiResourceAccessResolver implements ApiResourceAccessResolver
         $invalidScopes = array_values(array_diff($normalizedScopes, $allowedScopes));
 
         if ($invalidScopes !== []) {
-            Log::warning('[api_resource.resolve_access] invalid_scopes', [
+            Log::warning('[api_resource.resolve_access] invalid_scopes', SafeLogContext::from([
                 'user_id' => $userId,
                 'site_id' => $site->id,
                 'invalid_scope_count' => count($invalidScopes),
-            ]);
+            ]));
 
             throw ApiResourceEligibilityException::validation(
                 'invalid_scope',
@@ -85,11 +86,11 @@ final class SiteApiResourceAccessResolver implements ApiResourceAccessResolver
         $invalidPermissions = array_values(array_diff($normalizedPermissions, $allowedPermissions));
 
         if ($invalidPermissions !== []) {
-            Log::warning('[api_resource.resolve_access] invalid_permissions', [
+            Log::warning('[api_resource.resolve_access] invalid_permissions', SafeLogContext::from([
                 'user_id' => $userId,
                 'site_id' => $site->id,
                 'invalid_permission_count' => count($invalidPermissions),
-            ]);
+            ]));
 
             throw ApiResourceEligibilityException::validation(
                 'invalid_permissions',
@@ -97,13 +98,13 @@ final class SiteApiResourceAccessResolver implements ApiResourceAccessResolver
             );
         }
 
-        Log::debug('[api_resource.resolve_access] completed', [
+        Log::debug('[api_resource.resolve_access] completed', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $site->id,
             'audience' => $site->normalized_domain,
             'scopes_count' => count($normalizedScopes),
             'permissions_count' => count($normalizedPermissions),
-        ]);
+        ]));
 
         return new ResolvedApiResourceAccess(
             siteId: $site->id,

@@ -45,12 +45,28 @@ Route::middleware('auth:web')
     ->name('portal.')
     ->group(function (): void {
         Route::get('/', [PortalController::class, 'index'])->name('dashboard');
-        Route::post('/sites', [PortalController::class, 'storeSite'])->name('sites.store');
-        Route::post('/sites/{site}/verify', [PortalController::class, 'verifySite'])->name('sites.verify');
-        Route::post('/sites/{site}/modes/{mode}', [PortalController::class, 'enableSiteMode'])->name('sites.modes.store');
-        Route::post('/api-tokens', [PortalController::class, 'storeApiToken'])->name('api-tokens.store');
-        Route::post('/api-tokens/{apiToken}/revoke', [PortalController::class, 'revokeApiToken'])->name('api-tokens.revoke');
-        Route::post('/clients', [PortalController::class, 'storeClient'])->name('clients.store');
-        Route::post('/clients/{client}/redirect-uris', [PortalController::class, 'storeRedirectUri'])->name('clients.redirect-uris.store');
-        Route::post('/clients/{client}/revoke', [PortalController::class, 'revokeClient'])->name('clients.revoke');
+        Route::post('/sites', [PortalController::class, 'storeSite'])
+            ->middleware('throttle:portal-site-write')
+            ->name('sites.store');
+        Route::post('/sites/{site}/verify', [PortalController::class, 'verifySite'])
+            ->middleware('throttle:portal-verification')
+            ->name('sites.verify');
+        Route::post('/sites/{site}/modes/{mode}', [PortalController::class, 'enableSiteMode'])
+            ->middleware('throttle:portal-site-write')
+            ->name('sites.modes.store');
+        Route::post('/api-tokens', [PortalController::class, 'storeApiToken'])
+            ->middleware('throttle:portal-credential-issue')
+            ->name('api-tokens.store');
+        Route::post('/api-tokens/{apiToken}/revoke', [PortalController::class, 'revokeApiToken'])
+            ->middleware('throttle:portal-credential-revoke')
+            ->name('api-tokens.revoke');
+        Route::post('/clients', [PortalController::class, 'storeClient'])
+            ->middleware('throttle:portal-client-write')
+            ->name('clients.store');
+        Route::post('/clients/{client}/redirect-uris', [PortalController::class, 'storeRedirectUri'])
+            ->middleware('throttle:portal-redirect-uri-write')
+            ->name('clients.redirect-uris.store');
+        Route::post('/clients/{client}/revoke', [PortalController::class, 'revokeClient'])
+            ->middleware('throttle:portal-credential-revoke')
+            ->name('clients.revoke');
     });

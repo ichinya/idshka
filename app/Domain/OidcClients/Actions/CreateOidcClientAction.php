@@ -10,6 +10,7 @@ use App\Domain\OidcClients\Models\OidcRedirectUri;
 use App\Domain\Sites\Enums\SiteModeType;
 use App\Domain\Sites\Enums\SiteVerificationStatus;
 use App\Domain\Sites\Models\Site;
+use App\Support\SafeLogContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,11 +22,11 @@ final class CreateOidcClientAction
 {
     public function handle(int $ownerUserId, string $siteId, string $name, string $redirectUri): IssuedOidcClient
     {
-        Log::info('[oidc.client.create] started', [
+        Log::info('[oidc.client.create] started', SafeLogContext::from([
             'owner_user_id' => $ownerUserId,
             'site_id' => $siteId,
             'redirect_uri_hash' => hash('sha256', $redirectUri),
-        ]);
+        ]));
 
         $site = $this->requireOwnedWebClientSite($ownerUserId, $siteId);
         $this->assertRedirectUri($redirectUri);
@@ -57,12 +58,12 @@ final class CreateOidcClientAction
         OidcClientCreated::dispatch($client);
         OidcRedirectUriAdded::dispatch($client, $redirect);
 
-        Log::info('[oidc.client.create] completed', [
+        Log::info('[oidc.client.create] completed', SafeLogContext::from([
             'owner_user_id' => $ownerUserId,
             'site_id' => $site->id,
             'oidc_client_id' => $client->id,
             'client_id' => $client->client_id,
-        ]);
+        ]));
 
         return new IssuedOidcClient($client, $rawSecret);
     }

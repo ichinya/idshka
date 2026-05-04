@@ -2,6 +2,7 @@
 
 namespace App\Domain\Issuer\Services;
 
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 
 final class PkceService
@@ -13,9 +14,9 @@ final class PkceService
     public function verify(string $verifier, string $challenge, string $method): bool
     {
         if ($method !== 'S256') {
-            Log::warning('[issuer.pkce.verify] unsupported_method', [
+            Log::warning('[issuer.pkce.verify] unsupported_method', SafeLogContext::from([
                 'method' => $method,
-            ]);
+            ]));
 
             return false;
         }
@@ -26,7 +27,7 @@ final class PkceService
     public function verifyS256(string $verifier, string $challenge): bool
     {
         if (! $this->isValidVerifier($verifier) || ! $this->isValidS256Challenge($challenge)) {
-            Log::warning('[issuer.pkce.verify] invalid_shape');
+            Log::warning('[issuer.pkce.verify] invalid_shape', SafeLogContext::from());
 
             return false;
         }
@@ -35,7 +36,7 @@ final class PkceService
         $matches = hash_equals($computed, $challenge);
 
         if (! $matches) {
-            Log::warning('[issuer.pkce.verify] challenge_mismatch');
+            Log::warning('[issuer.pkce.verify] challenge_mismatch', SafeLogContext::from());
         }
 
         return $matches;

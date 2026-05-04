@@ -3,6 +3,7 @@
 namespace App\Domain\Audit\Services;
 
 use App\Domain\Audit\Models\AuditEvent;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -19,13 +20,13 @@ final class AuditRecorder
         string $summary,
         array $metadata = [],
     ): AuditEvent {
-        Log::debug('[audit.record] started', [
+        Log::debug('[audit.record] started', SafeLogContext::from([
             'category' => $category,
             'action' => $action,
             'user_id' => $userId,
             'site_id' => $siteId,
             'metadata_keys' => array_keys($metadata),
-        ]);
+        ]));
 
         /** @var AuditEvent $event */
         $event = AuditEvent::query()->create([
@@ -38,11 +39,11 @@ final class AuditRecorder
             'occurred_at' => now(),
         ]);
 
-        Log::debug('[audit.record] completed', [
+        Log::debug('[audit.record] completed', SafeLogContext::from([
             'audit_event_id' => $event->id,
             'category' => $category,
             'action' => $action,
-        ]);
+        ]));
 
         return $event;
     }
@@ -61,7 +62,7 @@ final class AuditRecorder
         try {
             return $this->record($category, $action, $userId, $siteId, $summary, $metadata);
         } catch (Throwable $exception) {
-            Log::warning('[audit.record] failed', [
+            Log::warning('[audit.record] failed', SafeLogContext::from([
                 'category' => $category,
                 'action' => $action,
                 'user_id' => $userId,
@@ -69,7 +70,7 @@ final class AuditRecorder
                 'metadata_keys' => array_keys($metadata),
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
-            ]);
+            ]));
 
             return null;
         }

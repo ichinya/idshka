@@ -8,6 +8,7 @@ use App\Domain\Issuer\Exceptions\SigningKeyStateException;
 use App\Domain\Sites\Exceptions\UnverifiedSiteException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\IssueUserApiTokenRequest;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,14 +33,14 @@ final class IssueUserApiTokenController extends Controller
             ? null
             : CarbonImmutable::parse((string) $request->input('expires_at'))->setTimezone('UTC');
 
-        Log::info('[api.issuer.issue_user_api_token] started', [
+        Log::info('[api.issuer.issue_user_api_token] started', SafeLogContext::from([
             'user_id' => $user->getAuthIdentifier(),
             'site_id' => $siteId,
             'scopes_count' => count($scopes),
             'permissions_count' => count($permissions),
             'custom_expires_at' => $expiresAt?->toISOString(),
             'does_not_expire' => $doesNotExpire,
-        ]);
+        ]));
 
         try {
             $issuedToken = $action->handle(
@@ -65,11 +66,11 @@ final class IssueUserApiTokenController extends Controller
                 'Site must be verified first.',
             );
         } catch (SigningKeyStateException $exception) {
-            Log::error('[api.issuer.issue_user_api_token] signing_key_failure', [
+            Log::error('[api.issuer.issue_user_api_token] signing_key_failure', SafeLogContext::from([
                 'user_id' => $user->getAuthIdentifier(),
                 'site_id' => $siteId,
                 'error_code' => $exception->getMessage(),
-            ]);
+            ]));
 
             return $this->errorResponse(
                 $request,
@@ -78,12 +79,12 @@ final class IssueUserApiTokenController extends Controller
                 'Signing key is not ready for token issuance.',
             );
         } catch (Throwable $exception) {
-            Log::error('[api.issuer.issue_user_api_token] unexpected_failure', [
+            Log::error('[api.issuer.issue_user_api_token] unexpected_failure', SafeLogContext::from([
                 'user_id' => $user->getAuthIdentifier(),
                 'site_id' => $siteId,
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
-            ]);
+            ]));
 
             return $this->errorResponse($request, 500, 'token_issue_failed', 'Token issuance failed.');
         }

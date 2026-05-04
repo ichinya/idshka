@@ -8,6 +8,7 @@ use App\Domain\Issuer\Models\OAuthAuthorizationCode;
 use App\Domain\OidcClients\DTO\ResolvedOidcClient;
 use App\Domain\OidcClients\Models\OidcClient;
 use App\Models\User;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,13 +33,13 @@ final class AuthorizationCodeService
             max(1, (int) config('issuer.authorization_code_ttl_seconds', 300)),
         );
 
-        Log::info('[issuer.authorization_code.issue] started', [
+        Log::info('[issuer.authorization_code.issue] started', SafeLogContext::from([
             'client_id' => $resolvedClient->client->client_id,
             'site_id' => $resolvedClient->site->id,
             'user_id' => $user->id,
             'scopes_count' => count($scopes),
             'code_hash_prefix' => substr($codeHash, 0, 12),
-        ]);
+        ]));
 
         /** @var OAuthAuthorizationCode $record */
         $record = OAuthAuthorizationCode::query()->create([
@@ -55,13 +56,13 @@ final class AuthorizationCodeService
             'consumed_at' => null,
         ]);
 
-        Log::info('[issuer.authorization_code.issue] completed', [
+        Log::info('[issuer.authorization_code.issue] completed', SafeLogContext::from([
             'authorization_code_id' => $record->id,
             'client_id' => $resolvedClient->client->client_id,
             'site_id' => $resolvedClient->site->id,
             'user_id' => $user->id,
             'expires_at' => $expiresAt->toISOString(),
-        ]);
+        ]));
 
         return new IssuedAuthorizationCode($rawCode, $record, $expiresAt);
     }
@@ -75,11 +76,11 @@ final class AuthorizationCodeService
     ): OAuthAuthorizationCode {
         $codeHash = hash('sha256', $code);
 
-        Log::info('[issuer.authorization_code.consume] started', [
+        Log::info('[issuer.authorization_code.consume] started', SafeLogContext::from([
             'client_id' => $client->client_id,
             'redirect_uri_hash' => hash('sha256', $redirectUri),
             'code_hash_prefix' => substr($codeHash, 0, 12),
-        ]);
+        ]));
 
         return DB::transaction(function () use ($client, $codeHash, $redirectUri, $codeVerifier, $pkceService): OAuthAuthorizationCode {
             /** @var OAuthAuthorizationCode|null $record */
@@ -90,52 +91,52 @@ final class AuthorizationCodeService
                 ->first();
 
             if ($record === null) {
-                Log::warning('[issuer.authorization_code.consume] missing_code', [
+                Log::warning('[issuer.authorization_code.consume] missing_code', SafeLogContext::from([
                     'client_id' => $client->client_id,
                     'code_hash_prefix' => substr($codeHash, 0, 12),
-                ]);
+                ]));
 
                 throw IssuerFlowException::unauthorized('invalid_grant', 'Invalid authorization code.');
             }
 
             if ($record->consumed_at !== null || $record->expires_at->isPast()) {
-                Log::warning('[issuer.authorization_code.consume] inactive_code', [
+                Log::warning('[issuer.authorization_code.consume] inactive_code', SafeLogContext::from([
                     'authorization_code_id' => $record->id,
                     'client_id' => $client->client_id,
                     'is_consumed' => $record->consumed_at !== null,
                     'expires_at' => $record->expires_at->toISOString(),
-                ]);
+                ]));
 
                 throw IssuerFlowException::unauthorized('invalid_grant', 'Invalid authorization code.');
             }
 
             if ($record->redirect_uri !== $redirectUri) {
-                Log::warning('[issuer.authorization_code.consume] redirect_uri_mismatch', [
+                Log::warning('[issuer.authorization_code.consume] redirect_uri_mismatch', SafeLogContext::from([
                     'authorization_code_id' => $record->id,
                     'client_id' => $client->client_id,
                     'redirect_uri_hash' => hash('sha256', $redirectUri),
-                ]);
+                ]));
 
                 throw IssuerFlowException::unauthorized('invalid_grant', 'Invalid authorization code.');
             }
 
             if (! $pkceService->verify($codeVerifier, $record->code_challenge, $record->code_challenge_method)) {
-                Log::warning('[issuer.authorization_code.consume] pkce_failed', [
+                Log::warning('[issuer.authorization_code.consume] pkce_failed', SafeLogContext::from([
                     'authorization_code_id' => $record->id,
                     'client_id' => $client->client_id,
-                ]);
+                ]));
 
                 throw IssuerFlowException::unauthorized('invalid_grant', 'Invalid authorization code.');
             }
 
             $record->forceFill(['consumed_at' => now()])->save();
 
-            Log::info('[issuer.authorization_code.consume] completed', [
+            Log::info('[issuer.authorization_code.consume] completed', SafeLogContext::from([
                 'authorization_code_id' => $record->id,
                 'client_id' => $client->client_id,
                 'site_id' => $record->site_id,
                 'user_id' => $record->user_id,
-            ]);
+            ]));
 
             return $record->refresh();
         });

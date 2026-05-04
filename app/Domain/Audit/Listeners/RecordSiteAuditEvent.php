@@ -6,6 +6,7 @@ use App\Domain\Audit\Services\AuditRecorder;
 use App\Domain\Sites\Events\SiteConnected;
 use App\Domain\Sites\Events\SiteModeEnabled;
 use App\Domain\Sites\Events\SiteVerificationCompleted;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 
 final class RecordSiteAuditEvent
@@ -28,10 +29,10 @@ final class RecordSiteAuditEvent
                 ],
             );
 
-            Log::info('[audit.site_registry] site connected', [
+            Log::info('[audit.site_registry] site connected', SafeLogContext::from([
                 'site_id' => $event->site->id,
                 'owner_user_id' => $event->site->owner_user_id,
-            ]);
+            ]));
 
             return;
         }
@@ -50,13 +51,13 @@ final class RecordSiteAuditEvent
                 ],
             );
 
-            Log::info('[audit.site_registry] site verification completed', [
+            Log::info('[audit.site_registry] site verification completed', SafeLogContext::from([
                 'site_id' => $event->site->id,
                 'owner_user_id' => $event->site->owner_user_id,
                 'method' => $event->method->value,
                 'success' => $event->success,
                 'error_code' => $event->errorCode,
-            ]);
+            ]));
 
             return;
         }
@@ -72,10 +73,10 @@ final class RecordSiteAuditEvent
             ],
         );
 
-        Log::info('[audit.site_registry] site mode enabled', [
+        Log::info('[audit.site_registry] site mode enabled', SafeLogContext::from([
             'site_id' => $event->site->id,
             'owner_user_id' => $event->site->owner_user_id,
             'mode' => $event->mode->value,
-        ]);
+        ]));
     }
 }

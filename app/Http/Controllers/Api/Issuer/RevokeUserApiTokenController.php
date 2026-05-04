@@ -6,6 +6,7 @@ use App\Domain\Issuer\Exceptions\IssuerFlowException;
 use App\Domain\Issuer\Models\ApiToken;
 use App\Domain\Issuer\Services\RevocationService;
 use App\Http\Controllers\Controller;
+use App\Support\SafeLogContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -30,10 +31,10 @@ final class RevokeUserApiTokenController extends Controller
             ->first();
 
         if ($apiToken === null) {
-            Log::warning('[FIX:issuer-revoke-owner-scope] token revoke target not found for authenticated user', [
+            Log::warning('[FIX:issuer-revoke-owner-scope] token revoke target not found for authenticated user', SafeLogContext::from([
                 'user_id' => $userId,
                 'api_token_id' => $id,
-            ]);
+            ]));
 
             return $this->errorResponse($request, 404, 'token_not_found', 'Token not found.');
         }
@@ -48,12 +49,12 @@ final class RevokeUserApiTokenController extends Controller
                 $exception->getMessage(),
             );
         } catch (Throwable $exception) {
-            Log::error('[api.issuer.revoke_user_api_token] unexpected_failure', [
+            Log::error('[api.issuer.revoke_user_api_token] unexpected_failure', SafeLogContext::from([
                 'api_token_id' => $apiToken->id,
                 'user_id' => $user->getAuthIdentifier(),
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
-            ]);
+            ]));
 
             return $this->errorResponse($request, 500, 'token_revoke_failed', 'Token revoke failed.');
         }

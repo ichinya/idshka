@@ -23,6 +23,8 @@
 | [API Flows](API_FLOWS.md) | HTTP сценарии: site registry, issuer tokens/JWKS and OAuth web login | mixed |
 | [Gateway Contract](GATEWAY_CONTRACT.md) | Gateway/JWKS contract для `api.example.test` | implemented reference |
 | [Socialite](SOCIALITE.md) | Роль Socialite и граница между login и issuer | mixed |
+| [Operations](OPERATIONS.md) | Backup, restore, restore drill evidence and JWKS cache rebuild | implemented runbook |
+| [Security Runbook](SECURITY_RUNBOOK.md) | Incident playbooks for leaked tokens, secrets, signing keys and gateway trust failures | implemented runbook |
 
 ## Что важно не перепутать
 
@@ -36,3 +38,5 @@
 - [Laravel Modules](LARAVEL_MODULES.md) — какие bounded contexts уже materialized в коде
 - [API Flows](API_FLOWS.md) — текущие запросы и ответы для site registry
 - [Socialite](SOCIALITE.md) — текущий login slice и его границы
+- [Operations](OPERATIONS.md) — backup/restore and restore drill evidence
+- [Security Runbook](SECURITY_RUNBOOK.md) — incident handling with safe identifiers

@@ -66,6 +66,8 @@ owner portal session
 | [API Flows](docs/API_FLOWS.md) | Текущие и плановые HTTP-сценарии |
 | [Gateway Contract](docs/GATEWAY_CONTRACT.md) | Реализованный gateway reference и upstream contract |
 | [Socialite](docs/SOCIALITE.md) | Роль Socialite в текущем login/link flow |
+| [Operations](docs/OPERATIONS.md) | Backup/restore, restore drill evidence and JWKS cache rebuild |
+| [Security Runbook](docs/SECURITY_RUNBOOK.md) | Incident playbooks for leaked tokens, secrets, keys and gateway trust failures |
 
 ## Ближайшие фазы
 

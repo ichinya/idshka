@@ -289,7 +289,7 @@ function _M.validate(options)
         return nil, gateway_error(401, "invalid_token", "JWT header is invalid.")
     end
 
-    local jwk, key_error = jwks_cache.get_key(header.kid, options.jwks_cache_seconds)
+    local jwk, key_error = jwks_cache.get_key(header.kid, options.jwks_cache_seconds, request_id)
 
     if jwk == nil then
         return nil, key_error

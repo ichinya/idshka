@@ -9,6 +9,7 @@ use App\Domain\Issuer\DTO\IssuedUserApiToken;
 use App\Domain\Issuer\DTO\IssuedWebLoginTokens;
 use App\Domain\Issuer\Exceptions\SigningKeyStateException;
 use App\Domain\Issuer\Models\SigningKey;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -35,13 +36,13 @@ final class TokenIssuer
         ?CarbonImmutable $expiresAt = null,
         bool $doesNotExpire = false,
     ): IssuedUserApiToken {
-        Log::info('[issuer.token.issue] started', [
+        Log::info('[issuer.token.issue] started', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $siteId,
             'audience' => $audience,
             'requested_scopes_count' => count($scopes),
             'requested_permissions_count' => count($permissions),
-        ]);
+        ]));
 
         $signingKey = $this->signingKeyService->requireActiveKey();
 
@@ -106,14 +107,14 @@ final class TokenIssuer
 
         $token = $builder->getToken($configuration->signer(), $configuration->signingKey());
 
-        Log::info('[issuer.token.issue] completed', [
+        Log::info('[issuer.token.issue] completed', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $siteId,
             'audience' => $audience,
             'jti' => $jti,
             'kid' => $signingKey->kid,
             'expires_at' => $resolvedExpiresAt?->toISOString(),
-        ]);
+        ]));
 
         return new IssuedUserApiToken(
             rawToken: $token->toString(),
@@ -141,12 +142,12 @@ final class TokenIssuer
         string $name,
         string $email,
     ): IssuedWebLoginTokens {
-        Log::info('[issuer.web_login.issue] started', [
+        Log::info('[issuer.web_login.issue] started', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $siteId,
             'client_id' => $clientId,
             'scopes_count' => count($scopes),
-        ]);
+        ]));
 
         $signingKey = $this->requireUsableSigningKey();
         $configuration = $this->configurationFor($signingKey);
@@ -201,7 +202,7 @@ final class TokenIssuer
             ->withClaim('scope', implode(' ', $scopes))
             ->getToken($configuration->signer(), $configuration->signingKey());
 
-        Log::info('[issuer.web_login.issue] completed', [
+        Log::info('[issuer.web_login.issue] completed', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $siteId,
             'client_id' => $clientId,
@@ -209,7 +210,7 @@ final class TokenIssuer
             'access_token_jti' => $accessTokenJti,
             'kid' => $signingKey->kid,
             'access_token_expires_at' => $accessTokenExpiresAt->toISOString(),
-        ]);
+        ]));
 
         return new IssuedWebLoginTokens(
             rawIdToken: $idToken->toString(),
