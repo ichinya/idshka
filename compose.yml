@@ -82,6 +82,7 @@ services:
       dockerfile: infra/openresty/demo-resource/Dockerfile
     environment:
       GATEWAY_LOG_LEVEL: ${GATEWAY_LOG_LEVEL:-warn}
+      GATEWAY_JWKS_CACHE_SECONDS: ${GATEWAY_JWKS_CACHE_SECONDS:-20}
     depends_on:
       nginx:
         condition: service_started

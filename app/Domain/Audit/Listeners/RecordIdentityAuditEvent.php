@@ -7,6 +7,7 @@ use App\Domain\Identity\Events\PasswordLoginSucceeded;
 use App\Domain\Identity\Events\SocialAccountLinked;
 use App\Domain\Identity\Events\SocialAccountUnlinked;
 use App\Domain\Identity\Events\SocialLoginSucceeded;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 
 final class RecordIdentityAuditEvent
@@ -30,10 +31,10 @@ final class RecordIdentityAuditEvent
                 ],
             );
 
-            Log::info('[audit.identity] password login succeeded', [
+            Log::info('[audit.identity] password login succeeded', SafeLogContext::from([
                 'user_id' => $event->user->id,
                 'via_registration' => $event->viaRegistration,
-            ]);
+            ]));
 
             return;
         }
@@ -51,11 +52,11 @@ final class RecordIdentityAuditEvent
                 ],
             );
 
-            Log::info('[audit.identity] social login succeeded', [
+            Log::info('[audit.identity] social login succeeded', SafeLogContext::from([
                 'user_id' => $event->user->id,
                 'provider' => $event->provider->value,
                 'linked_during_login' => $event->linkedDuringLogin,
-            ]);
+            ]));
 
             return;
         }
@@ -73,11 +74,11 @@ final class RecordIdentityAuditEvent
                 ],
             );
 
-            Log::info('[audit.identity] social account linked', [
+            Log::info('[audit.identity] social account linked', SafeLogContext::from([
                 'user_id' => $event->user->id,
                 'provider' => $event->provider->value,
                 'provider_user_id' => $event->providerUserId,
-            ]);
+            ]));
 
             return;
         }
@@ -93,9 +94,9 @@ final class RecordIdentityAuditEvent
             ],
         );
 
-        Log::info('[audit.identity] social account unlinked', [
+        Log::info('[audit.identity] social account unlinked', SafeLogContext::from([
             'user_id' => $event->user->id,
             'provider' => $event->provider->value,
-        ]);
+        ]));
     }
 }

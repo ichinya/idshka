@@ -437,7 +437,7 @@ async function readRuleSource(filePath, context) {
   let parseResult = null;
   let extractionMode = 'filesystem-fallback';
 
-  if (context.cli.available) {
+  if (context.cli.available && context.kind === 'base') {
     const cliResult = await tryReadRequirementsFromCli(capability, context);
     warnings.push(...cliResult.warnings);
 
@@ -505,6 +505,13 @@ async function tryReadRequirementsFromCli(capability, context) {
     const extracted = extractRequirementsFromShowJson(result.json);
 
     if (extracted.requirements.length === 0) {
+      if (hasRequirementPayload(result.json)) {
+        return {
+          requirements: [],
+          warnings: extracted.warnings
+        };
+      }
+
       return {
         requirements: [],
         warnings: [
@@ -530,6 +537,34 @@ async function tryReadRequirementsFromCli(capability, context) {
       ]
     };
   }
+}
+
+function hasRequirementPayload(json) {
+  if (json === null || json === undefined) {
+    return false;
+  }
+
+  if (Array.isArray(json)) {
+    return json.some((item) => hasRequirementPayload(item));
+  }
+
+  if (typeof json !== 'object') {
+    return false;
+  }
+
+  if (Number(json.requirementCount ?? json.deltaCount ?? 0) > 0) {
+    return true;
+  }
+
+  if (Array.isArray(json.requirements) && json.requirements.length > 0) {
+    return true;
+  }
+
+  if (Array.isArray(json.deltas) && json.deltas.length > 0) {
+    return true;
+  }
+
+  return Object.values(json).some((value) => hasRequirementPayload(value));
 }
 
 async function collectSpecFiles(rootDir) {

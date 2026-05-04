@@ -5,6 +5,7 @@ namespace App\Domain\Issuer\Services;
 use App\Domain\Issuer\Enums\SigningKeyStatus;
 use App\Domain\Issuer\Exceptions\SigningKeyStateException;
 use App\Domain\Issuer\Models\SigningKey;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +20,7 @@ final class JwksService
      */
     public function getPublicJwks(): array
     {
-        Log::debug('[issuer.jwks.get] started');
+        Log::debug('[issuer.jwks.get] started', SafeLogContext::from());
 
         // Fail closed: JWKS must not publish when the active key state is broken.
         $this->signingKeyService->requireActiveKey();
@@ -50,9 +51,9 @@ final class JwksService
             ];
         });
 
-        Log::debug('[issuer.jwks.get] completed', [
+        Log::debug('[issuer.jwks.get] completed', SafeLogContext::from([
             'keys_count' => count($payload['keys']),
-        ]);
+        ]));
 
         return $payload;
     }
@@ -68,10 +69,10 @@ final class JwksService
         $kty = $publicJwk['kty'] ?? null;
 
         if (! is_string($modulus) || ! is_string($exponent) || ! is_string($kty)) {
-            Log::error('[issuer.jwks.get] invalid_key_state', [
+            Log::error('[issuer.jwks.get] invalid_key_state', SafeLogContext::from([
                 'key_id' => $signingKey->id,
                 'kid' => $signingKey->kid,
-            ]);
+            ]));
 
             throw SigningKeyStateException::invalidState();
         }

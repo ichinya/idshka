@@ -5,6 +5,7 @@ namespace App\Http\Controllers\OAuth;
 use App\Domain\Issuer\Exceptions\SigningKeyStateException;
 use App\Domain\Issuer\Services\JwksService;
 use App\Http\Controllers\Controller;
+use App\Support\SafeLogContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,9 +17,10 @@ final class PublicJwksController extends Controller
         try {
             $payload = $jwksService->getPublicJwks();
         } catch (SigningKeyStateException $exception) {
-            Log::warning('[oauth.jwks.public] unavailable', [
+            Log::warning('[oauth.jwks.public] unavailable', SafeLogContext::from([
+                'request_id' => $request->attributes->get('request_id'),
                 'error_code' => $exception->getMessage(),
-            ]);
+            ]));
 
             return response()->json([
                 'error' => $exception->getMessage(),

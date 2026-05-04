@@ -10,6 +10,7 @@ use App\Domain\Sites\Models\SiteVerification;
 use App\Domain\Sites\Services\DnsTxtVerificationChecker;
 use App\Domain\Sites\Services\VerificationCheckResult;
 use App\Domain\Sites\Services\WellKnownFileVerificationChecker;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,10 +25,10 @@ final class VerifySiteDomainAction
 
     public function handle(Site $site, SiteVerificationMethod $method): SiteVerification
     {
-        Log::info('[site.verify] started', [
+        Log::info('[site.verify] started', SafeLogContext::from([
             'site_id' => $site->id,
             'method' => $method->value,
-        ]);
+        ]));
 
         /** @var SiteVerification $verification */
         $verification = SiteVerification::query()
@@ -37,10 +38,10 @@ final class VerifySiteDomainAction
             ->firstOrFail();
 
         if ($verification->status === SiteVerificationStatus::Verified->value) {
-            Log::info('[site.verify] already_verified', [
+            Log::info('[site.verify] already_verified', SafeLogContext::from([
                 'site_id' => $site->id,
                 'verification_id' => $verification->id,
-            ]);
+            ]));
 
             return $verification;
         }
@@ -77,10 +78,10 @@ final class VerifySiteDomainAction
                     ->exists();
 
                 if ($domainIsTakenByAnotherVerifiedOwner) {
-                    Log::warning('[FIX:security] blocked_conflicting_verified_domain_claim', [
+                    Log::warning('[FIX:security] blocked_conflicting_verified_domain_claim', SafeLogContext::from([
                         'site_id' => $site->id,
                         'normalized_domain' => $site->normalized_domain,
-                    ]);
+                    ]));
 
                     $verification->update([
                         'status' => SiteVerificationStatus::Failed->value,
@@ -114,12 +115,12 @@ final class VerifySiteDomainAction
 
         SiteVerificationCompleted::dispatch($site->refresh(), $method, $finalResult->passed, $finalResult->errorCode);
 
-        Log::info('[site.verify] completed', [
+        Log::info('[site.verify] completed', SafeLogContext::from([
             'site_id' => $site->id,
             'method' => $method->value,
             'success' => $finalResult->passed,
             'error_code' => $finalResult->errorCode,
-        ]);
+        ]));
 
         return $verification->refresh();
     }
@@ -127,11 +128,11 @@ final class VerifySiteDomainAction
     private function runChecker(SiteVerificationMethod $method, Site $site, string $token): VerificationCheckResult
     {
         if ($this->isAllowedLoopbackDomain($site->normalized_domain)) {
-            Log::info('[site.verify] local_loopback_domain_verified', [
+            Log::info('[site.verify] local_loopback_domain_verified', SafeLogContext::from([
                 'site_id' => $site->id,
                 'normalized_domain' => $site->normalized_domain,
                 'method' => $method->value,
-            ]);
+            ]));
 
             return VerificationCheckResult::passed();
         }
@@ -177,10 +178,10 @@ final class VerifySiteDomainAction
             $verificationIds[] = $verification->id;
         }
 
-        Log::info('[FIX:site-verification-refresh] issued fresh verification challenges after expiry', [
+        Log::info('[FIX:site-verification-refresh] issued fresh verification challenges after expiry', SafeLogContext::from([
             'site_id' => $site->id,
             'verification_ids' => $verificationIds,
             'expires_at' => $expiresAt->toISOString(),
-        ]);
+        ]));
     }
 }

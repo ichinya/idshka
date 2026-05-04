@@ -5,6 +5,7 @@ namespace App\Domain\OidcClients\Actions;
 use App\Domain\OidcClients\Events\OidcRedirectUriAdded;
 use App\Domain\OidcClients\Models\OidcClient;
 use App\Domain\OidcClients\Models\OidcRedirectUri;
+use App\Support\SafeLogContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -13,12 +14,12 @@ final class AddOidcRedirectUriAction
 {
     public function handle(int $ownerUserId, OidcClient $client, string $redirectUri): OidcRedirectUri
     {
-        Log::info('[oidc.redirect_uri.add] started', [
+        Log::info('[oidc.redirect_uri.add] started', SafeLogContext::from([
             'owner_user_id' => $ownerUserId,
             'oidc_client_id' => $client->id,
             'client_id' => $client->client_id,
             'redirect_uri_hash' => hash('sha256', $redirectUri),
-        ]);
+        ]));
 
         if ($client->owner_user_id !== $ownerUserId) {
             throw new AuthorizationException('You do not own this client.');
@@ -47,12 +48,12 @@ final class AddOidcRedirectUriAction
             OidcRedirectUriAdded::dispatch($client, $redirect);
         }
 
-        Log::info('[oidc.redirect_uri.add] completed', [
+        Log::info('[oidc.redirect_uri.add] completed', SafeLogContext::from([
             'owner_user_id' => $ownerUserId,
             'oidc_client_id' => $client->id,
             'redirect_uri_id' => $redirect->id,
             'created' => $redirect->wasRecentlyCreated,
-        ]);
+        ]));
 
         return $redirect;
     }

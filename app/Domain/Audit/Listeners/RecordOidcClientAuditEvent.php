@@ -6,6 +6,7 @@ use App\Domain\Audit\Services\AuditRecorder;
 use App\Domain\OidcClients\Events\OidcClientCreated;
 use App\Domain\OidcClients\Events\OidcClientRevoked;
 use App\Domain\OidcClients\Events\OidcRedirectUriAdded;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 
 final class RecordOidcClientAuditEvent
@@ -29,12 +30,12 @@ final class RecordOidcClientAuditEvent
                 ],
             );
 
-            Log::info('[audit.oidc] client created', [
+            Log::info('[audit.oidc] client created', SafeLogContext::from([
                 'oidc_client_id' => $event->client->id,
                 'client_id' => $event->client->client_id,
                 'site_id' => $event->client->site_id,
                 'owner_user_id' => $event->client->owner_user_id,
-            ]);
+            ]));
 
             return;
         }
@@ -53,13 +54,13 @@ final class RecordOidcClientAuditEvent
                 ],
             );
 
-            Log::info('[audit.oidc] redirect uri added', [
+            Log::info('[audit.oidc] redirect uri added', SafeLogContext::from([
                 'oidc_client_id' => $event->client->id,
                 'client_id' => $event->client->client_id,
                 'site_id' => $event->client->site_id,
                 'redirect_uri_id' => $event->redirectUri->id,
                 'redirect_uri_hash' => $event->redirectUri->redirect_uri_hash,
-            ]);
+            ]));
 
             return;
         }
@@ -77,11 +78,11 @@ final class RecordOidcClientAuditEvent
             ],
         );
 
-        Log::info('[audit.oidc] client revoked', [
+        Log::info('[audit.oidc] client revoked', SafeLogContext::from([
             'oidc_client_id' => $event->client->id,
             'client_id' => $event->client->client_id,
             'site_id' => $event->client->site_id,
             'owner_user_id' => $event->client->owner_user_id,
-        ]);
+        ]));
     }
 }

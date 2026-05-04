@@ -6,6 +6,7 @@ use App\Domain\Issuer\Events\UserApiTokenRevoked;
 use App\Domain\Issuer\Exceptions\IssuerFlowException;
 use App\Domain\Issuer\Models\ApiToken;
 use App\Domain\Issuer\Models\RevokedJti;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -16,31 +17,31 @@ final class RevocationService
 {
     public function revokeForUser(int $userId, ApiToken $apiToken): ApiToken
     {
-        Log::info('[issuer.revoke] started', [
+        Log::info('[issuer.revoke] started', SafeLogContext::from([
             'api_token_id' => $apiToken->id,
             'user_id' => $userId,
             'site_id' => $apiToken->site_id,
             'audience' => $apiToken->audience,
             'jti' => $apiToken->jti,
             'already_revoked' => $apiToken->isRevoked(),
-        ]);
+        ]));
 
         if ($apiToken->user_id !== $userId) {
-            Log::warning('[issuer.revoke] owner_mismatch', [
+            Log::warning('[issuer.revoke] owner_mismatch', SafeLogContext::from([
                 'api_token_id' => $apiToken->id,
                 'user_id' => $userId,
                 'token_owner_user_id' => $apiToken->user_id,
-            ]);
+            ]));
 
             throw IssuerFlowException::forbidden('token_owner_mismatch', 'You cannot revoke this token.');
         }
 
         if ($apiToken->isRevoked()) {
-            Log::info('[issuer.revoke] idempotent_already_revoked', [
+            Log::info('[issuer.revoke] idempotent_already_revoked', SafeLogContext::from([
                 'api_token_id' => $apiToken->id,
                 'jti' => $apiToken->jti,
                 'revoked_at' => $apiToken->revoked_at?->toISOString(),
-            ]);
+            ]));
 
             return $apiToken;
         }
@@ -81,12 +82,12 @@ final class RevocationService
 
         $freshToken = $apiToken->refresh();
 
-        Log::info('[issuer.revoke] completed', [
+        Log::info('[issuer.revoke] completed', SafeLogContext::from([
             'api_token_id' => $apiToken->id,
             'user_id' => $userId,
             'jti' => $apiToken->jti,
             'revoked_at' => $freshToken->revoked_at?->toISOString(),
-        ]);
+        ]));
 
         return $freshToken;
     }
@@ -108,10 +109,10 @@ final class RevocationService
             if ($apiToken->expires_at === null) {
                 Cache::forever($cacheKey, true);
 
-                Log::debug('[issuer.revoke.cache_denylist] updated', [
-                    'cache_key' => $cacheKey,
-                    'ttl_seconds' => null,
-                ]);
+            Log::debug('[issuer.revoke.cache_denylist] updated', SafeLogContext::from([
+                'cache_key' => $cacheKey,
+                'ttl_seconds' => null,
+            ]));
 
                 return;
             }
@@ -127,21 +128,21 @@ final class RevocationService
 
             Cache::put($cacheKey, true, max(1, $ttlSeconds));
         } catch (Throwable $exception) {
-            Log::warning('[FIX:issuer-revoke-denylist-best-effort] cache write failed after DB revoke', [
+            Log::warning('[FIX:issuer-revoke-denylist-best-effort] cache write failed after DB revoke', SafeLogContext::from([
                 'api_token_id' => $apiToken->id,
                 'jti' => $apiToken->jti,
                 'cache_key' => $cacheKey,
                 'ttl_seconds' => $ttlSeconds ?? null,
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
-            ]);
+            ]));
 
             return;
         }
 
-        Log::debug('[issuer.revoke.cache_denylist] updated', [
+        Log::debug('[issuer.revoke.cache_denylist] updated', SafeLogContext::from([
             'cache_key' => $cacheKey,
             'ttl_seconds' => $ttlSeconds,
-        ]);
+        ]));
     }
 }

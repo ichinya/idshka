@@ -5,7 +5,7 @@ Source of truth: OpenSpec canonical specs
 Generated files are derived guidance and are safe to delete, overwrite, and regenerate.
 
 ## Source Fingerprints
-- sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9 openspec/specs/api-resource-gateway/spec.md
+- sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a openspec/specs/api-resource-gateway/spec.md
 - sha256:aab10a2a3acc09558575cb2368d9c4c2dee57b0570431e0338b17e749248a594 openspec/specs/identity-auth/spec.md
 - sha256:943632a8e061708c8cac51be3859ce5dd319befc2444887657c58fdb6076c3d1 openspec/specs/oauth-web-login/spec.md
 - sha256:a7cb5f1f02044943eece50b184822e439b7c6777b2017651a27ac1851d6fdcb2 openspec/specs/platform-foundation/spec.md
@@ -22,7 +22,7 @@ Source:
 - Capability: api-resource-gateway
 - Change: none
 - Section: Requirements
-- Fingerprint: sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9
+- Fingerprint: sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a
 
 Deferred gateway hardening SHALL be documented when not implemented in the current reference.
 
@@ -42,7 +42,7 @@ Source:
 - Capability: api-resource-gateway
 - Change: none
 - Section: Requirements
-- Fingerprint: sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9
+- Fingerprint: sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a
 
 The API resource gateway SHALL provide an OpenResty reference runtime for `api.example.test` with public health and protected proxy routing.
 
@@ -66,7 +66,7 @@ Source:
 - Capability: api-resource-gateway
 - Change: none
 - Section: Requirements
-- Fingerprint: sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9
+- Fingerprint: sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a
 
 The gateway SHALL have executable smoke coverage for its public contract.
 
@@ -86,7 +86,7 @@ Source:
 - Capability: api-resource-gateway
 - Change: none
 - Section: Requirements
-- Fingerprint: sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9
+- Fingerprint: sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a
 
 The gateway SHALL fetch public JWKS through an internal URL and cache keys by `kid`.
 
@@ -110,7 +110,7 @@ Source:
 - Capability: api-resource-gateway
 - Change: none
 - Section: Requirements
-- Fingerprint: sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9
+- Fingerprint: sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a
 
 The gateway SHALL validate user API JWTs before forwarding requests upstream.
 
@@ -146,7 +146,7 @@ Source:
 - Capability: api-resource-gateway
 - Change: none
 - Section: Requirements
-- Fingerprint: sha256:f04ece3861de3b95f40188a2e3487c6a6e48ec5f76035b7549dc9e1bfa35fdb9
+- Fingerprint: sha256:c92c48f00fed67e593bde5bfe4fc0ab9cdb9f6a2452c777db73b91e4c7daf92a
 
 The gateway SHALL remove client-supplied identity context and inject trusted upstream headers.
 

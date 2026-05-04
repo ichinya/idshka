@@ -7,6 +7,7 @@ use App\Domain\Issuer\Exceptions\IssuerFlowException;
 use App\Domain\Issuer\Services\WebAccessTokenValidator;
 use App\Http\Controllers\Concerns\ReturnsOAuthErrors;
 use App\Http\Controllers\Controller;
+use App\Support\SafeLogContext;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,11 +22,11 @@ final class UserInfoController extends Controller
         $accessToken = (string) $request->bearerToken();
 
         if ($accessToken === '') {
-            Log::warning('[oauth.userinfo] missing_bearer_token', [
+            Log::warning('[oauth.userinfo] missing_bearer_token', SafeLogContext::from([
                 'request_id' => $request->attributes->get('request_id'),
                 'has_authorization_header' => $request->headers->has('Authorization'),
                 'has_http_authorization_server_value' => $request->server->has('HTTP_AUTHORIZATION'),
-            ]);
+            ]));
 
             return $this->oauthError($request, 401, 'invalid_token', 'Missing bearer token.');
         }
@@ -55,14 +56,14 @@ final class UserInfoController extends Controller
             $payload['name'] = $user->name;
         }
 
-        Log::info('[oauth.userinfo] completed', [
+        Log::info('[oauth.userinfo] completed', SafeLogContext::from([
             'request_id' => $request->attributes->get('request_id'),
             'user_id' => $user->id,
             'client_id' => $validatedToken->clientId,
             'site_id' => $validatedToken->siteId,
             'jti' => $validatedToken->jti,
             'scopes_count' => count($validatedToken->scopes),
-        ]);
+        ]));
 
         return response()->json($payload);
     }

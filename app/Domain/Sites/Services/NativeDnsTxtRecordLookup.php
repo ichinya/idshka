@@ -3,6 +3,7 @@
 namespace App\Domain\Sites\Services;
 
 use App\Domain\Sites\Contracts\DnsTxtRecordLookup;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Log;
 
 final class NativeDnsTxtRecordLookup implements DnsTxtRecordLookup
@@ -12,10 +13,10 @@ final class NativeDnsTxtRecordLookup implements DnsTxtRecordLookup
      */
     public function getTxtRecords(string $host): array
     {
-        Log::debug('[site.verify.dns_lookup] started', ['host' => $host]);
+        Log::debug('[site.verify.dns_lookup] started', SafeLogContext::from(['host' => $host]));
 
         if (! function_exists('dns_get_record')) {
-            Log::warning('[site.verify.dns_lookup] dns_get_record unavailable', ['host' => $host]);
+            Log::warning('[site.verify.dns_lookup] dns_get_record unavailable', SafeLogContext::from(['host' => $host]));
 
             return [];
         }
@@ -23,7 +24,7 @@ final class NativeDnsTxtRecordLookup implements DnsTxtRecordLookup
         $records = @dns_get_record($host, DNS_TXT);
 
         if (! is_array($records)) {
-            Log::warning('[site.verify.dns_lookup] dns query failed', ['host' => $host]);
+            Log::warning('[site.verify.dns_lookup] dns query failed', SafeLogContext::from(['host' => $host]));
 
             return [];
         }
@@ -36,10 +37,10 @@ final class NativeDnsTxtRecordLookup implements DnsTxtRecordLookup
             }
         }
 
-        Log::debug('[site.verify.dns_lookup] completed', [
+        Log::debug('[site.verify.dns_lookup] completed', SafeLogContext::from([
             'host' => $host,
             'records_count' => count($txtValues),
-        ]);
+        ]));
 
         return $txtValues;
     }

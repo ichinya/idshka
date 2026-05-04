@@ -170,6 +170,7 @@ POST https://idshka.ru/api/v1/user/api-tokens/{id}/revoke
 Реализованный OpenResty reference в `infra/openresty/demo-resource/`:
 - проверяет Bearer JWT по public JWKS через internal Docker URL `http://nginx/oauth/jwks.json`;
 - валидирует `alg=RS256`, `kid`, подпись, `iss`, `aud=example.test`, `exp`, `nbf`, `sub`, `site_id`, `token_type=user_api`, `scope`, `permissions`, `jti`;
+- кеширует known public keys только до `GATEWAY_JWKS_CACHE_SECONDS`, refreshes on unknown `kid`, and fails closed when JWKS cannot be fetched or decoded;
 - удаляет входящие `X-Idshka-*` и `Authorization`;
 - выставляет trusted context в upstream `demo-resource-api`;
 - возвращает deterministic JSON errors с `error`, `message`, `request_id`.
@@ -287,8 +288,15 @@ Deterministic OAuth errors:
 
 Security logging rule: raw authorization codes, client secrets, PKCE verifiers, JWTs and private key material are never logged. Logs use request id, client id, site id, user id, jti and code/hash prefixes only.
 
+## Operations and incident handling
+
+Operational backup/restore expectations for users, sites, modes, issuer token metadata, OIDC clients, redirect URIs, authorization codes, signing keys, audit events and JWKS cache rebuild are documented in [Operations](OPERATIONS.md).
+
+Incident response for leaked API tokens, leaked client secrets, leaked authorization codes, leaked Socialite provider tokens, leaked signing keys, compromised `APP_KEY` and gateway header trust failures is documented in [Security Runbook](SECURITY_RUNBOOK.md). Use safe identifiers such as `request_id`, `site_id`, `client_id`, `jti` and `kid`; do not paste raw JWTs, client secrets, authorization codes or private key material into evidence.
+
 ## See Also
 
 - [Gateway Contract](GATEWAY_CONTRACT.md) — gateway/JWKS contract для API-only режима
 - [Socialite](SOCIALITE.md) — текущая роль Socialite в login/link flow
 - [Laravel Modules](LARAVEL_MODULES.md) — где в коде живёт site registry slice
+- [Security Runbook](SECURITY_RUNBOOK.md) — incident playbooks for issuer, Socialite and gateway failures

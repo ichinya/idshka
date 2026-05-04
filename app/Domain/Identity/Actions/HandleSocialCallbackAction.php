@@ -10,6 +10,7 @@ use App\Domain\Identity\Models\SocialAccount;
 use App\Domain\Identity\Services\SocialCallbackResult;
 use App\Domain\Identity\Services\SocialiteProfileFactory;
 use App\Domain\Identity\Services\SocialProfile;
+use App\Support\SafeLogContext;
 use App\Models\User;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -29,11 +30,11 @@ final class HandleSocialCallbackAction
         SocialiteUser $socialiteUser,
         ?User $linkingUser = null,
     ): SocialCallbackResult {
-        Log::info('[identity.social.callback] started', [
+        Log::info('[identity.social.callback] started', SafeLogContext::from([
             'provider' => $provider->value,
             'linking_flow' => $linkingUser !== null,
             'linking_user_id' => $linkingUser?->id,
-        ]);
+        ]));
 
         $profile = $this->profileFactory->make($provider, $socialiteUser);
 
@@ -59,10 +60,10 @@ final class HandleSocialCallbackAction
 
             SocialLoginSucceeded::dispatch($user, $profile->provider, false);
 
-            Log::info('[identity.social.callback] existing social account authenticated', [
+            Log::info('[identity.social.callback] existing social account authenticated', SafeLogContext::from([
                 'provider' => $profile->provider->value,
                 'user_id' => $user->id,
-            ]);
+            ]));
 
             return new SocialCallbackResult(
                 user: $user,
@@ -91,10 +92,10 @@ final class HandleSocialCallbackAction
         SocialAccountLinked::dispatch($user, $profile->provider, $profile->providerUserId);
         SocialLoginSucceeded::dispatch($user, $profile->provider, true);
 
-        Log::info('[identity.social.callback] new user created from social account', [
+        Log::info('[identity.social.callback] new user created from social account', SafeLogContext::from([
             'provider' => $profile->provider->value,
             'user_id' => $user->id,
-        ]);
+        ]));
 
         return new SocialCallbackResult(
             user: $user,
@@ -143,11 +144,11 @@ final class HandleSocialCallbackAction
             SocialAccountLinked::dispatch($linkingUser, $profile->provider, $profile->providerUserId);
         }
 
-        Log::info('[identity.social.callback] linking flow completed', [
+        Log::info('[identity.social.callback] linking flow completed', SafeLogContext::from([
             'provider' => $profile->provider->value,
             'user_id' => $linkingUser->id,
             'linked' => $linked,
-        ]);
+        ]));
 
         return new SocialCallbackResult(
             user: $linkingUser,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Domain\Identity\Enums\SocialProvider;
 use App\Http\Controllers\Controller;
+use App\Support\SafeLogContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,10 +24,10 @@ final class SocialiteRedirectController extends Controller
             return $this->errorResponse($request, 404, 'unsupported_provider', 'Unsupported social provider.');
         }
 
-        Log::info('[auth.social.redirect] started', [
+        Log::info('[auth.social.redirect] started', SafeLogContext::from([
             'provider' => $resolvedProvider->value,
             'intent' => 'login',
-        ]);
+        ]));
 
         $request->session()->put(self::SESSION_INTENT_KEY, [
             'intent' => 'login',
@@ -39,11 +40,11 @@ final class SocialiteRedirectController extends Controller
                 ->scopes($resolvedProvider->scopes())
                 ->redirect();
         } catch (Throwable $exception) {
-            Log::error('[auth.social.redirect] provider redirect failed', [
+            Log::error('[auth.social.redirect] provider redirect failed', SafeLogContext::from([
                 'provider' => $resolvedProvider->value,
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
-            ]);
+            ]));
 
             return $this->errorResponse($request, 503, 'provider_unavailable', 'Social provider is unavailable.');
         }

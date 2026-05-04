@@ -34,6 +34,12 @@ Authorization: Bearer <idshka_jwt>
 7. Будущий edge revoke cache / online introspection дополнительно проверит denylist по `jti`; текущий reference gateway только требует наличие `jti` claim и прокидывает его upstream.
 8. Token type подходит: `token_type=user_api`.
 
+## JWKS cache and stale-key policy
+
+Reference gateway uses `GATEWAY_JWKS_CACHE_SECONDS` to bound public-key cache lifetime. Known cached keys are trusted only until their explicit `expires_at`; after that the cache entry is deleted before validation and the gateway refreshes JWKS. Unknown `kid` always triggers JWKS refresh. JWKS fetch, non-200 response or decode failure fail closed with `502 jwks_unavailable`; if refresh succeeds but the `kid` is absent, gateway returns `401 invalid_token`.
+
+Gateway logs use `request_id`, `kid`, `cache_outcome` and fail-closed reason only. Raw JWTs and JWK private material are never logged.
+
 ## Headers в upstream
 Reference gateway сейчас выставляет:
 
@@ -95,6 +101,10 @@ Gateway должен возвращать errors без раскрытия sensi
 
 Raw JWT не прокидывается upstream: gateway очищает `Authorization` перед proxying.
 
+## Incident linkage
+
+Gateway header trust failures, unknown `kid` incidents, leaked signing key response and raw JWT evidence handling are covered in [Security Runbook](SECURITY_RUNBOOK.md). Gateway evidence should use `request_id`, `site_id`, `jti`, `kid`, upstream status and smoke case names; raw JWTs and private key material must not be captured.
+
 ## Local smoke
 
 ```bash
@@ -109,6 +119,7 @@ Smoke подготавливает миграции, выпускает local-on
 - [API Flows](API_FLOWS.md) — где этот contract уже отделён от текущих реализованных endpoints
 - [Socialite](SOCIALITE.md) — граница между external login и будущим issuer layer
 - [Laravel Modules](LARAVEL_MODULES.md) — модули, которые позже будут обслуживать этот contract
+- [Security Runbook](SECURITY_RUNBOOK.md) — incident response for gateway trust and signing key failures
 
 ## Update: JWKS runtime endpoint (2026-04-23)
 

@@ -7,6 +7,7 @@ use App\Domain\Issuer\DTO\IssuedUserApiToken;
 use App\Domain\Issuer\Events\UserApiTokenIssued;
 use App\Domain\Issuer\Models\ApiToken;
 use App\Domain\Issuer\Services\TokenIssuer;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 
@@ -29,14 +30,14 @@ final class IssueUserApiTokenAction
         ?CarbonImmutable $expiresAt = null,
         bool $doesNotExpire = false,
     ): IssuedUserApiToken {
-        Log::info('[issuer.issue_user_api_token] started', [
+        Log::info('[issuer.issue_user_api_token] started', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $siteId,
             'requested_scopes_count' => count($requestedScopes),
             'requested_permissions_count' => count($requestedPermissions),
             'custom_expires_at' => $expiresAt?->toISOString(),
             'does_not_expire' => $doesNotExpire,
-        ]);
+        ]));
 
         $access = $this->apiResourceAccessResolver->resolveForUser(
             userId: $userId,
@@ -79,14 +80,14 @@ final class IssueUserApiTokenAction
             expiresAt: $issuedToken->expiresAt,
         );
 
-        Log::info('[issuer.issue_user_api_token] completed', [
+        Log::info('[issuer.issue_user_api_token] completed', SafeLogContext::from([
             'user_id' => $userId,
             'site_id' => $access->siteId,
             'api_token_id' => $apiToken->id,
             'audience' => $access->audience,
             'jti' => $issuedToken->jti,
             'kid' => $issuedToken->kid,
-        ]);
+        ]));
 
         return new IssuedUserApiToken(
             rawToken: $issuedToken->rawToken,

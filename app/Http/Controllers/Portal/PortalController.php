@@ -22,6 +22,7 @@ use App\Domain\Sites\Exceptions\SiteDomainConflictException;
 use App\Domain\Sites\Exceptions\UnverifiedSiteException;
 use App\Domain\Sites\Models\Site;
 use App\Http\Controllers\Controller;
+use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
@@ -41,9 +42,9 @@ final class PortalController extends Controller
 
         $userId = (int) $user->getAuthIdentifier();
 
-        Log::info('[portal.dashboard] started', [
+        Log::info('[portal.dashboard] started', SafeLogContext::from([
             'user_id' => $userId,
-        ]);
+        ]));
 
         $sites = Site::query()
             ->with(['modes', 'verifications'])
@@ -73,14 +74,14 @@ final class PortalController extends Controller
             ->limit(30)
             ->get();
 
-        Log::info('[portal.dashboard] completed', [
+        Log::info('[portal.dashboard] completed', SafeLogContext::from([
             'user_id' => $userId,
             'sites_count' => $sites->count(),
             'api_resource_sites_count' => $apiResourceSites->count(),
             'api_tokens_count' => $apiTokens->count(),
             'clients_count' => $clients->count(),
             'audit_events_count' => $auditEvents->count(),
-        ]);
+        ]));
 
         return view('portal.dashboard', [
             'sites' => $sites,
@@ -101,10 +102,10 @@ final class PortalController extends Controller
             'display_name' => ['nullable', 'string', 'max:120'],
         ]);
 
-        Log::info('[portal.site.store] started', [
+        Log::info('[portal.site.store] started', SafeLogContext::from([
             'user_id' => $user->getAuthIdentifier(),
             'domain' => $validated['domain'],
-        ]);
+        ]));
 
         try {
             $site = $action->handle(
@@ -118,10 +119,10 @@ final class PortalController extends Controller
             return back()->withErrors(['domain' => $exception->getMessage()])->withInput();
         }
 
-        Log::info('[portal.site.store] completed', [
+        Log::info('[portal.site.store] completed', SafeLogContext::from([
             'user_id' => $user->getAuthIdentifier(),
             'site_id' => $site->id,
-        ]);
+        ]));
 
         return redirect()
             ->route('portal.dashboard')
@@ -214,12 +215,12 @@ final class PortalController extends Controller
         } catch (ApiResourceEligibilityException|SigningKeyStateException|UnverifiedSiteException $exception) {
             return back()->withErrors(['api_token' => $exception->getMessage()])->withInput();
         } catch (Throwable $exception) {
-            Log::error('[portal.api_token.store] unexpected_failure', [
+            Log::error('[portal.api_token.store] unexpected_failure', SafeLogContext::from([
                 'user_id' => $user->getAuthIdentifier(),
                 'site_id' => $validated['site_id'],
                 'error_class' => $exception::class,
                 'error_message' => $exception->getMessage(),
-            ]);
+            ]));
 
             return back()->withErrors(['api_token' => 'Token issuance failed.'])->withInput();
         }

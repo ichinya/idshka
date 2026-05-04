@@ -6,6 +6,7 @@ use App\Contracts\Auth\JwtClaims;
 use App\Domain\Issuer\DTO\ValidatedWebAccessToken;
 use App\Domain\Issuer\Exceptions\IssuerFlowException;
 use App\Domain\Issuer\Models\SigningKey;
+use App\Support\SafeLogContext;
 use DateTimeZone;
 use Illuminate\Support\Facades\Log;
 use Lcobucci\JWT\Configuration;
@@ -30,9 +31,9 @@ final class WebAccessTokenValidator
             );
             $token = $parserConfiguration->parser()->parse($rawToken);
         } catch (Throwable $exception) {
-            Log::warning('[issuer.web_access.validate] parse_failed', [
+            Log::warning('[issuer.web_access.validate] parse_failed', SafeLogContext::from([
                 'error_class' => $exception::class,
-            ]);
+            ]));
 
             throw IssuerFlowException::unauthorized('invalid_token', 'Invalid access token.');
         }
@@ -47,9 +48,9 @@ final class WebAccessTokenValidator
         $signingKey = SigningKey::query()->where('kid', $kid)->first();
 
         if ($signingKey === null) {
-            Log::warning('[issuer.web_access.validate] unknown_kid', [
+            Log::warning('[issuer.web_access.validate] unknown_kid', SafeLogContext::from([
                 'kid' => $kid,
-            ]);
+            ]));
 
             throw IssuerFlowException::unauthorized('invalid_token', 'Invalid access token.');
         }
@@ -67,18 +68,18 @@ final class WebAccessTokenValidator
         ];
 
         if (! $validationConfiguration->validator()->validate($token, ...$constraints)) {
-            Log::warning('[issuer.web_access.validate] constraints_failed', [
+            Log::warning('[issuer.web_access.validate] constraints_failed', SafeLogContext::from([
                 'kid' => $kid,
-            ]);
+            ]));
 
             throw IssuerFlowException::unauthorized('invalid_token', 'Invalid access token.');
         }
 
         if ($token->claims()->get('token_type') !== JwtClaims::TOKEN_TYPE_WEB_ACCESS) {
-            Log::warning('[issuer.web_access.validate] unsupported_token_type', [
+            Log::warning('[issuer.web_access.validate] unsupported_token_type', SafeLogContext::from([
                 'jti' => (string) $token->claims()->get('jti', ''),
                 'token_type' => (string) $token->claims()->get('token_type', ''),
-            ]);
+            ]));
 
             throw IssuerFlowException::unauthorized('invalid_token', 'Invalid access token.');
         }
@@ -86,12 +87,12 @@ final class WebAccessTokenValidator
         $scopes = array_values(array_filter(explode(' ', (string) $token->claims()->get('scope', ''))));
         $clientId = (string) $token->claims()->get('client_id', '');
 
-        Log::debug('[issuer.web_access.validate] completed', [
+        Log::debug('[issuer.web_access.validate] completed', SafeLogContext::from([
             'jti' => (string) $token->claims()->get('jti'),
             'client_id' => $clientId,
             'site_id' => (string) $token->claims()->get('site_id'),
             'scopes_count' => count($scopes),
-        ]);
+        ]));
 
         return new ValidatedWebAccessToken(
             userId: (int) $token->claims()->get('sub'),

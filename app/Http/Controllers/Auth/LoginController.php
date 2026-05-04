@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Domain\Identity\Events\PasswordLoginSucceeded;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\SafeLogContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,9 @@ final class LoginController extends Controller
         $email = mb_strtolower((string) $request->string('email'));
         $emailHash = hash('sha256', $email);
 
-        Log::info('[auth.login] started', [
+        Log::info('[auth.login] started', SafeLogContext::from([
             'email_hash' => $emailHash,
-        ]);
+        ]));
 
         $authenticated = Auth::attempt([
             'email' => $email,
@@ -28,9 +29,9 @@ final class LoginController extends Controller
         ], $request->boolean('remember'));
 
         if (! $authenticated) {
-            Log::warning('[auth.login] credentials rejected', [
+            Log::warning('[auth.login] credentials rejected', SafeLogContext::from([
                 'email_hash' => $emailHash,
-            ]);
+            ]));
 
             if (! $request->expectsJson()) {
                 return back()
@@ -46,19 +47,19 @@ final class LoginController extends Controller
         $user = $request->user();
 
         if ($user === null) {
-            Log::error('[auth.login] authenticated user missing after login', [
+            Log::error('[auth.login] authenticated user missing after login', SafeLogContext::from([
                 'email_hash' => $emailHash,
-            ]);
+            ]));
 
             return $this->errorResponse($request, 500, 'authentication_context_missing', 'Unable to complete login.');
         }
 
         PasswordLoginSucceeded::dispatch($user, false);
 
-        Log::info('[auth.login] completed', [
+        Log::info('[auth.login] completed', SafeLogContext::from([
             'user_id' => $user->getAuthIdentifier(),
             'email_hash' => $emailHash,
-        ]);
+        ]));
 
         if (! $request->expectsJson()) {
             return redirect()->intended(route('portal.dashboard'));

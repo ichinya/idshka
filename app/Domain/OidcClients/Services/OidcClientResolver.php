@@ -8,6 +8,7 @@ use App\Domain\OidcClients\Models\OidcClient;
 use App\Domain\OidcClients\Models\OidcRedirectUri;
 use App\Domain\Sites\Enums\SiteModeType;
 use App\Domain\Sites\Models\SiteMode;
+use App\Support\SafeLogContext;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -15,10 +16,10 @@ final class OidcClientResolver
 {
     public function resolveForAuthorize(string $clientId, string $redirectUri): ResolvedOidcClient
     {
-        Log::debug('[oidc.client.resolve_authorize] started', [
+        Log::debug('[oidc.client.resolve_authorize] started', SafeLogContext::from([
             'client_id' => $clientId,
             'redirect_uri_hash' => hash('sha256', $redirectUri),
-        ]);
+        ]));
 
         $client = $this->requireActiveClient($clientId);
 
@@ -27,9 +28,9 @@ final class OidcClientResolver
 
     public function resolveForTokenExchange(string $clientId, string $clientSecret, string $redirectUri): ResolvedOidcClient
     {
-        Log::debug('[oidc.client.resolve_token] started', [
+        Log::debug('[oidc.client.resolve_token] started', SafeLogContext::from([
             'client_id' => $clientId,
-        ]);
+        ]));
 
         $client = $this->requireActiveClient($clientId);
 
@@ -46,10 +47,10 @@ final class OidcClientResolver
         $logPrefix = '[oidc.client.'.$logContext.']';
 
         if (! $site->isVerified()) {
-            Log::warning($logPrefix.' unverified_site', [
+            Log::warning($logPrefix.' unverified_site', SafeLogContext::from([
                 'client_id' => $client->client_id,
                 'site_id' => $site->id,
-            ]);
+            ]));
 
             throw OidcClientException::forbidden('unverified_site', 'unverified_site');
         }
@@ -60,21 +61,21 @@ final class OidcClientResolver
             ->exists();
 
         if (! $hasWebClientMode) {
-            Log::warning($logPrefix.' web_client_mode_required', [
+            Log::warning($logPrefix.' web_client_mode_required', SafeLogContext::from([
                 'client_id' => $client->client_id,
                 'site_id' => $site->id,
-            ]);
+            ]));
 
             throw OidcClientException::forbidden('web_client_mode_required', 'web_client_mode_required');
         }
 
         $redirect = $this->requireExactRedirectUri($client, $redirectUri);
 
-        Log::debug($logPrefix.' completed', [
+        Log::debug($logPrefix.' completed', SafeLogContext::from([
             'client_id' => $client->client_id,
             'site_id' => $site->id,
             'redirect_uri_id' => $redirect->id,
-        ]);
+        ]));
 
         return new ResolvedOidcClient($client, $site, $redirect);
     }
@@ -84,10 +85,10 @@ final class OidcClientResolver
         $isValid = Hash::check($clientSecret, $client->client_secret_hash);
 
         if (! $isValid) {
-            Log::warning('[oidc.client.secret] invalid_secret', [
+            Log::warning('[oidc.client.secret] invalid_secret', SafeLogContext::from([
                 'client_id' => $client->client_id,
                 'site_id' => $client->site_id,
-            ]);
+            ]));
         }
 
         return $isValid;
@@ -102,10 +103,10 @@ final class OidcClientResolver
             ->first();
 
         if ($client === null || $client->isRevoked()) {
-            Log::warning('[oidc.client.resolve] invalid_client', [
+            Log::warning('[oidc.client.resolve] invalid_client', SafeLogContext::from([
                 'client_id' => $clientId,
                 'is_revoked' => $client?->isRevoked(),
-            ]);
+            ]));
 
             throw OidcClientException::unauthorized('invalid_client', 'invalid_client');
         }
@@ -125,11 +126,11 @@ final class OidcClientResolver
             ->first();
 
         if ($redirect === null) {
-            Log::warning('[oidc.client.redirect_uri] mismatch', [
+            Log::warning('[oidc.client.redirect_uri] mismatch', SafeLogContext::from([
                 'client_id' => $client->client_id,
                 'site_id' => $client->site_id,
                 'redirect_uri_hash' => $redirectUriHash,
-            ]);
+            ]));
 
             throw OidcClientException::validation('redirect_uri_mismatch', 'redirect_uri_mismatch');
         }
