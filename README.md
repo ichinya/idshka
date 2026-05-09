@@ -15,7 +15,7 @@ composer install
 docker compose up -d --build
 ```
 
-`compose.yml` runs pending migrations before PHP-FPM starts so `/portal` is not exposed against an empty schema.
+`compose.yml` runs pending migrations before PHP-FPM starts so `/portal` is not exposed against an empty schema. In `APP_ENV=production`, the entrypoint runs `php artisan migrate` without `--force`, leaving Laravel's production confirmation in place.
 
 ### Локально без Docker
 

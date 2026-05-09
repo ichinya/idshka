@@ -46,6 +46,26 @@ class AuthSocialiteFlowTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_authenticated_users_are_not_redirected_to_root_from_guest_auth_routes(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'owner@example.com',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get('/login')
+            ->assertRedirect('/portal');
+
+        $this
+            ->actingAs($user)
+            ->post('/login', [
+                'email' => 'owner@example.com',
+                'password' => 'password',
+            ])
+            ->assertRedirect('/portal');
+    }
+
     public function test_browser_login_form_returns_to_login_with_errors_for_invalid_credentials(): void
     {
         User::factory()->create([

@@ -30,8 +30,14 @@ if [ "$(id -u)" -eq 0 ]; then
   chown -R www-data:www-data storage bootstrap/cache || true
 fi
 
-echo "[FIX:runtime-hardening] running database migrations" >&2
-run_as_app_user php artisan migrate --force
+app_env="${APP_ENV:-local}"
+if [ "$app_env" = "production" ]; then
+  echo "[FIX:runtime-hardening] running database migrations for production runtime without --force" >&2
+  run_as_app_user php artisan migrate
+else
+  echo "[FIX:runtime-hardening] running database migrations for $app_env runtime" >&2
+  run_as_app_user php artisan migrate --no-interaction
+fi
 
 if [ "$(id -u)" -eq 0 ]; then
   echo "[FIX:runtime-hardening] dropping privileges to www-data" >&2

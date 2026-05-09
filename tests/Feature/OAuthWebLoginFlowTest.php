@@ -243,6 +243,52 @@ class OAuthWebLoginFlowTest extends TestCase
         $this->assertSame($expectedQuery, $intendedQuery);
     }
 
+    public function test_guest_authorize_flow_returns_to_client_redirect_uri_after_password_login(): void
+    {
+        $siteOwner = User::factory()->create();
+        $user = User::factory()->create([
+            'email' => 'login-user@example.com',
+        ]);
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [, $challenge] = $this->pkcePair();
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id' => $client->client_id,
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            'scope' => 'openid profile email',
+            'state' => 'state-123',
+            'nonce' => 'nonce-123',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]);
+
+        $authorizeResponse = $this
+            ->get('/oauth/authorize?'.$query)
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended');
+
+        $intendedUrl = (string) $authorizeResponse->baseResponse->getSession()->get('url.intended');
+
+        $this
+            ->post('/login', [
+                'email' => 'login-user@example.com',
+                'password' => 'password',
+            ])
+            ->assertRedirect($intendedUrl);
+
+        $callbackResponse = $this->get($intendedUrl);
+        $callbackResponse->assertRedirect();
+
+        $location = (string) $callbackResponse->headers->get('Location');
+        $this->assertStringStartsWith('https://example.test/auth/idshka/callback?', $location);
+        $redirectQuery = [];
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $redirectQuery);
+
+        $this->assertSame('state-123', $redirectQuery['state']);
+        $this->assertNotEmpty($redirectQuery['code']);
+    }
+
     public function test_authorize_preserves_registered_redirect_uri_query_parameters(): void
     {
         $siteOwner = User::factory()->create();
