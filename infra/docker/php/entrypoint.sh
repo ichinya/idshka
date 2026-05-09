@@ -32,8 +32,8 @@ fi
 
 app_env="${APP_ENV:-local}"
 if [ "$app_env" = "production" ]; then
-  echo "[FIX:runtime-hardening] running database migrations for production runtime without --force" >&2
-  run_as_app_user php artisan migrate
+  echo "[FIX:runtime-hardening] running runtime migrations for production without artisan migrate --force" >&2
+  run_as_app_user php artisan idshka:runtime-migrate --no-interaction
 else
   echo "[FIX:runtime-hardening] running database migrations for $app_env runtime" >&2
   run_as_app_user php artisan migrate --no-interaction

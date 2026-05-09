@@ -17,15 +17,37 @@ final class RuntimeHardeningTest extends TestCase
         $this->assertStringNotContainsString('is_truthy()', $entrypoint);
         $this->assertStringContainsString('app_env="${APP_ENV:-local}"', $entrypoint);
         $this->assertStringNotContainsString('skipping automatic database migrations', $entrypoint);
-        $this->assertStringContainsString('running database migrations for production runtime without --force', $entrypoint);
+        $this->assertStringContainsString('running runtime migrations for production without artisan migrate --force', $entrypoint);
         $this->assertStringContainsString('running database migrations for $app_env runtime', $entrypoint);
         $this->assertMatchesRegularExpression(
-            '/if \[ "\$app_env" = "production" \]; then\R\s+echo .*\R\s+run_as_app_user php artisan migrate\Relse/',
+            '/if \[ "\$app_env" = "production" \]; then\R\s+echo .*\R\s+run_as_app_user php artisan idshka:runtime-migrate --no-interaction\Relse/',
             $entrypoint
         );
+        $this->assertStringContainsString('php artisan idshka:runtime-migrate --no-interaction', $entrypoint);
         $this->assertStringContainsString('php artisan migrate --no-interaction', $entrypoint);
         $this->assertStringNotContainsString('php artisan migrate --force', $entrypoint);
+        $this->assertStringNotContainsString("\n  run_as_app_user php artisan migrate\n", $entrypoint);
         $this->assertStringContainsString('su-exec www-data "$@"', $entrypoint);
+    }
+
+    public function test_runtime_migration_command_uses_migrator_without_artisan_migrate_force(): void
+    {
+        $console = file_get_contents($this->projectPath('routes/console.php'));
+
+        $this->assertIsString($console);
+        $this->assertStringContainsString("Artisan::command('idshka:runtime-migrate", $console);
+        $this->assertStringContainsString('app(Migrator::class)', $console);
+        $this->assertStringContainsString('new BufferedOutput', $console);
+        $this->assertStringContainsString('blocked_destructive_sql', $console);
+        $this->assertStringContainsString('drop\s+(?:database|schema|table|view|materialized\s+view|index|sequence|type|function|procedure|trigger)', $console);
+        $this->assertStringContainsString('drop\s+(?:column|constraint|foreign\s+key|primary\s+key|index)', $console);
+        $this->assertStringNotContainsString('\b(drop|truncate)\b', $console);
+        $this->assertStringContainsString('Production runtime migration blocked: destructive SQL detected', $console);
+        $this->assertStringContainsString("->run(\$paths, [", $console);
+        $this->assertStringContainsString("'pretend' => \$pretend", $console);
+        $this->assertStringContainsString('[FIX:runtime-migrate] started', $console);
+        $this->assertStringContainsString('[FIX:runtime-migrate] completed', $console);
+        $this->assertStringNotContainsString("idshka:runtime-migrate --force", $console);
     }
 
     public function test_compose_waits_for_migrated_app_before_starting_public_nginx(): void
