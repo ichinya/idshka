@@ -125,7 +125,7 @@ final class PortalController extends Controller
         ]));
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.developer.sites.show', $site)
             ->with('portal_notice', 'Site created');
     }
 
@@ -147,7 +147,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.developer.sites.verification.show', $site)
             ->with('portal_notice', $notice);
     }
 
@@ -178,7 +178,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.developer.sites.show', $site)
             ->with('portal_notice', $modeEnum === SiteModeType::ApiResource ? 'API resource enabled' : 'Web client enabled');
     }
 
@@ -226,7 +226,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.account.tokens.index')
             ->with('portal_notice', 'Токен создан')
             ->with('issued_api_token', [
                 'token' => $issued->rawToken,
@@ -256,7 +256,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.account.tokens.index')
             ->with('portal_notice', 'Token revoked');
     }
 
@@ -285,7 +285,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.developer.sites.credentials.index', $issued->client->site_id)
             ->with('portal_notice', 'Client created')
             ->with('issued_client', [
                 'client_id' => $issued->client->client_id,
@@ -318,7 +318,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.developer.sites.redirect-uris.index', $client->site_id)
             ->with('portal_notice', 'Redirect URI added');
     }
 
@@ -338,7 +338,7 @@ final class PortalController extends Controller
         }
 
         return redirect()
-            ->route('portal.dashboard')
+            ->route('portal.developer.sites.credentials.index', $client->site_id)
             ->with('portal_notice', 'Client revoked');
     }
 

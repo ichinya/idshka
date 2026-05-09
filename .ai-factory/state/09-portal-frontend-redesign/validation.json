@@ -1,0 +1,12 @@
+{
+  "change_id": "09-portal-frontend-redesign",
+  "validated_at": "2026-05-09",
+  "command": "openspec validate 09-portal-frontend-redesign --type change --strict --json --no-interactive --no-color",
+  "status": "passed",
+  "summary": {
+    "items": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "issues": []
+}

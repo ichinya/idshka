@@ -7,6 +7,18 @@ use App\Http\Controllers\Auth\SocialiteCallbackController;
 use App\Http\Controllers\Auth\SocialiteLinkRedirectController;
 use App\Http\Controllers\Auth\SocialiteRedirectController;
 use App\Http\Controllers\Auth\SocialiteUnlinkController;
+use App\Http\Controllers\Portal\Account\AccountOverviewController;
+use App\Http\Controllers\Portal\Account\SessionController;
+use App\Http\Controllers\Portal\Account\SocialAccountController;
+use App\Http\Controllers\Portal\Account\UserTokenController;
+use App\Http\Controllers\Portal\Audit\AuditEventController;
+use App\Http\Controllers\Portal\Audit\AuditLogController;
+use App\Http\Controllers\Portal\Developer\DeveloperOverviewController;
+use App\Http\Controllers\Portal\Developer\DeveloperSiteController;
+use App\Http\Controllers\Portal\Developer\IntegrationGuideController;
+use App\Http\Controllers\Portal\Developer\SiteCredentialController;
+use App\Http\Controllers\Portal\Developer\SiteRedirectUriController;
+use App\Http\Controllers\Portal\Developer\SiteVerificationController;
 use App\Http\Controllers\Portal\PortalController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,7 +56,32 @@ Route::middleware('auth:web')
     ->prefix('portal')
     ->name('portal.')
     ->group(function (): void {
-        Route::get('/', [PortalController::class, 'index'])->name('dashboard');
+        Route::redirect('/', '/portal/account')->name('dashboard');
+
+        Route::prefix('account')->name('account.')->group(function (): void {
+            Route::get('/', AccountOverviewController::class)->name('overview');
+            Route::get('/social', SocialAccountController::class)->name('social.index');
+            Route::get('/sessions', SessionController::class)->name('sessions.index');
+            Route::get('/tokens', UserTokenController::class)->name('tokens.index');
+        });
+
+        Route::prefix('developer')->name('developer.')->group(function (): void {
+            Route::get('/', DeveloperOverviewController::class)->name('overview');
+            Route::get('/sites', [DeveloperSiteController::class, 'index'])->name('sites.index');
+            Route::get('/sites/create', [DeveloperSiteController::class, 'create'])->name('sites.create');
+            Route::get('/sites/{site}', [DeveloperSiteController::class, 'show'])->name('sites.show');
+            Route::get('/sites/{site}/verification', [SiteVerificationController::class, 'show'])->name('sites.verification.show');
+            Route::get('/sites/{site}/credentials', [SiteCredentialController::class, 'index'])->name('sites.credentials.index');
+            Route::get('/sites/{site}/redirect-uris', [SiteRedirectUriController::class, 'index'])->name('sites.redirect-uris.index');
+            Route::get('/sites/{site}/gateway', [IntegrationGuideController::class, 'gateway'])->name('sites.gateway');
+            Route::get('/sites/{site}/web-login', [IntegrationGuideController::class, 'webLogin'])->name('sites.web-login');
+        });
+
+        Route::prefix('audit')->name('audit.')->group(function (): void {
+            Route::get('/', [AuditLogController::class, 'index'])->name('index');
+            Route::get('/{event}', [AuditEventController::class, 'show'])->name('show');
+        });
+
         Route::post('/sites', [PortalController::class, 'storeSite'])
             ->middleware('throttle:portal-site-write')
             ->name('sites.store');

@@ -1,0 +1,13 @@
+id: 09-portal-frontend-redesign
+status: planned
+owner: ai-factory
+area:
+  - portal
+  - portal_frontend
+  - laravel
+  - security
+priority: high
+risk: medium
+blocked_by:
+  - red_ci_must_be_investigated
+created_from: user_request

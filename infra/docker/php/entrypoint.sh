@@ -3,6 +3,15 @@ set -eu
 
 cd /var/www/html
 
+run_as_app_user() {
+  if [ "$(id -u)" -eq 0 ]; then
+    su-exec www-data "$@"
+    return $?
+  fi
+
+  "$@"
+}
+
 if [ ! -f .env ] && [ -f .env.example ]; then
   cp .env.example .env
 fi
@@ -16,12 +25,17 @@ if ! grep -q '^APP_KEY=base64:' .env; then
   php artisan key:generate --ansi --force
 fi
 
-mkdir -p storage/logs bootstrap/cache
+mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
 if [ "$(id -u)" -eq 0 ]; then
   chown -R www-data:www-data storage bootstrap/cache || true
-  command_string="$*"
+fi
+
+echo "[FIX:runtime-hardening] running database migrations" >&2
+run_as_app_user php artisan migrate --force
+
+if [ "$(id -u)" -eq 0 ]; then
   echo "[FIX:runtime-hardening] dropping privileges to www-data" >&2
-  exec su -p -s /bin/sh www-data -c "exec $command_string"
+  exec su-exec www-data "$@"
 fi
 
 echo "[FIX:runtime-hardening] running application process without root privileges" >&2

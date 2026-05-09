@@ -1,0 +1,6 @@
+# Optional config patch for .ai-factory/config.yaml
+# Merge manually if portal_frontend area is not registered yet.
+
+rules:
+  areas:
+    portal_frontend: .ai-factory/rules/portal_frontend.md

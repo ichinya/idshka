@@ -13,9 +13,9 @@
 ```bash
 composer install
 docker compose up -d --build
-docker compose exec app php artisan key:generate --ansi --force
-docker compose exec app php artisan migrate
 ```
+
+`compose.yml` runs pending migrations before PHP-FPM starts so `/portal` is not exposed against an empty schema.
 
 ### Локально без Docker
 
