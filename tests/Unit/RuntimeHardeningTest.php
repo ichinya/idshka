@@ -27,6 +27,8 @@ final class RuntimeHardeningTest extends TestCase
         $this->assertIsString($compose);
         $this->assertStringNotContainsString('IDSHKA_AUTORUN_MIGRATIONS', $compose);
         $this->assertStringContainsString('php artisan migrate:status --no-interaction', $compose);
+        $this->assertStringContainsString('timeout: 30s', $compose);
+        $this->assertStringContainsString('start_period: 60s', $compose);
         $this->assertMatchesRegularExpression(
             '/nginx:\R(?:.*\R){1,8}\s+depends_on:\R\s+app:\R\s+condition: service_healthy/',
             $compose
