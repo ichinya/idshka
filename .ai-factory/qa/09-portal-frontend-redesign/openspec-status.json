@@ -1,0 +1,26 @@
+{
+  "changeId": "09-portal-frontend-redesign",
+  "command": "openspec",
+  "args": [
+    "status",
+    "--change",
+    "09-portal-frontend-redesign",
+    "--json",
+    "--no-color"
+  ],
+  "exitCode": 1,
+  "ok": false,
+  "skipped": false,
+  "reason": null,
+  "message": null,
+  "parsedJson": null,
+  "jsonParseError": null,
+  "rawStdoutPath": ".ai-factory/qa/09-portal-frontend-redesign/raw/openspec-status.stdout",
+  "rawStderrPath": ".ai-factory/qa/09-portal-frontend-redesign/raw/openspec-status.stderr",
+  "stdout": "\n",
+  "stderr": "× Error: Invalid change name '09-portal-frontend-redesign': Change name must start with a letter\n",
+  "error": {
+    "code": "non-zero-exit",
+    "message": "OpenSpec command failed with exit code 1."
+  }
+}

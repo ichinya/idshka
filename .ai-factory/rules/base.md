@@ -7,7 +7,7 @@
 ### Language & Style
 - **Primary implementation language:** PHP 8.5 для Laravel 13 modular monolith; фронтенд собирается через Blade/Vite/Tailwind, gateway reference живёт в OpenResty/Nginx + Lua.
 - **Style guide:** Laravel conventions + PSR-12; текст AI Factory/OpenSpec артефактов писать на русском, а классы, роуты, claims, scopes, headers и protocol terms оставлять на английском.
-- **Formatting:** PHP форматировать Laravel Pint (`laravel/pint`); YAML держать с indent 2, кроме compose-файлов с indent 4 по `.editorconfig`.
+- **Formatting:** PHP форматировать Laravel Pint (`laravel/pint`). Для Windows/PowerShell запускать `php vendor/bin/pint ...` или `.\vendor\bin\pint.bat ...`; не вызывать напрямую `vendor/bin/pint`, `vendor\bin\pint` или `.\vendor\bin\pint`. YAML держать с indent 2, кроме compose-файлов с indent 4 по `.editorconfig`.
 
 ### Naming Conventions
 - **Functions/Methods:** `camelCase`, с явным глаголом по доменной операции, например `createSite`, `verifyDomain`, `issueToken`.

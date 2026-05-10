@@ -243,6 +243,114 @@ class OAuthWebLoginFlowTest extends TestCase
         $this->assertSame($expectedQuery, $intendedQuery);
     }
 
+    public function test_login_csp_allows_registered_oauth_redirect_origin_after_guest_authorize_redirect(): void
+    {
+        $siteOwner = User::factory()->create();
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        $redirectUri = 'https://client.example.test:8443/auth/idshka/callback';
+        $this->addRedirectUri($client, $redirectUri);
+        [, $challenge] = $this->pkcePair();
+
+        $this
+            ->get('/oauth/authorize?'.http_build_query([
+                'response_type' => 'code',
+                'client_id' => $client->client_id,
+                'redirect_uri' => $redirectUri,
+                'scope' => 'openid profile email',
+                'state' => 'state-123',
+                'nonce' => 'nonce-123',
+                'code_challenge' => $challenge,
+                'code_challenge_method' => 'S256',
+            ]))
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended');
+
+        $this
+            ->get('/login')
+            ->assertOk()
+            ->assertHeader(
+                'Content-Security-Policy',
+                "default-src 'none'; base-uri 'self'; form-action 'self' https://client.example.test:8443; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self'; connect-src 'self'"
+            );
+    }
+
+    public function test_login_csp_does_not_allow_unregistered_oauth_redirect_origin(): void
+    {
+        $siteOwner = User::factory()->create();
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [, $challenge] = $this->pkcePair();
+
+        $this
+            ->get('/oauth/authorize?'.http_build_query([
+                'response_type' => 'code',
+                'client_id' => $client->client_id,
+                'redirect_uri' => 'https://evil.example.test/auth/idshka/callback',
+                'scope' => 'openid profile email',
+                'state' => 'state-123',
+                'nonce' => 'nonce-123',
+                'code_challenge' => $challenge,
+                'code_challenge_method' => 'S256',
+            ]))
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended');
+
+        $this
+            ->get('/login')
+            ->assertOk()
+            ->assertHeader(
+                'Content-Security-Policy',
+                "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self'; connect-src 'self'"
+            );
+    }
+
+    public function test_guest_authorize_flow_returns_to_client_redirect_uri_after_password_login(): void
+    {
+        $siteOwner = User::factory()->create();
+        $user = User::factory()->create([
+            'email' => 'login-user@example.com',
+        ]);
+        $site = $this->createSite($siteOwner->id, verified: true, webClientMode: true);
+        $client = $this->createClient($site, $siteOwner, clientSecret: 'client-secret-value');
+        [, $challenge] = $this->pkcePair();
+        $query = http_build_query([
+            'response_type' => 'code',
+            'client_id' => $client->client_id,
+            'redirect_uri' => 'https://example.test/auth/idshka/callback',
+            'scope' => 'openid profile email',
+            'state' => 'state-123',
+            'nonce' => 'nonce-123',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]);
+
+        $authorizeResponse = $this
+            ->get('/oauth/authorize?'.$query)
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('url.intended');
+
+        $intendedUrl = (string) $authorizeResponse->baseResponse->getSession()->get('url.intended');
+
+        $this
+            ->post('/login', [
+                'email' => 'login-user@example.com',
+                'password' => 'password',
+            ])
+            ->assertRedirect($intendedUrl);
+
+        $callbackResponse = $this->get($intendedUrl);
+        $callbackResponse->assertRedirect();
+
+        $location = (string) $callbackResponse->headers->get('Location');
+        $this->assertStringStartsWith('https://example.test/auth/idshka/callback?', $location);
+        $redirectQuery = [];
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $redirectQuery);
+
+        $this->assertSame('state-123', $redirectQuery['state']);
+        $this->assertNotEmpty($redirectQuery['code']);
+    }
+
     public function test_authorize_preserves_registered_redirect_uri_query_parameters(): void
     {
         $siteOwner = User::factory()->create();

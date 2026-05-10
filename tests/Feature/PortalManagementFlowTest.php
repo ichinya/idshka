@@ -13,6 +13,7 @@ use App\Domain\Sites\Models\SiteVerification;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -25,14 +26,27 @@ class PortalManagementFlowTest extends TestCase
         $owner = User::factory()->create();
         $this->app->make(SigningKeyService::class)->createActiveKey();
 
-        $dashboard = $this->actingAs($owner)->get('/portal');
+        $this
+            ->actingAs($owner)
+            ->get('/portal')
+            ->assertRedirect('/portal/account');
+
+        $dashboard = $this->actingAs($owner)->get('/portal/account');
 
         $dashboard
             ->assertOk()
-            ->assertSee('Мои сайты')
-            ->assertSee('API tokens')
-            ->assertSee('Web clients')
-            ->assertSee('Audit');
+            ->assertSee('Account')
+            ->assertSee('Social accounts')
+            ->assertSee('Active API tokens')
+            ->assertSee('Connected sites');
+
+        $this
+            ->actingAs($owner)
+            ->get('/portal/developer')
+            ->assertOk()
+            ->assertSee('Developer')
+            ->assertSee('Connected sites')
+            ->assertSee('Active clients');
 
         $createSite = $this
             ->actingAs($owner)
@@ -96,7 +110,7 @@ class PortalManagementFlowTest extends TestCase
 
         $this
             ->actingAs($owner)
-            ->get('/portal')
+            ->get('/portal/account/tokens')
             ->assertOk()
             ->assertDontSee($rawToken, false);
 
@@ -125,7 +139,7 @@ class PortalManagementFlowTest extends TestCase
 
         $this
             ->actingAs($owner)
-            ->get('/portal')
+            ->get("/portal/developer/sites/{$site->id}/credentials")
             ->assertOk()
             ->assertSee($client->client_id)
             ->assertDontSee($rawSecret, false);
@@ -140,7 +154,7 @@ class PortalManagementFlowTest extends TestCase
             ->assertSee('Redirect URI added')
             ->assertSee('https://example.test/auth/idshka/tenant/callback');
 
-        $auditPage = $this->actingAs($owner)->get('/portal');
+        $auditPage = $this->actingAs($owner)->get('/portal/audit');
 
         $auditPage
             ->assertOk()
@@ -219,11 +233,11 @@ class PortalManagementFlowTest extends TestCase
     public function test_portal_web_client_form_uses_owner_site_for_default_redirect_uri(): void
     {
         $owner = User::factory()->create();
-        $this->createVerifiedSite($owner, 'chat.ie0.ru', 'Chat');
+        $site = $this->createVerifiedSite($owner, 'chat.ie0.ru', 'Chat');
 
         $this
             ->actingAs($owner)
-            ->get('/portal')
+            ->get("/portal/developer/sites/{$site->id}/credentials")
             ->assertOk()
             ->assertSee('value="https://chat.ie0.ru/auth/idshka/callback"', false)
             ->assertSee('placeholder="https://chat.ie0.ru/auth/idshka/callback"', false)
@@ -248,7 +262,7 @@ class PortalManagementFlowTest extends TestCase
 
         $response = $this
             ->actingAs($owner)
-            ->get('/portal');
+            ->get('/portal/account/tokens');
 
         $response
             ->assertOk()
@@ -257,17 +271,9 @@ class PortalManagementFlowTest extends TestCase
         $html = $response->getContent();
         $this->assertIsString($html);
 
-        $apiTokenHeading = strpos($html, 'API tokens');
-        $webClientHeading = strpos($html, 'Web clients');
-
-        $this->assertIsInt($apiTokenHeading);
-        $this->assertIsInt($webClientHeading);
-
-        $apiTokenSection = substr($html, $apiTokenHeading, $webClientHeading - $apiTokenHeading);
-
-        $this->assertStringContainsString('value="'.$apiResourceSite->id.'"', $apiTokenSection);
-        $this->assertStringContainsString('chat.ie0.ru', $apiTokenSection);
-        $this->assertStringNotContainsString('value="'.$webClientOnlySite->id.'"', $apiTokenSection);
+        $this->assertStringContainsString('value="'.$apiResourceSite->id.'"', $html);
+        $this->assertStringContainsString('chat.ie0.ru', $html);
+        $this->assertStringNotContainsString('value="'.$webClientOnlySite->id.'"', $html);
     }
 
     public function test_portal_can_issue_api_token_with_custom_or_no_expiration(): void
@@ -377,6 +383,57 @@ class PortalManagementFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Client secret')
             ->assertSee('https://localhost:8443/auth/idshka/callback');
+    }
+
+    public function test_portal_duplicate_site_race_returns_form_error(): void
+    {
+        config(['sites.allow_loopback_domains' => true]);
+
+        $owner = User::factory()->create();
+        $inserted = false;
+
+        DB::listen(function (object $query) use (&$inserted, $owner): void {
+            if ($inserted) {
+                return;
+            }
+
+            if (
+                ! str_contains($query->sql, 'from "sites"')
+                || ! str_contains($query->sql, '"owner_user_id"')
+                || ! str_contains($query->sql, '"normalized_domain"')
+            ) {
+                return;
+            }
+
+            $inserted = true;
+
+            DB::table('sites')->insert([
+                'id' => 'site_race_duplicate',
+                'owner_user_id' => $owner->id,
+                'display_name' => 'Existing Local',
+                'domain' => 'https://localhost:8443/',
+                'normalized_domain' => 'localhost',
+                'verification_status' => SiteVerificationStatus::Pending->value,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        $this
+            ->actingAs($owner)
+            ->from('/portal/developer/sites/create')
+            ->post('/portal/sites', [
+                'domain' => 'https://localhost:8443/',
+                'display_name' => 'Local HTTPS Client',
+            ])
+            ->assertRedirect('/portal/developer/sites/create')
+            ->assertSessionHasErrors('domain');
+
+        $this->assertDatabaseCount('sites', 1);
+        $this->assertDatabaseHas('sites', [
+            'owner_user_id' => $owner->id,
+            'normalized_domain' => 'localhost',
+        ]);
     }
 
     public function test_portal_still_shows_one_time_client_secret_when_oidc_audit_recording_fails(): void

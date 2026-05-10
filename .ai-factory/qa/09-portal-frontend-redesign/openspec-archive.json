@@ -1,0 +1,45 @@
+{
+  "changeId": "09-portal-frontend-redesign",
+  "archived": true,
+  "skipSpecs": false,
+  "command": "openspec",
+  "args": [
+    "archive",
+    "09-portal-frontend-redesign",
+    "--yes",
+    "--no-color"
+  ],
+  "exitCode": 0,
+  "ok": true,
+  "status": "PASS",
+  "preArchiveStatus": {
+    "ok": false,
+    "command": "openspec",
+    "args": [
+      "status",
+      "--change",
+      "09-portal-frontend-redesign",
+      "--json",
+      "--no-color"
+    ],
+    "exitCode": 1,
+    "json": null,
+    "stdout": "\n",
+    "stderr": "× Error: Invalid change name '09-portal-frontend-redesign': Change name must start with a letter\n",
+    "error": {
+      "code": "non-zero-exit",
+      "message": "OpenSpec command failed with exit code 1."
+    }
+  },
+  "rawStdoutPath": ".ai-factory/qa/09-portal-frontend-redesign/raw/openspec-archive.stdout",
+  "rawStderrPath": ".ai-factory/qa/09-portal-frontend-redesign/raw/openspec-archive.stderr",
+  "error": null,
+  "warnings": [
+    {
+      "code": "openspec-status-unavailable",
+      "message": "OpenSpec status was unavailable before archive; archive result is still authoritative.",
+      "detail": "OpenSpec command failed with exit code 1."
+    }
+  ],
+  "errors": []
+}

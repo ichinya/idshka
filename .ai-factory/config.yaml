@@ -62,4 +62,5 @@ rules:
   portal: .ai-factory/rules/portal.md
   security: .ai-factory/rules/security.md
   ops: .ai-factory/rules/ops.md
+  portal_frontend: .ai-factory/rules/portal_frontend.md
 agent_profile: default

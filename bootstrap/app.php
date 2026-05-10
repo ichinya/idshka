@@ -33,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'throttle.oauth-authorize' => ThrottleOAuthAuthorizeRequests::class,
         ]);
+        $middleware->redirectUsersTo(fn (): string => route('portal.dashboard'));
         $middleware->prependToPriorityList(AuthenticatesRequests::class, ThrottleOAuthAuthorizeRequests::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

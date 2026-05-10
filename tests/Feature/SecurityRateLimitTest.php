@@ -119,7 +119,7 @@ final class SecurityRateLimitTest extends TestCase
                 'name' => 'Example Web',
                 'redirect_uri' => 'https://example.test/auth/idshka/callback',
             ])
-            ->assertRedirect('/portal');
+            ->assertRedirect("/portal/developer/sites/{$site->id}/credentials");
 
         /** @var OidcClient $client */
         $client = OidcClient::query()->where('owner_user_id', $owner->id)->firstOrFail();
@@ -169,7 +169,7 @@ final class SecurityRateLimitTest extends TestCase
             ->post("/portal/sites/{$firstSite->id}/verify", [
                 'method' => SiteVerificationMethod::File->value,
             ])
-            ->assertRedirect('/portal');
+            ->assertRedirect("/portal/developer/sites/{$firstSite->id}/verification");
 
         $this->assertSame(SiteVerificationStatus::Verified->value, $firstSite->refresh()->verification_status);
 
@@ -226,7 +226,7 @@ final class SecurityRateLimitTest extends TestCase
             ->post("/portal/api-tokens/{$tokens[0]->id}/revoke", [
                 'confirm' => 'revoke',
             ])
-            ->assertRedirect('/portal');
+            ->assertRedirect('/portal/account/tokens');
 
         $this->assertNotNull($tokens[0]->refresh()->revoked_at);
 

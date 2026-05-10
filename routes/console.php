@@ -6,6 +6,7 @@ use App\Domain\Issuer\Exceptions\SigningKeyStateException;
 use App\Domain\Issuer\Services\SigningKeyService;
 use App\Support\SafeLogContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -13,10 +14,98 @@ use Illuminate\Support\Str;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+$containsDestructiveMigrationSql = static function (string $sql): bool {
+    return preg_match(<<<'REGEX'
+~
+    \btruncate\b
+    |\bdelete\s+from\b
+    |\bdrop\s+(?:database|schema|table|view|materialized\s+view|index|sequence|type|function|procedure|trigger)\b
+    |\balter\s+table\b[^\n;]*\bdrop\s+(?:column|constraint|foreign\s+key|primary\s+key|index)\b
+~ix
+REGEX, $sql) === 1;
+};
+
+Artisan::command('idshka:runtime-migrate
+    {--database= : The database connection to use}
+    {--pretend : Dump the SQL queries that would be run}', function () use ($containsDestructiveMigrationSql) {
+    /** @var Migrator $migrator */
+    $migrator = app(Migrator::class);
+    $database = (string) ($this->option('database') ?? '');
+    $database = $database === '' ? null : $database;
+    $pretend = (bool) $this->option('pretend');
+    $paths = array_merge($migrator->paths(), [database_path('migrations')]);
+    $isProduction = app()->environment('production');
+
+    Log::info('[FIX:runtime-migrate] started', SafeLogContext::from([
+        'database' => $database ?? 'default',
+        'pretend' => $pretend,
+        'production' => $isProduction,
+    ]));
+
+    $ran = $migrator->usingConnection($database, function () use ($migrator, $database, $paths, $pretend, $isProduction, $containsDestructiveMigrationSql): ?array {
+        if (! $migrator->repositoryExists()) {
+            $this->components->info('Preparing database.');
+
+            $installed = $this->callSilent('migrate:install', array_filter([
+                '--database' => $database,
+            ], static fn ($value): bool => $value !== null));
+
+            if ($installed !== 0) {
+                Log::error('[FIX:runtime-migrate] migration_repository_install_failed', SafeLogContext::from([
+                    'database' => $database ?? 'default',
+                ]));
+
+                throw new RuntimeException('Migration repository installation failed.');
+            }
+        }
+
+        if ($isProduction && ! $pretend) {
+            $preview = new BufferedOutput;
+            $migrator
+                ->setOutput($preview)
+                ->run($paths, [
+                    'pretend' => true,
+                    'step' => false,
+                ]);
+
+            if ($containsDestructiveMigrationSql($preview->fetch())) {
+                Log::error('[FIX:runtime-migrate] blocked_destructive_sql', SafeLogContext::from([
+                    'database' => $database ?? 'default',
+                ]));
+
+                $this->error('Production runtime migration blocked: destructive SQL detected in pending migrations.');
+
+                return null;
+            }
+        }
+
+        return $migrator
+            ->setOutput($this->output)
+            ->run($paths, [
+                'pretend' => $pretend,
+                'step' => false,
+            ]);
+    });
+
+    if ($ran === null) {
+        return 1;
+    }
+
+    Log::info('[FIX:runtime-migrate] completed', SafeLogContext::from([
+        'database' => $database ?? 'default',
+        'pretend' => $pretend,
+        'production' => $isProduction,
+        'migrations_count' => count($ran),
+    ]));
+
+    return 0;
+})->purpose('Run runtime migrations from containers without Laravel production --force confirmation.');
 
 Artisan::command('idshka:keys:status', function () {
     /** @var SigningKeyService $signingKeyService */
