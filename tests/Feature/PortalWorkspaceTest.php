@@ -12,9 +12,14 @@ use App\Domain\Sites\Enums\SiteVerificationStatus;
 use App\Domain\Sites\Models\Site;
 use App\Domain\Sites\Models\SiteMode;
 use App\Domain\Sites\Models\SiteVerification;
+use App\Http\Controllers\Portal\Account\SessionController;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Session\ArraySessionHandler;
+use Illuminate\Session\Store;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class PortalWorkspaceTest extends TestCase
@@ -111,6 +116,55 @@ final class PortalWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('site.connected')
             ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false);
+    }
+
+    public function test_account_sessions_skip_database_listing_for_non_database_session_store(): void
+    {
+        config(['session.driver' => 'redis']);
+        $owner = User::factory()->create();
+        $request = Request::create('/portal/account/sessions');
+        $request->setUserResolver(static fn (): User => $owner);
+        $request->setLaravelSession(new Store('test-session', new ArraySessionHandler(120)));
+        $queries = [];
+
+        DB::listen(static function ($query) use (&$queries): void {
+            $queries[] = $query->sql;
+        });
+
+        $view = app(SessionController::class)($request);
+        $data = $view->getData();
+
+        $this->assertSame('redis', $data['sessionStore']);
+        $this->assertFalse($data['sessionsAreEnumerable']);
+        $this->assertCount(0, $data['sessions']);
+        $this->assertFalse(collect($queries)->contains(
+            static fn (string $sql): bool => str_contains(strtolower($sql), 'sessions')
+        ));
+    }
+
+    public function test_audit_to_filter_includes_events_through_selected_day(): void
+    {
+        $owner = User::factory()->create();
+        $site = $this->createVerifiedSiteWithModes($owner, 'apishka.ru', [SiteModeType::ApiResource]);
+        $this->createAuditEvent($owner, $site, [
+            'category' => 'site',
+            'action' => 'site.inside_day',
+            'summary' => 'Inside selected day',
+            'occurred_at' => '2026-05-09 23:59:59',
+        ]);
+        $this->createAuditEvent($owner, $site, [
+            'category' => 'site',
+            'action' => 'site.after_day',
+            'summary' => 'After selected day',
+            'occurred_at' => '2026-05-10 00:00:01',
+        ]);
+
+        $this
+            ->actingAs($owner)
+            ->get('/portal/audit?to=2026-05-09')
+            ->assertOk()
+            ->assertSee('Inside selected day')
+            ->assertDontSee('After selected day');
     }
 
     public function test_developer_site_and_audit_detail_pages_are_owner_scoped(): void
@@ -243,7 +297,7 @@ final class PortalWorkspaceTest extends TestCase
     }
 
     /**
-     * @param  array{category: string, action: string, summary: string, metadata?: array<string, mixed>}  $attributes
+     * @param  array{category: string, action: string, summary: string, metadata?: array<string, mixed>, occurred_at?: mixed}  $attributes
      */
     private function createAuditEvent(User $user, Site $site, array $attributes): AuditEvent
     {
@@ -255,7 +309,7 @@ final class PortalWorkspaceTest extends TestCase
             'action' => $attributes['action'],
             'summary' => $attributes['summary'],
             'metadata' => $attributes['metadata'] ?? ['site_id' => $site->id],
-            'occurred_at' => now(),
+            'occurred_at' => $attributes['occurred_at'] ?? now(),
         ]);
 
         return $event;

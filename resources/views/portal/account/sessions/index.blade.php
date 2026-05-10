@@ -16,7 +16,11 @@
             </div>
             <div>
                 <dt class="text-zinc-600">Tracked sessions</dt>
-                <dd class="font-medium">{{ $sessions->count() }}</dd>
+                <dd class="font-medium">{{ $sessionsAreEnumerable ? $sessions->count() : 'Not listed' }}</dd>
+            </div>
+            <div>
+                <dt class="text-zinc-600">Session store</dt>
+                <dd class="font-medium">{{ $sessionStore }}</dd>
             </div>
         </dl>
     @endcomponent
@@ -35,7 +39,9 @@
             @empty
                 @include('portal.components.empty-state', [
                     'title' => 'No stored sessions',
-                    'text' => 'The current session is active. Additional database session rows will appear here when available.',
+                    'text' => $sessionsAreEnumerable
+                        ? 'The current session is active. Additional database session rows will appear here when available.'
+                        : 'The current session is active. This session store does not expose a safe session listing.',
                 ])
             @endforelse
         </div>
